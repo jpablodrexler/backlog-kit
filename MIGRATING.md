@@ -49,7 +49,8 @@ Run these from a clean working tree, on a branch.
    - A manifest or index of skills (pablo-web's `skills-docs-sync/manifest.json`) lists the removed skills: update it.
    - README/CHANGELOG mentions are history; leave them or reword.
 
-6. **Verify** (see below), commit, and merge as you would any change.
+6. **Get the migration into `develop` before the first real run.** `feature-development` and `bug-fix` cut their branch from `develop` (through `gitflow`). If the migration only exists on its own branch, the new branch will not have it: the kit's skills and your `.backlog-kit/` files disappear from disk and the old skills come back, so the run no longer tests the kit. Either merge the migration into `develop` first, or, to try it before merging, cut the work branch yourself from the migration branch and pass `--skip-branch-setup` (`bug-fix BUG-097 --skip-branch-setup`). `migrate_check.py` section 6 warns about this.
+7. **Verify** (see below), commit, and merge as you would any change.
 
 ## What behaves differently
 

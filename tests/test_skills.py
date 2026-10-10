@@ -307,3 +307,12 @@ class MigrateCheck(unittest.TestCase):
             self.assertIn('backlog_dir = "sub/docs/backlog"', out)
             self.assertIn("feature/: 1 file(s)", out)
             self.assertIn("bug/: 0 file(s)", out)
+            self.assertIn("## 6. Base branch", out)
+            self.assertIn("no local develop branch", out)
+            g("commit", "-q", "-m", "x")
+            g("branch", "develop")
+            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
+            self.assertIn("develop contains .backlog-kit/", out)
+            g("rm", "-rq", ".backlog-kit"); g("commit", "-q", "-m", "y"); g("branch", "-f", "develop")
+            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
+            self.assertIn("WARNING develop does not contain .backlog-kit/", out)

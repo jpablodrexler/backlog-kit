@@ -9,7 +9,8 @@ It changes nothing. It reports, for the repository at <repo-root>:
   2. which other tracked files still mention a skill that would be deleted (to review before deleting);
   3. where the backlog lives and the `.backlog-kit.toml` that points to it, if one is needed;
   4. which `.backlog-kit/` folders exist and how many files each holds;
-  5. whether OpenSpec's folder is there (feature-development needs it).
+  5. whether OpenSpec's folder is there (feature-development needs it);
+  6. whether `develop` already contains `.backlog-kit/` (the pipelines cut their branches from it).
 MIGRATING.md explains how to act on each section.
 """
 import re
@@ -109,6 +110,17 @@ def main():
 
     print("\n## 5. OpenSpec")
     print("- openspec/ present" if (root / "openspec").is_dir() else "- openspec/ not found: feature-development needs the OpenSpec CLI and openspec/changes")
+
+    print("\n## 6. Base branch")
+    if gitread.ok(root, "rev-parse", "--verify", "--quiet", "develop"):
+        if gitread.ok(root, "rev-parse", "--verify", "--quiet", "develop:.backlog-kit"):
+            print("- develop contains .backlog-kit/: feature and fix branches cut from it will have your phase files")
+        else:
+            print("- WARNING develop does not contain .backlog-kit/ yet. feature-development and bug-fix cut their branch from develop,\n"
+                  "  so on that branch the kit's skills and your phase files are gone (the old skills come back). Merge the migration\n"
+                  "  into develop first, or start from a branch cut from the migration and pass --skip-branch-setup.")
+    else:
+        print("- no local develop branch: gitflow will create it from main on first use")
 
 
 if __name__ == "__main__":
