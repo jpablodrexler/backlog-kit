@@ -71,7 +71,7 @@ Save, and **confirm the save succeeded** before step 7.
 
 Keep the `## Dependencies` header even if it empties.
 
-### 7b. Clear stale "blocked on" notes from the order list
+### 7b. Tidy the order list
 
 Order-list entries carry free text such as ``- `playlist-unmatched-entries-log` (#2) — P3, blocked on #1 (logs its names), small``. Once #1 is archived that note is wrong. After step 7 is saved, run:
 
@@ -79,7 +79,7 @@ Order-list entries carry free text such as ``- `playlist-unmatched-entries-log` 
 python3 scripts/clean_order_notes.py <repo-root>
 ```
 
-It removes the `blocked on/by #N` clause (with its parenthetical) for every prerequisite now in `features-implemented.md`, keeps any prerequisite that is still pending, touches nothing else, and prints what it changed. Mention each change in the report. It is idempotent; `--dry-run` previews. Don't hand-edit the list instead — the script is the single place that decides what counts as a stale note.
+It also restores the `_None yet._` placeholder when archiving emptied the list (an empty section with no placeholder looks truncated). It removes the `blocked on/by #N` clause (with its parenthetical) for every prerequisite now in `features-implemented.md`, keeps any prerequisite that is still pending, touches nothing else, and prints what it changed. Mention each change in the report. It is idempotent; `--dry-run` previews. Don't hand-edit the list instead — the script is the single place that decides what counts as a stale note.
 
 ### 8. Report
 

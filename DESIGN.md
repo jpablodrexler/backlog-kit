@@ -146,3 +146,13 @@ Repo root is both a Claude Code plugin (`.claude-plugin/plugin.json`) and a one-
 ## Stale "blocked on #N" order notes (0.1.3)
 
 Found in dogfood run 2: after feature #1 was archived, the order-list bullet for #2 still read "blocked on #1". `features-archive` fixed the dependency blocks but never the free text in the Recommended implementation order. Now `scripts/clean_order_notes.py` (archive step 7b) removes the shipped prerequisites from "blocked on/by" clauses, keeps unshipped ones, and is idempotent; `features-status` reports any such note as a data-integrity warning (so notes left by hand edits or older versions surface too). The clause grammar is deliberately narrow (`blocked on|by` followed by `#N` / `` `name` (#N) `` items) so it never rewrites other prose.
+
+## Findings from a real install test (0.1.4)
+
+Reviewing `backlog-kit-test` (a repo where the plugin was installed and two features and one bug were run end to end) showed:
+
+- **Config and tables out of step.** `spec.workflow = "openspec"` was set, but `features-planned.md` had been created without the `SDD Artifacts` column. A row drafted for the configured header landed in the wrong columns (Brief = "⬜ Pending"), and nothing named the cause. `scaffold.py` now reports `planned_header_mismatch` and repairs it with `--fix-header` (lossless, both directions); `features-status` reports the mismatch.
+- **Features archived with no spec.** Both features were archived as implemented under `openspec` with no spec change, no `[spec]` link and no initialized `openspec/` project at the time. `feature-development` now stops with `PLAN_BLOCKED` if the OpenSpec project folder is missing, and `features-status` lists implemented features without a `[spec]` link (informational, since it is expected for features finished before adoption).
+- **Empty order list lost its placeholder.** Archiving the last planned feature left the Recommended implementation order with no `_None yet._`, unlike the bug side. `clean_order_notes.py` restores it.
+
+What worked: the bug-fix cycle (report, regression test, fix, review report, archive, Resolution line) left a consistent backlog, and the review reports were written under `docs/reports/review/`.

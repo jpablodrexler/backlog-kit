@@ -28,6 +28,8 @@ python3 scripts/scaffold.py <repo-root>
 
 Idempotent: it creates `features-planned.md` and `features-implemented.md` (with the table headers and a Column legend generated from the config) only where missing and reports what it created. Never invent a different structure by hand.
 
+If the output has `planned_header_mismatch`, the existing `features-planned.md` was created under a different `spec.workflow` than the one now configured (the `SDD Artifacts` column is missing or extra), and a row drafted for the configured header would land in the wrong columns. Say so in one line, run `python3 scripts/scaffold.py <repo-root> --fix-header` (lossless: it adds a `⬜ Pending` cell per existing row, or drops the column), and carry on. Mention the repair in the final report.
+
 Then read both files. They're needed to pick a non-colliding number and name and to draft values consistent with existing rows.
 
 ### 3. Derive the change name and the next number

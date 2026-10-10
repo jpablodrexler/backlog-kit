@@ -6,9 +6,15 @@ headers and Column legend generated from .backlog-kit.toml (so the file's
 legend and the scripts' vocabulary can never disagree). Idempotent: an
 existing file is never touched.
 
+If an existing features-planned.md has a table header that disagrees with `spec.workflow`
+(an `SDD Artifacts` column present under "none", or missing under "openspec" — e.g. the
+config was changed after the file was created) it is reported as `planned_header_mismatch`,
+because a new row built for the configured header would land in the wrong columns. Pass
+`--fix-header` to repair it losslessly (adds a `⬜ Pending` cell per row, or drops the column).
+
 Usage:
-    python3 scaffold.py <repo-root>
-Prints JSON: {"created": [...], "existing": [...]}
+    python3 scaffold.py <repo-root> [--fix-header]
+Prints JSON: {"created": [...], "existing": [...], "planned_header_mismatch": {...}?, "header_fixed": {...}?}
 """
 import sys
 from pathlib import Path
@@ -70,9 +76,11 @@ def implemented_md(cfg):
 
 
 def main():
-    if len(sys.argv) != 2:
+    args = [a for a in sys.argv[1:] if a != "--fix-header"]
+    fix_header = "--fix-header" in sys.argv[1:]
+    if len(args) != 1:
         raise SystemExit(__doc__)
-    root = sys.argv[1]
+    root = args[0]
     cfg = bk.load_config(root)
     p = bk.Paths(root, cfg)
     created, existing = [], []
@@ -84,7 +92,15 @@ def main():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
         created.append(str(path.relative_to(p.root)))
-    bk.emit({"created": created, "existing": existing})
+    out = {"created": created, "existing": existing}
+    found = bk.planned_header_found(p.features_planned)
+    want = bk.planned_header(cfg)
+    if found is not None and found != want:
+        if fix_header:
+            out["header_fixed"] = bk.migrate_planned_header(p.features_planned, cfg)
+        else:
+            out["planned_header_mismatch"] = {"expected": want, "found": found}
+    bk.emit(out)
 
 
 if __name__ == "__main__":

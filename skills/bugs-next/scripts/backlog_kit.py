@@ -152,6 +152,61 @@ def planned_header(cfg):
     return cols
 
 
+def planned_header_found(path):
+    """The header cells of the table under `## Feature List` in features-planned.md, or None."""
+    lines = read_lines(path)
+    table = find_table(lines, "## Feature List") if lines is not None else None
+    return table[0] if table else None
+
+
+def migrate_planned_header(path, cfg):
+    """Add or drop the `SDD Artifacts` column so the table matches `spec.workflow`.
+
+    Lossless: an added cell reads `⬜ Pending` (no spec artifacts yet), a dropped one is just
+    removed. Only rows whose cell count matches the old header are rewritten. Returns
+    {"changed": bool, "rows": n, "skipped": [line numbers]}; writes atomically.
+    """
+    import os
+    lines = read_lines(path)
+    want = planned_header(cfg)
+    start = next((i for i, ln in enumerate(lines or []) if ln.strip() == "## Feature List"), None)
+    if start is None:
+        return {"changed": False, "rows": 0, "skipped": []}
+    h = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("|")), None)
+    if h is None:
+        return {"changed": False, "rows": 0, "skipped": []}
+    old = split_row(lines[h])
+    if old == want:
+        return {"changed": False, "rows": 0, "skipped": []}
+    if "SDD Artifacts" in old:
+        col, adding = old.index("SDD Artifacts"), False
+    elif "SDD Artifacts" in want:
+        col, adding = want.index("SDD Artifacts"), True
+    else:
+        return {"changed": False, "rows": 0, "skipped": [], "note": "headers differ in more than the SDD column"}
+    def fmt(cells):
+        return "| " + " | ".join(cells) + " |"
+    def convert(cells, fill="⬜ Pending"):
+        return cells[:col] + [fill] + cells[col:] if adding else cells[:col] + cells[col + 1:]
+    new_header = convert(old, "SDD Artifacts")
+    lines[h] = fmt(new_header)
+    lines[h + 1] = "| " + " | ".join("-" * max(3, len(c)) for c in new_header) + " |"
+    rows, skipped = 0, []
+    i = h + 2
+    while i < len(lines) and lines[i].lstrip().startswith("|"):
+        cells = split_row(lines[i])
+        if len(cells) == len(old):
+            lines[i] = fmt(convert(cells))
+            rows += 1
+        else:
+            skipped.append(i + 1)
+        i += 1
+    tmp = Path(path).with_suffix(".md.tmp")
+    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+    return {"changed": True, "rows": rows, "skipped": skipped}
+
+
 IMPLEMENTED_HEADER = ["#", "Change name", "Priority", "Effort", "Area", "Details"]
 
 

@@ -277,3 +277,89 @@ _None yet._
         self.assertEqual(again["changed"], [])
         self.assertFalse(again["written"])
         self.assertEqual(run("f_status", self.root, "--json")["stale_order_notes"], [])
+
+
+class OrderPlaceholder(unittest.TestCase):
+    def test_emptied_order_list_gets_its_placeholder_back_once(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            bl = root / "docs/backlog"
+            bl.mkdir(parents=True)
+            (bl / "features-planned.md").write_text(
+                "# Planned Features\n\n## Feature List\n\n| # | Change name | Priority | Effort | Area | Implementation | Summary | Brief |\n"
+                "| - | - | - | - | - | - | - | - |\n\n## Dependencies\n\n### Recommended implementation order\n\nNot a schedule.\n")
+            (bl / "features-implemented.md").write_text("# Implemented Features\n\n## Feature List\n\n| # | Change name | Priority | Effort | Area | Details |\n| - | - | - | - | - | - |\n")
+            script = KIT / "skills/features-archive/scripts/clean_order_notes.py"
+            first = json.loads(subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout)
+            self.assertTrue(first["placeholder_restored"] and first["written"])
+            text = (bl / "features-planned.md").read_text()
+            self.assertTrue(text.rstrip().endswith("Not a schedule.\n\n_None yet._"), text)
+            second = json.loads(subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout)
+            self.assertFalse(second["placeholder_restored"] or second["written"])
+
+
+class SpecWorkflowHeaderMismatch(unittest.TestCase):
+    """Found reviewing a real test repo: openspec configured, planned table created without `SDD Artifacts`."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        bl = self.root / "docs/backlog"
+        (bl / "features").mkdir(parents=True)
+        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "openspec"\n')
+        (bl / "features-planned.md").write_text(
+            "# Planned Features\n\n## Feature List\n\n"
+            "| # | Change name | Priority | Effort | Area | Implementation | Summary | Brief |\n"
+            "| --- | --- | --- | --- | --- | --- | --- | --- |\n"
+            "| 5 | `old-one` | P3 | S | Backend | ⬜ Pending | does a thing | [brief](features/005-old-one.md) |\n\n"
+            "## Dependencies\n")
+        (bl / "features/005-old-one.md").write_text("# Feature 5 — old-one\n\nx\n")
+        (bl / "features-implemented.md").write_text(
+            "# Implemented Features\n\n## Feature List\n\n| # | Change name | Priority | Effort | Area | Details |\n| --- | --- | --- | --- | --- | --- |\n"
+            "| 1 | `done` | P3 | S | Backend | [brief](features/001-done.md) |\n")
+        (bl / "features/001-done.md").write_text("# Feature 1 — done\n\nx\n")
+        self.scaffold = KIT / "skills/feature-plan/scripts/scaffold.py"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def scaf(self, *extra):
+        return json.loads(subprocess.run([sys.executable, str(self.scaffold), str(self.root), *extra],
+                                         capture_output=True, text=True, check=True).stdout)
+
+    def test_scaffold_reports_the_mismatch_without_touching_the_file(self):
+        before = (self.root / "docs/backlog/features-planned.md").read_text()
+        out = self.scaf()
+        self.assertEqual(out["planned_header_mismatch"]["found"].count("SDD Artifacts"), 0)
+        self.assertIn("SDD Artifacts", out["planned_header_mismatch"]["expected"])
+        self.assertEqual((self.root / "docs/backlog/features-planned.md").read_text(), before)
+
+    def test_status_names_the_mismatch_and_the_missing_spec_links(self):
+        text = run("f_status", self.root, as_json=False)
+        self.assertIn("does not match `spec.workflow`", text)
+        self.assertIn("--fix-header", text)
+        self.assertIn("#1 done", text)                      # implemented without a [spec] link
+        self.assertIn("openspec", text)                     # no openspec/ folder
+
+    def test_fix_header_is_lossless_and_idempotent(self):
+        out = self.scaf("--fix-header")
+        self.assertEqual(out["header_fixed"]["rows"], 1)
+        text = (self.root / "docs/backlog/features-planned.md").read_text()
+        self.assertIn("| # | Change name | Priority | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |", text)
+        self.assertIn("| 5 | `old-one` | P3 | S | Backend | ⬜ Pending | ⬜ Pending | does a thing | [brief](features/005-old-one.md) |", text)
+        self.assertNotIn("planned_header_mismatch", self.scaf())
+        self.assertEqual(run("f_status", self.root, "--json")["header_mismatch"], None)
+        ranked = run("f_rank", self.root, "--json")
+        self.assertEqual(ranked["top"]["brief_file"], "docs/backlog/features/005-old-one.md")
+
+    def test_fix_header_also_drops_the_column_when_workflow_is_none(self):
+        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "none"\n')
+        self.scaf("--fix-header")                            # nothing to do: header has no SDD column and none wanted
+        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "openspec"\n')
+        self.scaf("--fix-header")
+        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "none"\n')
+        self.assertIn("planned_header_mismatch", self.scaf())
+        self.scaf("--fix-header")
+        text = (self.root / "docs/backlog/features-planned.md").read_text()
+        self.assertNotIn("SDD Artifacts", text)
+        self.assertIn("| 5 | `old-one` | P3 | S | Backend | ⬜ Pending | does a thing | [brief](features/005-old-one.md) |", text)

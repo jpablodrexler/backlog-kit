@@ -53,7 +53,7 @@ def compute(root):
         "priority_breakdown": {k: 0 for k in f["priorities"] + ["none"]},
         "effort_breakdown": {k: 0 for k in f["efforts"] + ["none"]},
         "spec_ready": 0, "pending_rows": [],
-        "duplicate_numbers": [], "stale_dependency_notes": [], "stale_order_notes": [],
+        "duplicate_numbers": [], "stale_dependency_notes": [], "stale_order_notes": [], "header_mismatch": None, "openspec_missing": False, "openspec_dir": "", "implemented_without_spec": [],
         "leftover_implemented_in_planned": [],
         "missing_feature_files": [], "orphan_feature_files": [], "bad_feature_headings": [],
         "bad_planned_summaries": [], "missing_brief_links": [], "missing_spec_targets": [],
@@ -111,6 +111,21 @@ def compute(root):
                 r["stale_dependency_notes"].append({
                     "heading": f"Feature {m.group(1)} → Feature {m.group(2)}",
                     "note": m.group(3).strip(), "file": label})
+
+    if use_spec:
+        found = bk.planned_header_found(p.features_planned)
+        want = bk.planned_header(cfg)
+        if found is not None and found != want:
+            r["header_mismatch"] = {"expected": want, "found": found}
+        spec_dir = (Path(root) / cfg["spec"]["changes_dir"]).parent
+        r["openspec_dir"] = str(spec_dir.relative_to(Path(root))) if spec_dir != Path(root) else "."
+        r["openspec_missing"] = not spec_dir.is_dir()
+        for row in impl_rows:
+            if not SPEC_LINK_RE.search(row.get("Details", "")):
+                r["implemented_without_spec"].append(
+                    f"#{row.get('#', '').strip()} {bk.strip_backticks(row.get('Change name', ''))}")
+    elif bk.planned_header_found(p.features_planned) not in (None, bk.planned_header(cfg)):
+        r["header_mismatch"] = {"expected": bk.planned_header(cfg), "found": bk.planned_header_found(p.features_planned)}
 
     planned_lines = bk.read_lines(p.features_planned) or []
     bounds = bk.order_section_bounds(planned_lines)
@@ -215,6 +230,19 @@ def render(r, cfg_rel_backlog):
     issues += [f"- ⚠ Stale note in the Recommended implementation order (features-planned.md line {d['line']}): "
                f"\"{d['note']}\" names a prerequisite that has already shipped. Run "
                f"`python3 ../features-archive/scripts/clean_order_notes.py <repo-root>` (or edit the entry)." for d in r["stale_order_notes"]]
+    if r["header_mismatch"]:
+        h = r["header_mismatch"]
+        issues.append("- ⚠ The features-planned.md table header does not match `spec.workflow` "
+                      f"(has: {' | '.join(h['found'])}; expected: {' | '.join(h['expected'])}). Rows added for the "
+                      "configured header would land in the wrong columns — run `feature-plan`'s "
+                      "`scripts/scaffold.py <repo-root> --fix-header` to repair it.")
+    if r["openspec_missing"]:
+        issues.append("- ⚠ `spec.workflow` is \"openspec\" but the OpenSpec folder "
+                      f"({r['openspec_dir']}/) does not exist — run `openspec init`; features archived now would have no spec.")
+    if r["implemented_without_spec"]:
+        issues.append("- ℹ Implemented without a `[spec]` link although `spec.workflow` is \"openspec\": "
+                      + ", ".join(r["implemented_without_spec"])
+                      + " (expected for features finished before OpenSpec was adopted; otherwise they were archived with no spec change).")
     issues += [f"- ⚠ {x} has a table row but no {bl}/features/{x} file." for x in r["missing_feature_files"]]
     issues += [f"- ⚠ {bl}/features/{x} exists but its feature has no row in either table." for x in r["orphan_feature_files"]]
     issues += [f"- ⚠ {bl}/features/{b['file']} does not start with `{b['expected']}`." for b in r["bad_feature_headings"]]

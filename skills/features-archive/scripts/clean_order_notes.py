@@ -11,11 +11,15 @@ the "blocked on/by" clause, and only for prerequisites listed in features-implem
 Usage:
     python3 clean_order_notes.py <repo-root> [--dry-run]
 
-Prints JSON: {"changed": [{"line": n, "before": "...", "after": "..."}], "written": bool}.
-Idempotent: a second run changes nothing.
+Prints JSON: {"changed": [{"line": n, "before": "...", "after": "..."}],
+               "placeholder_restored": bool, "written": bool}.
+It also restores the `_None yet._` placeholder when the list has no entries left (archiving
+the last planned feature empties it, and an empty section with no placeholder is easy to
+mistake for a truncated file). Idempotent: a second run changes nothing.
 """
 import argparse
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -25,6 +29,9 @@ for _cand in (_here.parent, _here.parents[3] / "lib"):
         sys.path.insert(0, str(_cand))
         break
 import backlog_kit as bk
+
+
+PLACEHOLDER = "_None yet._"
 
 
 def main():
@@ -38,7 +45,7 @@ def main():
     implemented = {r.get("#", "").strip() for r in impl_rows if r.get("#", "").strip()}
     lines = bk.read_lines(p.features_planned)
     if lines is None:
-        bk.emit({"changed": [], "written": False, "note": "features-planned.md not found"})
+        bk.emit({"changed": [], "placeholder_restored": False, "written": False, "note": "features-planned.md not found"})
         return
     bounds = bk.order_section_bounds(lines)
     changed = []
@@ -48,13 +55,23 @@ def main():
             if new != lines[i]:
                 changed.append({"line": i + 1, "before": lines[i], "after": new})
                 lines[i] = new
-    written = bool(changed) and not a.dry_run
+    restored = False
+    if bounds:
+        start, end = bounds
+        section = lines[start:end]
+        if not any(re.match(r"^\s*-\s", ln) for ln in section) and not any(ln.strip() == PLACEHOLDER for ln in section):
+            idx = end
+            while idx > start and lines[idx - 1].strip() == "":
+                idx -= 1
+            lines[idx:idx] = ["", PLACEHOLDER]
+            restored = True
+    written = (bool(changed) or restored) and not a.dry_run
     if written:
         text = "\n".join(lines) + "\n"
         tmp = Path(p.features_planned).with_suffix(".md.tmp")
         tmp.write_text(text, encoding="utf-8")
         os.replace(tmp, p.features_planned)
-    bk.emit({"changed": changed, "written": written})
+    bk.emit({"changed": changed, "placeholder_restored": restored, "written": written})
 
 
 if __name__ == "__main__":
