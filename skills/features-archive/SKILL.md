@@ -71,6 +71,16 @@ Save, and **confirm the save succeeded** before step 7.
 
 Keep the `## Dependencies` header even if it empties.
 
+### 7b. Clear stale "blocked on" notes from the order list
+
+Order-list entries carry free text such as ``- `playlist-unmatched-entries-log` (#2) — P3, blocked on #1 (logs its names), small``. Once #1 is archived that note is wrong. After step 7 is saved, run:
+
+```
+python3 scripts/clean_order_notes.py <repo-root>
+```
+
+It removes the `blocked on/by #N` clause (with its parenthetical) for every prerequisite now in `features-implemented.md`, keeps any prerequisite that is still pending, touches nothing else, and prints what it changed. Mention each change in the report. It is idempotent; `--dry-run` previews. Don't hand-edit the list instead — the script is the single place that decides what counts as a stale note.
+
 ### 8. Report
 
 ```
@@ -80,6 +90,7 @@ Archived N feature(s):
 - #<n> `<name>` — moved to features-implemented.md (Details: brief[ + spec] link)
 
 Dependency/implementation note blocks moved: <count>
+Order-list notes cleared: <count> (<entry>: removed "blocked on #N …")
 ```
 
 ---
@@ -91,5 +102,5 @@ Dependency/implementation note blocks moved: <count>
 - Only the row moves. The brief file is never copied, moved or edited.
 - A dependency block's "still pending" status is judged against `IMPLEMENTED_SET`, never this run's selection alone — and for `A → B`, by B only.
 - If a selected number doesn't exist in the planned file, report it and continue with the rest.
-- Preserve exact table formatting in both files; keep section headers intact — only add or remove rows and note blocks.
+- Preserve exact table formatting in both files; keep section headers intact — only add or remove rows and note blocks, plus step 7b's removal of shipped "blocked on" clauses from order-list bullets.
 - **Never run `git commit`, `git push` or open a PR.** This skill never writes code or runs tests; it only moves rows between markdown files.

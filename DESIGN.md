@@ -142,3 +142,7 @@ Repo root is both a Claude Code plugin (`.claude-plugin/plugin.json`) and a one-
 ## `--all` ordering (0.1.2)
 
 `--all` used to follow the Recommended order list verbatim, so a stale or hand-reordered list could run a P3 before a P1. It now uses the same ranking as the `*-next` skills; the list only breaks ties and a disagreement is reported as a warning. A named `--ids` list is still run exactly as given. `order_basis` is now `severity` (bugs) or `priority` (features).
+
+## Stale "blocked on #N" order notes (0.1.3)
+
+Found in dogfood run 2: after feature #1 was archived, the order-list bullet for #2 still read "blocked on #1". `features-archive` fixed the dependency blocks but never the free text in the Recommended implementation order. Now `scripts/clean_order_notes.py` (archive step 7b) removes the shipped prerequisites from "blocked on/by" clauses, keeps unshipped ones, and is idempotent; `features-status` reports any such note as a data-integrity warning (so notes left by hand edits or older versions surface too). The clause grammar is deliberately narrow (`blocked on|by` followed by `#N` / `` `name` (#N) `` items) so it never rewrites other prose.

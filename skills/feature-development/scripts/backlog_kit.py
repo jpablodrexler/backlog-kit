@@ -289,6 +289,53 @@ def hard_dependencies(lines):
     return deps
 
 
+# --- free-text "blocked on #N" notes in the Recommended implementation order --------------------
+
+_ITEM = r"(?:`[^`]+`\s*\(#\d+\)|#\d+)"
+BLOCKED_NOTE_RE = re.compile(
+    rf"(?P<lead>,?\s*)\bblocked (?P<prep>on|by) (?P<items>{_ITEM}(?:\s*(?:,|and|&)\s*{_ITEM})*)(?P<paren>\s*\([^)]*\))?",
+    re.IGNORECASE)
+ORDER_HEADING = "### Recommended implementation order"
+
+
+def clean_blocked_notes(line, implemented):
+    """Drop prerequisites that have shipped from a "blocked on #N" note in one order-list bullet.
+
+    `implemented` is the set of implemented feature numbers (strings). A note whose prerequisites
+    have all shipped is removed with its explanatory parenthetical; a note that still has an
+    unshipped prerequisite keeps only those (its parenthetical is dropped, since it may describe a
+    shipped one). Returns the new line, or `line` unchanged.
+    """
+    def repl(m):
+        nums = re.findall(r"#(\d+)", m.group("items"))
+        remaining = [n for n in nums if n not in implemented]
+        if len(remaining) == len(nums):
+            return m.group(0)
+        if not remaining:
+            return ""
+        return f"{m.group('lead')}blocked {m.group('prep')} " + ", ".join(f"#{n}" for n in remaining)
+
+    new = BLOCKED_NOTE_RE.sub(repl, line)
+    if new == line:
+        return line
+    new = re.sub(r"(—|-)\s*,\s*", r"\1 ", new)          # "— , small" left by removing the first clause
+    new = re.sub(r"\s*(?:,|—|-)\s*$", "", new)             # nothing left after a trailing separator
+    return re.sub(r"[ \t]{2,}", " ", new).rstrip()
+
+
+def order_section_bounds(lines):
+    """(start, end) line indexes of the bullets under the order heading, or None."""
+    start = next((i for i, ln in enumerate(lines) if ln.strip() == ORDER_HEADING), None)
+    if start is None:
+        return None
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        if re.match(r"^#{1,3} ", lines[i]):
+            end = i
+            break
+    return start + 1, end
+
+
 def emit(obj):
     print(json.dumps(obj, indent=2))
 

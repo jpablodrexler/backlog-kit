@@ -53,7 +53,7 @@ def compute(root):
         "priority_breakdown": {k: 0 for k in f["priorities"] + ["none"]},
         "effort_breakdown": {k: 0 for k in f["efforts"] + ["none"]},
         "spec_ready": 0, "pending_rows": [],
-        "duplicate_numbers": [], "stale_dependency_notes": [],
+        "duplicate_numbers": [], "stale_dependency_notes": [], "stale_order_notes": [],
         "leftover_implemented_in_planned": [],
         "missing_feature_files": [], "orphan_feature_files": [], "bad_feature_headings": [],
         "bad_planned_summaries": [], "missing_brief_links": [], "missing_spec_targets": [],
@@ -111,6 +111,15 @@ def compute(root):
                 r["stale_dependency_notes"].append({
                     "heading": f"Feature {m.group(1)} → Feature {m.group(2)}",
                     "note": m.group(3).strip(), "file": label})
+
+    planned_lines = bk.read_lines(p.features_planned) or []
+    bounds = bk.order_section_bounds(planned_lines)
+    for i in range(*bounds) if bounds else ():
+        cleaned = bk.clean_blocked_notes(planned_lines[i], implemented_numbers)
+        if cleaned != planned_lines[i]:
+            m = bk.BLOCKED_NOTE_RE.search(planned_lines[i])
+            r["stale_order_notes"].append({"line": i + 1, "note": m.group(0).strip(" ,") if m else "",
+                                           "entry": planned_lines[i].strip()})
 
     check_feature_files(p, planned_rows, impl_rows, r)
     return r
@@ -203,6 +212,9 @@ def render(r, cfg_rel_backlog):
     issues += [f"- ⚠ Duplicate feature number {n}." for n in r["duplicate_numbers"]]
     issues += [f"- ⚠ Stale dependency note \"{d['heading']}\": all referenced features are already implemented, "
                f"but it's still annotated \"{d['note']}\" in {d['file']}." for d in r["stale_dependency_notes"]]
+    issues += [f"- ⚠ Stale note in the Recommended implementation order (features-planned.md line {d['line']}): "
+               f"\"{d['note']}\" names a prerequisite that has already shipped. Run "
+               f"`python3 ../features-archive/scripts/clean_order_notes.py <repo-root>` (or edit the entry)." for d in r["stale_order_notes"]]
     issues += [f"- ⚠ {x} has a table row but no {bl}/features/{x} file." for x in r["missing_feature_files"]]
     issues += [f"- ⚠ {bl}/features/{x} exists but its feature has no row in either table." for x in r["orphan_feature_files"]]
     issues += [f"- ⚠ {bl}/features/{b['file']} does not start with `{b['expected']}`." for b in r["bad_feature_headings"]]

@@ -196,3 +196,84 @@ class AdrNumbering(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OrderNoteCleanup(unittest.TestCase):
+    """Stale free-text "blocked on #N" notes in the Recommended implementation order."""
+
+    PLANNED = """# Planned Features
+
+## Feature List
+
+| # | Change name | Priority | Effort | Area | Implementation | Summary | Brief |
+| - | ----------- | -------- | ------ | ---- | -------------- | ------- | ----- |
+| 2 | `log` | P3 | S | Backend | ⬜ Pending | s | [brief](features/002-log.md) |
+| 3 | `dash` | P3 | M | Full-stack | ⬜ Pending | s | [brief](features/003-dash.md) |
+| 4 | `multi` | P3 | M | Backend | ⬜ Pending | s | [brief](features/004-multi.md) |
+
+## Dependencies
+
+### Hard implementation dependencies
+
+_None yet._
+
+### Recommended implementation order
+
+- `log` (#2) — P3, blocked on #1 (logs the names its resolver produces), small
+- `dash` (#3) — blocked on #1, P3, medium
+- `multi` (#4) — P3, blocked on #1 and #3 (needs both), medium
+- `other` (#9) — P3, blocked on #8, small
+"""
+    IMPL = """# Implemented Features
+
+## Feature List
+
+| # | Change name | Priority | Effort | Area | Details |
+| - | ----------- | -------- | ------ | ---- | ------- |
+| 1 | `resolver` | P2 | S | Backend | [brief](features/001-resolver.md) |
+"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        bl = self.root / "docs/backlog"
+        bl.mkdir(parents=True)
+        (bl / "features-planned.md").write_text(self.PLANNED)
+        (bl / "features-implemented.md").write_text(self.IMPL)
+        self.script = KIT / "skills/features-archive/scripts/clean_order_notes.py"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def clean(self, *extra):
+        out = subprocess.run([sys.executable, str(self.script), str(self.root), *extra], capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        return json.loads(out.stdout)
+
+    def text(self):
+        return (self.root / "docs/backlog/features-planned.md").read_text()
+
+    def test_status_flags_the_stale_notes_before_cleanup(self):
+        out = run("f_status", self.root, "--json")
+        notes = out["stale_order_notes"]
+        self.assertEqual(len(notes), 3)
+        self.assertTrue(all("blocked" in n["note"] for n in notes))
+
+    def test_removes_shipped_prerequisites_and_nothing_else(self):
+        res = self.clean()
+        self.assertTrue(res["written"])
+        t = self.text()
+        self.assertIn("- `log` (#2) — P3, small\n", t)
+        self.assertIn("- `dash` (#3) — P3, medium\n", t)
+        self.assertIn("- `multi` (#4) — P3, blocked on #3, medium\n", t)       # #3 still pending, kept
+        self.assertIn("- `other` (#9) — P3, blocked on #8, small\n", t)        # unrelated note untouched
+        self.assertEqual(t.split("### Recommended")[0], self.PLANNED.split("### Recommended")[0])
+
+    def test_is_idempotent_and_dry_run_writes_nothing(self):
+        self.assertFalse(self.clean("--dry-run")["written"])
+        self.assertEqual(self.text(), self.PLANNED)
+        self.clean()
+        again = self.clean()
+        self.assertEqual(again["changed"], [])
+        self.assertFalse(again["written"])
+        self.assertEqual(run("f_status", self.root, "--json")["stale_order_notes"], [])
