@@ -46,11 +46,12 @@ def main():
             print(json.dumps({"error": f"git fetch origin --prune failed: {e}"}))
             return
 
-    local_patterns = [f"{p}/*" for p in PREFIXES]
-    remote_patterns = [f"origin/{p}/*" for p in PREFIXES]
+    local_patterns = [f"refs/heads/{p}/" for p in PREFIXES]
+    remote_patterns = [f"refs/remotes/origin/{p}/" for p in PREFIXES]
 
-    local_raw = run(root, "branch", "--list", *local_patterns, "--format=%(refname:short)")
-    remote_raw = run(root, "branch", "-r", "--list", *remote_patterns, "--format=%(refname:short)")
+    # for-each-ref instead of `git branch --list <patterns>`: the allowlisted reader does not take patterns.
+    local_raw = run(root, "for-each-ref", "--format=%(refname:short)", *local_patterns)
+    remote_raw = run(root, "for-each-ref", "--format=%(refname:short)", *remote_patterns)
 
     local_branches = {b for b in local_raw.splitlines() if b.strip()}
     remote_branches = {b[len("origin/"):] for b in remote_raw.splitlines() if b.strip() and b.startswith("origin/")}
