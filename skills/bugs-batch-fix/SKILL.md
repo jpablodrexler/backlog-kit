@@ -37,7 +37,7 @@ After `bug-fix <id> --skip-branch-setup --confirmed` returns:
 
 ## Final report
 
-When the run ends, show the counts from `batch_report.py finish` plus, for each bug, its status and summary. Then say plainly: **nothing was committed**; every closed bug's fix and regression test sits uncommitted on the shared branch — review with `git status` / `git diff`, then commit and open the PR yourself (or, if `[git] finish_skill` is set in `.backlog-kit.toml`, say the branch can be handed to that skill; never invoke it yourself).
+When the run ends, show the counts from `batch_report.py finish` plus, for each bug, its status and summary. Then say plainly: **nothing was committed**; every closed bug's fix and regression test sits uncommitted on the shared branch — review with `git status` / `git diff`, then ask for `gitflow` (the skill named by `[git] finish_skill`, default `gitflow`; empty means do it by hand): its `commit` and `finish` actions commit the work and open the PR after asking; say so by name and never invoke it yourself.
 
 ## Guardrails (bug-specific; the rest are in `reference/batch-runner.md`)
 

@@ -112,7 +112,7 @@ Do not show the final summary until the bug is closed. After `CLOSE: DONE`, spot
 **Docs:** <one line, or "nothing to sync" / "no sync skill configured">
 **Bug:** ✓ closed — moved to bugs-fixed.md
 
-Nothing was committed. The fix and its regression test are on `<branch>`, uncommitted. Review with `git status` / `git diff`, then commit and open the PR yourself — or, if `[git] finish_skill` is set in `.backlog-kit.toml`, hand the branch to that skill (say so by name; never invoke it yourself).
+Nothing was committed. The fix and its regression test are on `<branch>`, uncommitted. Review with `git status` / `git diff`, then ask for `gitflow` — the skill named by `[git] finish_skill` (default `gitflow`; empty means do it by hand): its `commit` and `finish` actions commit the work and open the PR after asking you. Say so by name; never invoke it yourself.
 ```
 
 ## Guardrails (this skill's own; the shared ones are in `reference/pipeline-guardrails.md`)

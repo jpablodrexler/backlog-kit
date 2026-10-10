@@ -181,3 +181,13 @@ Question raised: by the time the user says "finish a feature", `feature-developm
 What changed: an optional `[git] finish_skill` in `.backlog-kit.toml`. When set, the hand-off message names that skill ("hand the branch to `gitflow`'s finish action") instead of the generic "commit and open the PR yourself". The kit only names it; it never invokes it.
 
 Open trade-off, deliberately accepted: a spec change archived before human review is already synced into `openspec/specs/` if the review then rejects the work. The archive can be reverted with plain git before anything is committed.
+
+## `gitflow` joins the plugin (0.2.0)
+
+Why: the loop the kit exists for is plan → select → branch → develop and verify → commit → PR → review → merge → clean up → select the next item. With no skill for the two ends, the workflow was cut exactly where work gets published (and the "finish" confusion in 0.1.7 was a symptom). pablo-web and jp-photo-manager both have a `gitflow` skill for this; the kit now ships a generalized one.
+
+What it is: `skills/gitflow` with five actions — `start feature|fix`, `sync`, `commit`, `finish` (push + open the PR), `cleanup` — driven by `[git] base_branch / feature_prefix / fix_prefix`. Read-only facts come from `lib/flow_plan.py` (the commit's files with secrets flagged, what a PR would contain including the backlog items it finishes and the review reports, which branches look merged); every write is done by the skill and preceded by a yes. Left out on purpose: `release` / `hotfix` (version bump, changelog, E2E gate are project-specific; a project can still point `[git] finish_skill` at its own skill), and merging (always the human's).
+
+The public promise changed accordingly, as decided by the owner: "Nothing is committed, pushed or opened as a PR unless you ask for it." The work skills and batch runners are unchanged (they still never write beyond branch switching and fast-forwards, and the lint tests still require the canonical sentence in each of them). `gitflow` is the only skill exempt from it, carries its own stricter sentence, and a test fails if any other skill is described as able to invoke it. The default `[git] finish_skill` is now `gitflow`, so the work skills' hand-off message names it.
+
+Follow-up for the owner: ADR 0032 in pablo-web records the old promise ("never commits"); it deserves a short superseding ADR.

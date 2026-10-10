@@ -126,7 +126,7 @@ A `CLOSE_BLOCKED` means the feature is implemented and tested but **not archived
 **Docs:** <one line, or "nothing to sync" / "no sync skill configured">
 **Archive:** ✓ <spec change archived;> feature marked implemented
 
-Nothing was committed. The work is on `<branch>`, uncommitted. Review with `git status` / `git diff`, then commit and open the PR yourself — or, if `[git] finish_skill` is set in `.backlog-kit.toml`, hand the branch to that skill (say so by name; never invoke it yourself).
+Nothing was committed. The work is on `<branch>`, uncommitted. Review with `git status` / `git diff`, then ask for `gitflow` — the skill named by `[git] finish_skill` (default `gitflow`; empty means do it by hand): its `commit` and `finish` actions commit the work and open the PR after asking you. Say so by name; never invoke it yourself.
 ```
 
 ## Guardrails (this skill's own; the shared ones are in `reference/pipeline-guardrails.md`)

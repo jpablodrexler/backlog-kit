@@ -89,7 +89,7 @@ Whether the loop finished or stopped early:
 python3 <scripts>/batch_report.py finish <report>
 ```
 
-It appends the Run Summary footer (requested / done / cannot-reproduce / blocked-or-skipped / not reached, and an end time). Then tell the user plainly, in chat: **nothing was committed at any point.** The branch holds every finished item's work — code, tests and any review reports — entirely uncommitted. Point them at `git status` / `git diff` to review and say they can commit and open a PR themselves (or, if `[git] finish_skill` is set in `.backlog-kit.toml`, that they can hand the branch to that skill by name — never invoke it); this runner does neither.
+It appends the Run Summary footer (requested / done / cannot-reproduce / blocked-or-skipped / not reached, and an end time). Then tell the user plainly, in chat: **nothing was committed at any point.** The branch holds every finished item's work — code, tests and any review reports — entirely uncommitted. Point them at `git status` / `git diff` to review and tell them to ask for `gitflow` (the skill named by `[git] finish_skill`, default `gitflow`; empty means by hand) to commit and open the PR after asking them — name it, never invoke it; this runner does neither.
 
 ## The report
 

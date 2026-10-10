@@ -68,7 +68,7 @@ DEFAULTS = {
         "base_branch": "",
         "feature_prefix": "feature/",
         "fix_prefix": "fix/",
-        "finish_skill": "",
+        "finish_skill": "gitflow",
     },
     "work": {
         # Rounds of review-and-fix per review before the run stops and asks a human.

@@ -44,8 +44,27 @@ class SkillLint(unittest.TestCase):
         for d in SKILLS:
             with self.subTest(skill=d.name):
                 text = (d / "SKILL.md").read_text()
+                if d.name == "gitflow":      # the one skill that writes to git, and only when asked
+                    continue
                 self.assertIn("**Never run `git commit`, `git push` or open a PR.**", text,
                               "every skill must carry the canonical no-commit promise verbatim")
+
+    def test_gitflow_is_the_only_writer_and_only_when_asked(self):
+        text = (KIT / "skills/gitflow/SKILL.md").read_text()
+        self.assertIn("**Only run a git write the user asked for in this invocation and confirmed.**", text)
+        self.assertIn("Every git write here needs a yes", text)
+        self.assertIn("no other backlog-kit skill commits", text.replace("No other", "no other"))
+        for forbidden in ("gh pr merge", "--force", "--no-verify", "rebase"):
+            self.assertIn(forbidden, text)          # named only to forbid; check each is in a prohibition line
+            for ln in [l for l in text.splitlines() if forbidden in l]:
+                self.assertRegex(ln.lower(), r"never|not|no |refuse|don't|stop", ln)
+        # no other skill may mention being able to invoke it
+        for d in SKILLS:
+            if d.name == "gitflow":
+                continue
+            body = (d / "SKILL.md").read_text()
+            for ln in [l for l in body.splitlines() if "`gitflow`" in l]:
+                self.assertRegex(ln, r"never invoke it", f"{d.name}: {ln[:80]}")
 
     def test_only_gitread_may_shell_out(self):
         # Scripts that can shell out could run git write commands and break the promise.
@@ -210,5 +229,5 @@ class FinishSkillPointerTest(unittest.TestCase):
     def test_finish_skill_is_a_documented_default(self):
         sys.path.insert(0, str(self.ROOT / "lib"))
         import backlog_kit
-        self.assertEqual(backlog_kit.load_config(self.ROOT)["git"]["finish_skill"], "")
+        self.assertEqual(backlog_kit.load_config(self.ROOT)["git"]["finish_skill"], "gitflow")
         self.assertIn("finish_skill", (self.ROOT / "backlog-kit.example.toml").read_text(encoding="utf-8"))

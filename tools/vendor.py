@@ -24,14 +24,15 @@ WORK = ["bug-fix", "feature-development"]                         # also need gi
 BATCH = ["bugs-batch-fix", "features-batch-development"]          # loop over WORK skills; need list/report/branch helpers
 
 LIB_FOR = {
-    "backlog_kit.py": CORE + WORK + BATCH + ["features-archive"],
-    "gitread.py": WORK + BATCH,
-    "branch_state.py": WORK + BATCH,
+    "backlog_kit.py": CORE + WORK + BATCH + ["features-archive", "gitflow"],
+    "gitread.py": WORK + BATCH + ["gitflow"],
+    "branch_state.py": WORK + BATCH + ["gitflow"],
     "work_scope.py": WORK + BATCH,
     "detect_gates.py": WORK,
     "batch_plan.py": BATCH,
     "batch_report.py": BATCH,
     "clean_order_notes.py": ["features-archive"],
+    "flow_plan.py": ["gitflow"],
     "dep_scan.py": ["feature-plan", "features-status", "feature-development"],
 }
 
