@@ -4,7 +4,7 @@ sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>
 sub: docs/reports => <reports>
 
-PARAM | name: spec-compliance-check description: > Verifies that a fully-imple | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: spec-compliance-check description: > Verifies that a fully-imple | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 PARAM | Read every file under `openspec/changes/<name>/specs/**/spec.md` (a ch | second project's variant of this text; the kit follows the first project
 PARAM | - **WHEN** <action — usually a specific API call or UI interaction> | second project's variant of this text; the kit follows the first project
 PARAM | Build a flat list of every Scenario across every spec file for this ch | second project's variant of this text; the kit follows the first project

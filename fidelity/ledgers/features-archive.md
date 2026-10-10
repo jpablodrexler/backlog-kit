@@ -2,7 +2,7 @@ kit: skills/features-archive
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 
-PARAM | name: features-archive description: Mark features as implemented in <b | description: the project paths become 'the backlog's' files; `author` removed (the plugin manifest carries it), `version` is the kit's
+PARAM | name: features-archive description: Mark features as implemented in <b | description: the project paths become 'the backlog's' files; `version` is the kit's
 PARAM | d. **Fallback**: if no matches are found (all archived SDD changes eit | the second project's note about 'the size of this backlog' is project-specific; kit uses the first project's generic wording
 PARAM | In the `<backlog>/features-planned.md` table find the matching row: fo | first project's example change name and the added brief-file check are kept (the second project's text lacks the check)
 PARAM | Copy the full table row (the `¦` delimited line) for each selected fea | planned and implemented column lists follow the kit's skeleton (D12): planned `... Area | SDD Artifacts | Implementation | Summary | Brief`, implemented `... Area | Details`
@@ -19,7 +19,7 @@ PARAM | - **If an equivalent block already exists here** (a prior archive run | 
 PARAM | 2. Delete the dependency/note blocks extracted in step 5 — but **only | example of a multi-feature heading made generic; annotation per D17
 PARAM | - **The rewrite happens in step 4's in-memory copy, not in `<backlog>/ | implemented row shape named per D12 (without SDD Artifacts/Implementation/Summary/Brief)
 PARAM | - The **Priority**, **Schema Change**, **Effort**, and **Area** column | `SDD Artifacts` is dropped with the other planned-only cells (D12); the second project's note about older rows showing `—` is project history and is dropped
-PARAM | name: features-archive description: Mark features as implemented in <b #2 | description: the project paths become 'the backlog's' files; `author` removed (the plugin manifest carries it), `version` is the kit's
+PARAM | name: features-archive description: Mark features as implemented in <b #2 | description: the project paths become 'the backlog's' files; `version` is the kit's
 PARAM | d. **Fallback**: if no matches are found (all archived SDD changes eit #2 | the second project's note about 'the size of this backlog' is project-specific; kit uses the first project's generic wording
 PARAM | In the `<backlog>/features-planned.md` table find the matching row: fo #2 | first project's example change name and the added brief-file check are kept (the second project's text lacks the check)
 PARAM | Copy the full table row (the `¦` delimited line) for each selected fea #2 | planned and implemented column lists follow the kit's skeleton (D12): planned `... Area | SDD Artifacts | Implementation | Summary | Brief`, implemented `... Area | Details`

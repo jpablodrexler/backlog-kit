@@ -16,6 +16,7 @@ description: >
   (§12).
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

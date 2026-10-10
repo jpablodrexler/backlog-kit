@@ -4,7 +4,7 @@ sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>
 sub: docs/reports => <reports>
 
-PARAM | name: security-reviewer description: > Security review skill for the J | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: security-reviewer description: > Security review skill for the J | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 DROPPED | Review code in the JPPhotoManager project for security vulnerabilities | second project's variant of this text; the kit follows the first project
 PARAM | 1. Identify the **scope**: a full-codebase sweep of the whole web appl | second project's variant of this text; the kit follows the first project
 PARAM | - **Scoped review** → follow steps 2–7 below as a single pass, produci | second project's variant of this text; the kit follows the first project
@@ -165,7 +165,7 @@ DROPPED | 7. If fixing one finding incidentally resolves another still-unchecked
 DROPPED | After finishing the selected scope, run the widest verification availa | second project's variant of this text; the kit follows the first project
 DROPPED | - If the current report still has unchecked findings, repeat from §9.2 | second project's variant of this text; the kit follows the first project
 DROPPED | - If the current report is now fully checked off, go back to §9.1 — re | second project's variant of this text; the kit follows the first project
-PARAM | name: security-reviewer description: > Security review skill for pablo | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: security-reviewer description: > Security review skill for pablo | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 DROPPED | Review code in the pablo-web project for security vulnerabilities, sen | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
 PARAM | 1. Identify the **scope**: a full-codebase sweep of the whole frontend | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
 DROPPED | 2. Scan for dependency changes (`frontend/package.json`, root `package | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)

@@ -3,6 +3,7 @@ name: product-scope-roaster
 description: Deliberately harsh, non-technical product-management review of the project's whole feature scope, shipped and planned, read from the backlog files (and an optional product description) in the voice of a skeptical senior product owner who ignores the implementation. Is this a product a real user enjoys, or an inventory of buildable capabilities? Finds features to merge, features to split, gaps in an area's story and cross-feature inconsistencies. No praise section, no hedging, never opens source files. Writes one dated report. Advice only. TRIGGER when the user asks for a product review, scope review, feature audit or product-owner critique, to "roast the roadmap/backlog", whether features overlap or should merge or split, or what is missing from the feature set.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

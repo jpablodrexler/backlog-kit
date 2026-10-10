@@ -81,7 +81,7 @@ PARAM | 4. Update any repository tests whose expectations depended on the old | 
 PARAM | - `**Evaluated, no change made:** <rationale>` — for findings where th | second project's variant of this text; the kit follows the first project
 PARAM | 6. If fixing one finding incidentally resolves another still-unchecked | second project's variant of this text; the kit follows the first project
 DROPPED | After finishing the selected scope, run the widest verification availa | second project's variant of this text; the kit follows the first project
-DROPPED | name: database-reviewer description: > Database review skill for the p | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: database-reviewer description: > Database review skill for the p | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
 DROPPED | Review the PostgreSQL schema of the pablo-web Supabase project: migrat | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
 PARAM | 1. Identify the **scope**: a full audit of every migration under `supa | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
 DROPPED | 2. Read every migration file in scope **in filename order** (`{YYYYMMD | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)

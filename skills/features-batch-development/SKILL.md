@@ -13,6 +13,7 @@ description: >-
   I'm away", "develop the whole planned backlog unattended").
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

@@ -16,6 +16,7 @@ description: >-
   develop into a topic branch is redirected to the Sync action.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

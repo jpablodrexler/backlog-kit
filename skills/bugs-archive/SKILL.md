@@ -3,6 +3,7 @@ name: bugs-archive
 description: Marks bugs resolved in the backlog's bugs-open.md and moves them to bugs-fixed.md (or records them as 🚫 Won't fix / ❓ Cannot reproduce). Appends a Resolution line to the bug's details file bugs/BUG-NNN.md — the file itself never moves. TRIGGER when a bug has been fixed (by bug-fix, bugs-batch-fix, or by hand) and needs closing, or when the user decides not to fix one. This is the bug-family counterpart to features-archive.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

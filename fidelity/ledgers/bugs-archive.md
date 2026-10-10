@@ -2,8 +2,8 @@ kit: skills/bugs-archive
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 
-PARAM | name: bugs-archive description: Marks bugs resolved in <backlog>/bugs- | description: the project paths become 'the backlog's' files; `author` removed (the plugin manifest carries it), `version` is the kit's
-PARAM | name: bugs-archive description: Marks bugs resolved in <backlog>/bugs- #2 | description: the project paths become 'the backlog's' files; `author` removed (the plugin manifest carries it), `version` is the kit's
+PARAM | name: bugs-archive description: Marks bugs resolved in <backlog>/bugs- | description: the project paths become 'the backlog's' files; `version` is the kit's
+PARAM | name: bugs-archive description: Marks bugs resolved in <backlog>/bugs- #2 | description: the project paths become 'the backlog's' files; `version` is the kit's
 PARAM | Close one or more bugs: move the table row from `<backlog>/bugs-open.m #2 | the two projects word this differently (the first project's version is the older, less strict one: no 'replace an interrupted Resolution', no 'ask to create a missing details file', no 'no blank line inside the table'); the kit follows the second project (D16)
 PARAM | The write ordering below is deliberate and must not be reordered: ever #2 | the two projects word this differently (the first project's version is the older, less strict one: no 'replace an interrupted Resolution', no 'ask to create a missing details file', no 'no blank line inside the table'); the kit follows the second project (D16)
 DROPPED | Find the row in `bugs-open.md`'s `## Bug List` table whose `Bug ID` ma #2 | the two projects word this differently (the first project's version is the older, less strict one: no 'replace an interrupted Resolution', no 'ask to create a missing details file', no 'no blank line inside the table'); the kit follows the second project (D16)

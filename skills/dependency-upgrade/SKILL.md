@@ -12,6 +12,7 @@ description: >
   `.backlog-kit/dependency-upgrade/`.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

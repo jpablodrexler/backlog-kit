@@ -14,6 +14,7 @@ description: >-
   reference material (see "Relationship to reference docs").
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

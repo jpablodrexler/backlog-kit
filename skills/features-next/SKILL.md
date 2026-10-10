@@ -3,6 +3,7 @@ name: features-next
 description: Recommends which feature to implement next based on the backlog's features-planned.md priorities, dependencies, and its Recommended implementation order, then asks for user confirmation. If any in-progress exploration exists under the explorations folder, first offers (optionally) to keep exploring one of those ideas instead of picking a feature. Returns the confirmed change name to the caller — does NOT invoke opsx:propose or opsx:apply. TRIGGER when the user asks which feature to implement next, what to work on next, or which feature to suggest — including phrases like "recommend the next feature", "suggest the next feature", "what feature should we do next", or any similar request for a next-step recommendation from the features list.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

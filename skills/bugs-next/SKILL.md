@@ -3,6 +3,7 @@ name: bugs-next
 description: Recommends which bug to fix next based on the backlog's bugs-open.md severities, the Recommended fix order, and whether a fix is already in progress, then asks for user confirmation. Returns the confirmed Bug ID to the caller — does NOT start a branch or attempt a fix. TRIGGER when the user asks which bug to fix next, what to work on from the bug backlog, or for a next-bug recommendation. This is the bug-family counterpart to features-next.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

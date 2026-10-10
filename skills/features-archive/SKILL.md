@@ -3,6 +3,7 @@ name: features-archive
 description: Mark features as implemented in the backlog's features-planned.md and move them to features-implemented.md (rewriting the row to the implemented-table shape, with a Details cell linking the feature's brief file and archived spec). Use when one or more features have been fully implemented and need to be archived.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

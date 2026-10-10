@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.20
+- Every skill names its author again (`metadata.author`), as the source projects' skills do; the conversion had dropped it. The stack-leakage lint ignores that one line. The kit has no agent definitions, so there is nothing to change there.
+
 ## 0.2.19
 - Hand-back contract for subagents (found in the first real run: a Phase 1 subagent sent only placeholder text and no signal, and the run stalled). The pipelines and `gitflow` now tell the orchestrator to append one paragraph, defined once in `shared/project-phases.md`, to every subagent prompt: the hand-back is the final text of the response, ending with the signal line, never a separate message and never placeholder text. The `Missing signal fallback` of `feature-development` and `bug-fix` gains one rule: before re-running a phase whose signal is missing, look at the working tree for what the subagent did and tell the user, who decides whether to accept that evidence or re-run. These lines are additions to the originals.
 

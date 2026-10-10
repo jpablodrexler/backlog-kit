@@ -3,6 +3,7 @@ name: feature-plan
 description: Adds a new feature to the backlog's features-planned.md — drafts the row (Priority, Schema Change, Effort, Area, Summary), writes the feature's full brief to features/NNN-<name>.md, assigns the next feature number, inserts it into the Recommended implementation order, and confirms with the user before writing. Creates the backlog file (with header, legend, and empty table) on first use if it doesn't exist yet. TRIGGER when the user asks to plan a new feature, add a feature to the backlog, or file a feature idea/request.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

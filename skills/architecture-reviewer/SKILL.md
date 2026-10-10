@@ -3,6 +3,7 @@ name: architecture-reviewer
 description: Whole-system architecture health check, qualitative and grounded in the code actually read. Assesses module and folder organisation, layering, dependency direction and cycles, data-access patterns, state and coordination mechanisms (hunting for a unit quietly reused as an undocumented cross-feature channel), error handling, configuration, testing seams, and routing or entry points where they apply. Read-only on source; writes one dated report under the reports folder with severity-marked checkbox findings and file evidence, then ends with a summary. Offers, never automatically, to turn chosen findings into backlog items via feature-plan or bug-report. Distinct from the per-change code review the work skills run. TRIGGER when the user asks for an architecture review or assessment of the whole system, whether the code follows its claimed structure or a named pattern, a deeper look at one architectural dimension, or to work through findings from an earlier ARCHITECTURE_REVIEW report; do not use it to review a single diff.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

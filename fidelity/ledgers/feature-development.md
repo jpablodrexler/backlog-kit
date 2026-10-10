@@ -8,7 +8,7 @@ FILE | jp-photo-manager/feature-development/reference/phase-3-test.md | project-
 FILE | jp-photo-manager/feature-development/reference/phase-4-e2e-verification.md | project-specific phase (D20): lives in the project's own `.backlog-kit/feature/` phase files, not in the kit
 FILE | jp-photo-manager/feature-development/reference/phase-5-build-and-deploy.md | project-specific phase (D20): lives in the project's own `.backlog-kit/feature/` phase files, not in the kit
 
-PARAM | name: feature-development description: > Orchestrates the full feature | description rewritten for the plugin: the project's phases and tools are not named, `author` removed (the manifest carries it), `version` is the kit's
+PARAM | name: feature-development description: > Orchestrates the full feature | description rewritten for the plugin: the project's phases and tools are not named, `version` is the kit's
 DROPPED | Seven phases: Phase 0 runs directly in the orchestrator's own context | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 PARAM | ¦ 2 — Implement & Review ¦ Subagent 2 ¦ `openspec-apply-change <name>` | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 DROPPED | ¦ 3a — Backend tests ¦ Subagent 3 ¦ runs `cd JPPhotoManagerWeb/backend | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
@@ -88,7 +88,7 @@ PARAM | > surrounding blank lines trimmed, is the brief. If the file is missin |
 PARAM | > or the brief is empty, end your response with | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 DROPPED | > there is no brief to read — skip the file lookup in step 2 and invok | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 PARAM | > `openspec-propose <change-name>` exactly as before, with no | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
-DROPPED | > description. | description rewritten for the plugin: the project's phases and tools are not named, `author` removed (the manifest carries it), `version` is the kit's
+DROPPED | > description. | description rewritten for the plugin: the project's phases and tools are not named, `version` is the kit's
 PARAM | > change it to `✅ Created` and save the file (again addressing the cel | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 DROPPED | > its header name). If the row already shows `✅ Created`, leave it | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 PARAM | > unchanged. If no matching row exists (e.g. the change was proposed a | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
@@ -265,7 +265,7 @@ DROPPED | > implemented-table shape — no `Summary`/`Brief`/`Implementation` ce
 PARAM | > `Details` cell linking the brief file and the archived spec; the bri | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 DROPPED | > file under `<backlog>/features/` stays untouched). | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 PARAM | Do not display the Final Summary until this subagent returns `ARCHIVE: | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
-PARAM | name: feature-development description: > Orchestrates the full feature #2 | description rewritten for the plugin: the project's phases and tools are not named, `author` removed (the manifest carries it), `version` is the kit's
+PARAM | name: feature-development description: > Orchestrates the full feature #2 | description rewritten for the plugin: the project's phases and tools are not named, `version` is the kit's
 DROPPED | pablo-web has no backend server and deploys to Vercel, which auto-buil | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
 PARAM | ¦ 2 — Implement & Review ¦ Subagent 2 ¦ `openspec-apply-change <name>` #2 | reworded for the project-phase model (D20–D25) or the `<backlog>`/`<reports>` placeholders; behaviour unchanged
 DROPPED | ¦ 3 — Frontend tests ¦ Subagent 3 ¦ runs `cd frontend && npm run test` | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack

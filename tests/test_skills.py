@@ -132,7 +132,8 @@ class SkillLint(unittest.TestCase):
         for f in list((KIT / "skills").rglob("*")) + list((KIT / "lib").glob("*")) + list((KIT / "shared").glob("*")) + list((KIT / "tools").glob("*")):
             if f.is_file() and f.suffix in {".md", ".py"}:
                 with self.subTest(file=str(f.relative_to(KIT))):
-                    hit = LEAK.search(f.read_text())
+                    # the author line of the frontmatter names the owner; nothing else may
+                    hit = LEAK.search(f.read_text().replace("author: Juan Pablo Drexler", ""))
                     self.assertIsNone(hit, f"stack-specific term leaked: {hit.group(0) if hit else ''}")
 
     def test_no_script_imports_outside_stdlib_or_lib(self):
@@ -333,3 +334,11 @@ class HandBackContract(unittest.TestCase):
         for name in ("feature-development", "bug-fix"):
             text = " ".join((KIT / "skills" / name / "SKILL.md").read_text().split())
             self.assertIn("look at the working tree for what the subagent actually did", text)
+
+
+class SkillAuthor(unittest.TestCase):
+    def test_every_skill_names_its_author(self):
+        for f in sorted((KIT / "skills").glob("*/SKILL.md")):
+            with self.subTest(skill=f.parent.name):
+                head = f.read_text().split("\n---\n", 1)[0]
+                self.assertIn("  author: Juan Pablo Drexler", head)

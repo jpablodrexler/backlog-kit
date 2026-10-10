@@ -2,7 +2,7 @@ kit: skills/bug-report
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 
-PARAM | name: bug-report description: >- Adds a bug to <backlog>/bugs-open.md: | description: the project paths become 'the backlog's' files; `author` removed (the plugin manifest carries it), `version` is the kit's
+PARAM | name: bug-report description: >- Adds a bug to <backlog>/bugs-open.md: | description: the project paths become 'the backlog's' files; `version` is the kit's
 PARAM | A useful bug row needs, at minimum: what the user did, what they expec | the example symptom ('the gallery/expenses page is broken') is project-specific; kit says 'the page is broken'
 PARAM | - **Severity**: `S1` (blocker — app unusable, data loss, security hole | legend without the stack-specific examples ('RLS leak', 'auth bypass'): 'security hole'
 PARAM | - **Area**: the affected route, component, or backend area — e.g. `/ga | Area legend default without project names: route, component or backend area, with `db` for migration/schema/query bugs (combines both projects' legends); the backlog's own legend rules afterwards (D5)
@@ -13,7 +13,7 @@ PARAM | 2. If the list still reads `_No open bugs to order._`, the new bug bec |
 DROPPED | 3. Renumber `1.`, `2.`, `3.`, … after inserting. | second project's skill text keeps a numbered list and renumbers; its data and the first project's skill use plain bullets, so there is nothing to renumber
 PARAM | Before reporting success, run `python3 .claude/skills/bugs-status/scri | cross-skill script path: relative to this skill's base directory (`../bugs-status/scripts/...`) instead of `.claude/skills/...`
 PARAM | **BUG-NNN — <title>** added to bugs-open.md (Severity <S?>, Area <area | second project's confirmation line; kit follows the first project's wording
-PARAM | name: bug-report description: >- Adds a bug to <backlog>/bugs-open.md: #2 | description: the project paths become 'the backlog's' files; `author` removed (the plugin manifest carries it), `version` is the kit's
+PARAM | name: bug-report description: >- Adds a bug to <backlog>/bugs-open.md: #2 | description: the project paths become 'the backlog's' files; `version` is the kit's
 PARAM | A useful bug row needs, at minimum: what the user did, what they expec #2 | the example symptom ('the gallery/expenses page is broken') is project-specific; kit says 'the page is broken'
 PARAM | - **Severity**: `S1` (blocker — app unusable, data loss, security hole #2 | legend without the stack-specific examples ('RLS leak', 'auth bypass'): 'security hole'
 PARAM | - **Area**: the affected route or module — e.g. `/expenses`, `/tasks`, | Area legend default without project names: route, component or backend area, with `db` for migration/schema/query bugs (combines both projects' legends); the backlog's own legend rules afterwards (D5)

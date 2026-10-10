@@ -21,7 +21,7 @@ FILE | jp-photo-manager/code-reviewer/reference/metrics-complexity-coverage.md |
 FILE | jp-photo-manager/code-reviewer/reference/metrics-mutation-security.md | stack-specific checklist or metrics reference: moved, text unchanged, to the project's `.backlog-kit/review/` files (D30); see examples/
 FILE | jp-photo-manager/code-reviewer/reference/metrics-types-deadcode-lighthouse-a11y.md | stack-specific checklist or metrics reference: moved, text unchanged, to the project's `.backlog-kit/review/` files (D30); see examples/
 
-PARAM | name: code-reviewer description: > Code review skill for the JPPhotoMa | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: code-reviewer description: > Code review skill for the JPPhotoMa | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 DROPPED | Review code in the JPPhotoManager project against its documented archi | second project's variant of this text; the kit follows the first project
 PARAM | 1. Identify the **scope**: a full-codebase sweep of the whole web appl | second project's variant of this text; the kit follows the first project
 PARAM | - **Scoped review** → follow steps 2–6 below as a single pass, produci | second project's variant of this text; the kit follows the first project
@@ -89,7 +89,7 @@ DROPPED | After finishing the selected scope, run the widest verification availa
 DROPPED | - If the current report still has unchecked findings, repeat from §17. | second project's variant of this text; the kit follows the first project
 DROPPED | - If the current report is now fully checked off, go back to §17.1 — r | second project's variant of this text; the kit follows the first project
 PARAM | ### 17.5 Never commit | second project's variant of this text; the kit follows the first project
-PARAM | name: code-reviewer description: > Code review skill for the pablo-web | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: code-reviewer description: > Code review skill for the pablo-web | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 DROPPED | Review code in the pablo-web project against its documented architectu | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
 PARAM | 1. Identify the **scope**: a full-codebase sweep of the whole frontend | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
 DROPPED | 3. Load the reference file(s) from the index at the end of this file t | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)

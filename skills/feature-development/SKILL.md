@@ -14,6 +14,7 @@ description: >
   steps. TRIGGER when the user asks to develop a feature.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

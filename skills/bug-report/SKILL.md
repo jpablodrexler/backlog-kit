@@ -15,6 +15,7 @@ description: >-
   counterpart to feature-plan.
 license: MIT
 metadata:
+  author: Juan Pablo Drexler
   version: "0.1"
 ---
 

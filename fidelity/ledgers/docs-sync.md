@@ -4,7 +4,7 @@ sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>
 sub: docs/reports => <reports>
 
-PARAM | name: web-docs-sync description: > Keeps `JPPhotoManagerWeb/CLAUDE.md` | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: web-docs-sync description: > Keeps `JPPhotoManagerWeb/CLAUDE.md` | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 PARAM | # Web Docs Sync Skill | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
 DROPPED | `JPPhotoManagerWeb` documents itself in two tiers, and both need activ | second project's variant of this text; the kit follows the first project
 DROPPED | - **`CLAUDE.md`** — a lean quick-start for an agent working in the cod | second project's variant of this text; the kit follows the first project
@@ -51,7 +51,7 @@ DROPPED | - Never read `JPPhotoManagerWeb/k8s/secret.yaml` or `JPPhotoManagerWeb
 DROPPED | - Don't let `CLAUDE.md` regrow the content this skill's first run extr | second project's variant of this text; the kit follows the first project
 DROPPED | - Manifest-parity and dashboard-panel fixes (§2, §3) are config edits, | second project's variant of this text; the kit follows the first project
 PARAM | - This skill's scope is `CLAUDE.md`, `README.md`, and the files direct | second project's variant of this text; the kit follows the first project
-PARAM | name: web-docs-sync description: > Keeps `CLAUDE.md`, the reference do | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: web-docs-sync description: > Keeps `CLAUDE.md`, the reference do | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 DROPPED | pablo-web documents itself in three tiers, and all three need active u | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
 DROPPED | - **`CLAUDE.md`** — a lean quick-start for an agent working in the cod #2 | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
 DROPPED | - **`docs/*.md`** — the actual reference material, indexed from `READM | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)

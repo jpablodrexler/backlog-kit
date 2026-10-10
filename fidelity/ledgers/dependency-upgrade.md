@@ -4,7 +4,7 @@ sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>
 sub: docs/reports => <reports>
 
-PARAM | name: dependency-upgrade description: > Routine dependency-upgrade wor | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: dependency-upgrade description: > Routine dependency-upgrade wor | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 PARAM | Bump outdated Maven and npm dependencies, verify nothing broke, and le | second project's variant of this text; the kit follows the first project
 DROPPED | 1. **Scope.** Backend only, frontend only, or both — ask if not specif | second project's variant of this text; the kit follows the first project
 PARAM | 3. **Survey.** Run the discovery commands in §1/§2 below and build a l | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
@@ -47,7 +47,7 @@ DROPPED | cd JPPhotoManagerWeb/frontend && npm audit --audit-level=high | second
 PARAM | If a CVE that motivated this upgrade session is still present, the fix | second project's variant of this text; the kit follows the first project
 PARAM | - **Applied** — each bumped dependency, old → new version, grouped by | second project's variant of this text; the kit follows the first project
 PARAM | - **Skipped (major, needs approval)** — every major-version bump found | second project's variant of this text; the kit follows the first project
-PARAM | name: dependency-upgrade description: > Routine dependency-upgrade wor #2 | description rewritten stack-free (TRIGGER structure kept); `author`/`scope` removed, `version` is the kit's (D30)
+PARAM | name: dependency-upgrade description: > Routine dependency-upgrade wor #2 | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 PARAM | Bump outdated npm dependencies in both `package.json` files this repo | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
 DROPPED | 1. **Scope.** Root (`supabase` CLI) only, frontend only, or both — ask | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
 PARAM | 8. **Never commit.** Leave everything staged/unstaged in the working t #2 | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept

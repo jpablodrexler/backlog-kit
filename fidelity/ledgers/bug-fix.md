@@ -2,7 +2,7 @@ kit: skills/bug-fix
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 
-PARAM | name: bug-fix description: >- Runs the full lifecycle of fixing one bu | description rewritten for the plugin: the project's phases and tools are not named, `author` removed (the manifest carries it), `version` is the kit's
+PARAM | name: bug-fix description: >- Runs the full lifecycle of fixing one bu | description rewritten for the plugin: the project's phases and tools are not named, `version` is the kit's
 PARAM | Seven phases: Phase 0 runs in the orchestrator's own context (never a | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
 PARAM | ¦ 2 — Fix & Review ¦ implement the fix until the regression test passe | reworded for the project-phase model (D20–D25) or the `<backlog>`/`<reports>` placeholders; behaviour unchanged
 DROPPED | ¦ 3 — Tests ¦ `cd JPPhotoManagerWeb/backend && mvn test` and `cd JPPho | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
@@ -149,7 +149,7 @@ DROPPED | - **Phase 3 always runs**, on every invocation — never conditional o
 DROPPED | - **`code-reviewer` / `database-reviewer` / `security-reviewer` always | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
 DROPPED | - **Phase 5 never deploys** — it runs `mvn package` / `npm run build` | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
 PARAM | - **Auto Mode never overrides a required confirmation** — Phase 0's bu | second project's variant of this text; the kit follows the first project's wording (same behaviour, different phrasing)
-PARAM | name: bug-fix description: >- Runs the full lifecycle of fixing one bu #2 | description rewritten for the plugin: the project's phases and tools are not named, `author` removed (the manifest carries it), `version` is the kit's
+PARAM | name: bug-fix description: >- Runs the full lifecycle of fixing one bu #2 | description rewritten for the plugin: the project's phases and tools are not named, `version` is the kit's
 PARAM | pablo-web has no backend server and deploys to Vercel, which auto-buil | reworded where it named project-specific tools, folders or phases (D20, D24); the generic part is kept
 DROPPED | ¦ 3 — Frontend tests ¦ `cd frontend && npm run test` + `npm run test:e | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
 DROPPED | ¦ 4 — E2E verification *(conditional)* ¦ `e2e-testing` browser checks #2 | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
