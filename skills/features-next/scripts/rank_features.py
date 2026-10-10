@@ -81,7 +81,8 @@ def main():
                 "priority": r.get("Priority", "").strip(),
                 "effort": r.get("Effort", "").strip(),
                 "area": r.get("Area", "").strip(),
-                "artifacts_ready": use_spec and "Created" in r.get("SDD Artifacts", ""),
+                "artifacts_ready": use_spec and ("Created" in r.get("SDD Artifacts", "") or bk.spec_artifacts_ready(
+                    root, cfg, bk.strip_backticks(r.get("Change name", "")))),
                 "in_progress": "In Progress" in impl,
                 "brief": r.get("Summary", "").strip(),
                 "brief_file": brief_file_path(p.rel_backlog, r),

@@ -27,6 +27,21 @@ import backlog_kit as bk
 SUMMARY_MAX = 250
 BRIEF_LINK_RE = re.compile(r"\[brief\]\(([^)]+)\)")
 SPEC_LINK_RE = re.compile(r"\[spec\]\(([^)]+)\)")
+PROSE_PENDING_RE = re.compile(r"still\s+pending", re.IGNORECASE)
+PROSE_NUM_RE = re.compile(r"#(\d+)|\bFeatures?\s+((?:#?\d+(?:\s*(?:,|and|&)\s*)?)+)", re.IGNORECASE)
+
+
+def prose_pending_numbers(line):
+    """Feature numbers a free-text line mentions ("#2 is still pending", "Features 4 and 5 are still
+    pending", "(#3, still pending)"). Empty when the line does not say "still pending"."""
+    if not PROSE_PENDING_RE.search(line):
+        return set()
+    nums = set()
+    for m in PROSE_NUM_RE.finditer(line):
+        nums |= {m.group(1)} if m.group(1) else set(re.findall(r"\d+", m.group(2)))
+    return nums
+
+
 DEP_RE = re.compile(r"\*\*Feature (\d+)\s*(?:→|->)\s*Feature (\d+)\*\*\s*\(([^)]*)\)")
 
 
@@ -53,7 +68,7 @@ def compute(root):
         "priority_breakdown": {k: 0 for k in f["priorities"] + ["none"]},
         "effort_breakdown": {k: 0 for k in f["efforts"] + ["none"]},
         "spec_ready": 0, "pending_rows": [],
-        "duplicate_numbers": [], "stale_dependency_notes": [], "stale_order_notes": [], "header_mismatch": None, "openspec_missing": False, "openspec_dir": "", "implemented_without_spec": [], "dependency_candidates": [],
+        "duplicate_numbers": [], "stale_dependency_notes": [], "stale_order_notes": [], "header_mismatch": None, "openspec_missing": False, "openspec_dir": "", "implemented_without_spec": [], "dependency_candidates": [], "sdd_cell_stale": [],
         "leftover_implemented_in_planned": [],
         "missing_feature_files": [], "orphan_feature_files": [], "bad_feature_headings": [],
         "bad_planned_summaries": [], "missing_brief_links": [], "missing_spec_targets": [],
@@ -88,8 +103,13 @@ def compute(root):
         r["priority_breakdown"][pr if pr in f["priorities"] else "none"] += 1
         ef = row.get("Effort", "").strip()
         r["effort_breakdown"][ef if ef in f["efforts"] else "none"] += 1
-        if use_spec and "Created" in row.get("SDD Artifacts", ""):
-            r["spec_ready"] += 1
+        if use_spec:
+            on_disk = bk.spec_artifacts_ready(root, cfg, bk.strip_backticks(row.get("Change name", "")))
+            cell = "Created" in row.get("SDD Artifacts", "")
+            if cell or on_disk:
+                r["spec_ready"] += 1
+            if on_disk and not cell and "SDD Artifacts" in row:
+                r["sdd_cell_stale"].append(f"#{row.get('#', '').strip()} {bk.strip_backticks(row.get('Change name', ''))}")
         r["pending_rows"].append({
             "number": row.get("#", "").strip(),
             "name": bk.strip_backticks(row.get("Change name", "")),
@@ -111,6 +131,14 @@ def compute(root):
                 r["stale_dependency_notes"].append({
                     "heading": f"Feature {m.group(1)} → Feature {m.group(2)}",
                     "note": m.group(3).strip(), "file": label})
+            elif not m:
+                # The common real-world form is a prose aside, not the heading: "`x` needs #2, which
+                # is still pending". It is stale as soon as any feature it names has shipped.
+                done = sorted(prose_pending_numbers(line) & implemented_numbers, key=int)
+                if done:
+                    r["stale_dependency_notes"].append({
+                        "heading": line.strip()[:80], "note": f"still pending, but #{', #'.join(done)} shipped",
+                        "file": label})
 
     if use_spec:
         found = bk.planned_header_found(p.features_planned)
@@ -228,7 +256,7 @@ def render(r, cfg_rel_backlog):
     bl = cfg_rel_backlog
     issues = []
     issues += [f"- ⚠ Duplicate feature number {n}." for n in r["duplicate_numbers"]]
-    issues += [f"- ⚠ Stale dependency note \"{d['heading']}\": all referenced features are already implemented, "
+    issues += [f"- ⚠ Stale dependency note \"{d['heading']}\": the features it depends on have already shipped, "
                f"but it's still annotated \"{d['note']}\" in {d['file']}." for d in r["stale_dependency_notes"]]
     issues += [f"- ⚠ Stale note in the Recommended implementation order (features-planned.md line {d['line']}): "
                f"\"{d['note']}\" names a prerequisite that has already shipped. Run "
@@ -246,6 +274,9 @@ def render(r, cfg_rel_backlog):
         issues.append("- ℹ Implemented without a `[spec]` link although `spec.workflow` is \"openspec\": "
                       + ", ".join(r["implemented_without_spec"])
                       + " (expected for features finished before OpenSpec was adopted; otherwise they were archived with no spec change).")
+    if r["sdd_cell_stale"]:
+        issues.append("- ℹ Spec artifacts exist on disk but the `SDD Artifacts` cell is not `✅ Created`: "
+                      + ", ".join(r["sdd_cell_stale"]) + " (counted as ready; set the cell to keep the table truthful).")
     issues += [f"- ℹ Possible unrecorded dependency: #{c['dependent']} `{c['dependent_name']}` → #{c['prerequisite']} "
                f"`{c['prerequisite_name']}` ({'; '.join(c['evidence'])})." for c in r["dependency_candidates"]]
     issues += [f"- ⚠ {x} has a table row but no {bl}/features/{x} file." for x in r["missing_feature_files"]]

@@ -33,6 +33,7 @@ LIB_FOR = {
     "batch_report.py": BATCH,
     "clean_order_notes.py": ["features-archive"],
     "flow_plan.py": ["gitflow"],
+    "spec_link.py": ["features-archive"],
     "dep_scan.py": ["feature-plan", "features-status", "feature-development"],
 }
 

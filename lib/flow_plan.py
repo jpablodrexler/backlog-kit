@@ -16,8 +16,10 @@ Prints JSON. Common fields: current_branch, base_branch, base_ref, on_base, bran
            diff_stat, backlog_closed (rows this change adds to features-implemented / bugs-fixed)
   finish   commits (base_ref..HEAD), diff_stat, files, reports, backlog_closed, pushed, title
   cleanup  candidates: topic branches that are not current/base, with merged_into_base,
-           upstream_gone and ahead_of_base (a squash-merged branch shows merged_into_base=false:
-           confirm it through the PR before deleting it)
+           just_started (the branch sits on the base tip: it has not diverged, so it is NOT
+           reported as merged), upstream_gone, ahead_of_base and last_author. A squash-merged
+           branch shows merged_into_base=false: confirm it through the PR before deleting it.
+           Also `protected_branches`, which are never candidates.
 """
 import argparse
 import re
@@ -45,6 +47,29 @@ def topic(branch, cfg):
         if prefix and branch.startswith(prefix):
             return kind, branch[len(prefix):]
     return "other", branch
+
+
+def same_commit(root, a, b):
+    ra = gitread.git(root, "rev-parse", "--verify", "--quiet", a, check=False).strip()
+    rb = gitread.git(root, "rev-parse", "--verify", "--quiet", b, check=False).strip()
+    return bool(ra) and ra == rb
+
+
+def last_author(root, ref):
+    return gitread.git(root, "log", "-1", "--format=%an", ref, check=False).strip()
+
+
+def untracked(root):
+    return lines(root, "ls-files", "--others", "--exclude-standard")
+
+
+def line_count(path):
+    try:
+        if Path(path).stat().st_size > 1_000_000:
+            return None
+        return len(Path(path).read_text(encoding="utf-8").splitlines())
+    except (UnicodeDecodeError, OSError):
+        return None
 
 
 def lines(root, *args):
@@ -122,7 +147,12 @@ def main():
         globs = bk.kit_globs(cfg)
         info["files"] = [{"path": f, "kind": "kit" if bk.glob_match(f, globs) else "code",
                           "suspicious": bool(SUSPICIOUS.search(f)) and not SAFE_SUFFIX.search(f)} for f in changed]
-        info["diff_stat"] = gitread.git(root, "diff", "HEAD", "--stat", check=False).strip()
+        new = untracked(root)
+        stat = gitread.git(root, "diff", "HEAD", "--stat", check=False).strip()
+        new_lines = [f" {f} (new file, {n if n is not None else '?'} lines)" for f in new
+                     for n in [line_count(Path(root) / f)]]
+        info["untracked_files"] = new
+        info["diff_stat"] = "\n".join(x for x in [stat, *new_lines] if x)
         info["backlog_closed"] = backlog_closed(root, cfg, ["HEAD"])
         if any(f["suspicious"] for f in info["files"]):
             warnings.append("some files look like secrets or credentials; never stage them without an explicit yes per file")
@@ -160,14 +190,24 @@ def main():
             k, _n = topic(br, cfg)
             if br == cur or br in protected or k == "other":
                 continue
-            cands.append({"branch": br, "local": True, "remote": br in remote_names, "merged_into_base": br in merged_local,
-                          "upstream_gone": "gone" in track, "ahead_of_base": bs.count(root, f"{base_ref}..{br}")})
+            ahead = bs.count(root, f"{base_ref}..{br}")
+            fresh = same_commit(root, br, base_ref)
+            # `git branch --merged` is also true for a branch that has not diverged yet. One that sits on
+            # the base tip is a branch somebody just started: report it as such, never as merged.
+            cands.append({"branch": br, "local": True, "remote": br in remote_names,
+                          "merged_into_base": br in merged_local and not fresh, "just_started": fresh,
+                          "upstream_gone": "gone" in track, "ahead_of_base": ahead,
+                          "last_author": last_author(root, br)})
         for br in sorted(remote_names):
             k, _n = topic(br, cfg)
             if br not in {c["branch"] for c in cands} and br != cur and br not in protected and k != "other":
-                cands.append({"branch": br, "local": False, "remote": True, "merged_into_base": br in merged_remote,
-                              "upstream_gone": False, "ahead_of_base": bs.count(root, f"{base_ref}..origin/{br}")})
+                fresh = same_commit(root, f"origin/{br}", base_ref)
+                cands.append({"branch": br, "local": False, "remote": True,
+                              "merged_into_base": br in merged_remote and not fresh, "just_started": fresh,
+                              "upstream_gone": False, "ahead_of_base": bs.count(root, f"{base_ref}..origin/{br}"),
+                              "last_author": last_author(root, f"origin/{br}")})
         info["candidates"] = cands
+        info["protected_branches"] = sorted(protected)
 
     info.update(blockers=blockers, warnings=warnings)
     bk.emit(info)

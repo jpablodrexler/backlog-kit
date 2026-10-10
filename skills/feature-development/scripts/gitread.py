@@ -9,9 +9,10 @@ move a ref to new content, or publish anything.
     fetch                                                      (updates remote-tracking refs only)
 
 `branch` is further limited to listing/showing; the destructive and renaming
-flags are refused. The kit's public promise — Claude never commits, pushes or
-opens a PR on the user's behalf — is enforced here in code, and by
-tests/test_skills.py, which fails if any other script imports subprocess.
+flags are refused. The kit's public promise — nothing is committed, pushed or opened as a PR unless
+the user asks for it — is enforced here in code for every script (none of them can
+write), and by tests/test_skills.py, which fails if any other script imports subprocess.
+The `gitflow` skill performs its (confirmed) writes itself, never through this module.
 Branch creation/switching is done by the work skills' subagents and is
 documented there; it is not routed through this module.
 """

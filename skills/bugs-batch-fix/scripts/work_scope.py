@@ -89,6 +89,7 @@ def main():
         "uncovered_files": uncovered,
         "reviews": reviews,
         "review_max_rounds": cfg["work"]["review_max_rounds"],
+        "gate_max_rounds": cfg["work"]["gate_max_rounds"],
         "reports_dir": cfg["paths"]["reports_dir"],
     })
 

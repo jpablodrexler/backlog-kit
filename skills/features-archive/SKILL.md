@@ -42,7 +42,7 @@ Copy the planned row, then **in the copy** reshape it from the planned shape to 
 
 - keep `#`, `Change name`, `Priority`, `Effort`, `Area` exactly as they are;
 - **drop** `SDD Artifacts` (if present), `Implementation`, `Summary`, `Brief` — "implemented" is decided only by which table holds the row;
-- add `Details`: `[brief](features/NNN-<name>.md)`, and with `openspec` append ` · [spec](../../<changes_dir>/archive/<archive-dir>/proposal.md)` (path relative to the backlog dir). `<archive-dir>` is the folder named `YYYY-MM-DD-<change-name>` under `<changes_dir>/archive/`; with several matches take the most recent. If none exists yet, warn and build the link from today's date — `features-status` will flag the missing target until it exists.
+- add `Details`: `[brief](features/NNN-<name>.md)`, and with `openspec` append ` · [spec](<link>)`, where `<link>` comes from `python3 scripts/spec_link.py <repo-root> <change-name>` — never write it by hand: the path is relative to the backlog dir and depends on how deep `paths.backlog_dir` is. The script picks the most recent `YYYY-MM-DD-<change-name>` folder under `<changes_dir>/archive/`; if it reports `exists: false` (not archived yet), warn and use the link it built from today's date — `features-status` will flag the missing target until the folder exists.
 
 The row left behind in the planned file keeps showing `⬜ Pending`/`🔶 In Progress` until step 7 deletes it; it is never flipped in place. Don't edit the actual planned file yet.
 

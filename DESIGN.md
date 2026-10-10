@@ -191,3 +191,9 @@ What it is: `skills/gitflow` with five actions — `start feature|fix`, `sync`, 
 The public promise changed accordingly, as decided by the owner: "Nothing is committed, pushed or opened as a PR unless you ask for it." The work skills and batch runners are unchanged (they still never write beyond branch switching and fast-forwards, and the lint tests still require the canonical sentence in each of them). `gitflow` is the only skill exempt from it, carries its own stricter sentence, and a test fails if any other skill is described as able to invoke it. The default `[git] finish_skill` is now `gitflow`, so the work skills' hand-off message names it.
 
 Follow-up for the owner: ADR 0032 in pablo-web records the old promise ("never commits"); it deserves a short superseding ADR.
+
+## Comparison with the source projects (0.2.1 – 0.2.4)
+
+A read-only comparison of every plugin skill against pablo-web and jp-photo-manager (report: `plugin-vs-originals-comparison.md`) found defects and weakened safeguards. They are fixed in four patch releases; each fix has a regression test (`tests/test_fixes.py` and friends).
+
+0.2.1 — correctness: spec-artifact readiness read from disk (and the `SDD Artifacts` cell set when artifacts exist); `gitflow cleanup` no longer reports a just-started branch as merged, never force-deletes and never offers protected branches; the commit plan counts new files; gates stop after `gate_max_rounds`; the archived-spec link is computed from the real layout; stale dependency notes written in prose are detected; `decision-record` writes nothing before the user confirms; `bugs-archive` replaces instead of duplicating a Resolution line; `bugs-status` checks every closed bug; the OpenSpec skills are preflighted.

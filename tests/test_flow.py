@@ -96,6 +96,15 @@ class CommitPlan(FlowBase):
         self.assertTrue(any("secrets" in w for w in out["warnings"]))
 
 
+class CommitStatIncludesNewFiles(FlowBase):
+    def test_untracked_only_change_still_has_a_stat(self):
+        self.topic()
+        (self.repo / "brand_new.py").write_text("a\nb\n")
+        out = self.plan("commit")
+        self.assertEqual(out["untracked_files"], ["brand_new.py"])
+        self.assertIn("brand_new.py (new file, 2 lines)", out["diff_stat"])
+
+
 class FinishPlan(FlowBase):
     def commit_all(self):
         git(self.repo, "add", "-A")
@@ -158,6 +167,15 @@ class CleanupPlan(FlowBase):
         self.assertTrue(by["feature/done"]["merged_into_base"] and by["fix/old"]["merged_into_base"])
         self.assertFalse(by["feature/open"]["merged_into_base"])
         self.assertEqual(by["feature/open"]["ahead_of_base"], 1)
+
+    def test_a_branch_just_started_is_not_reported_as_merged(self):
+        git(self.repo, "branch", "feature/fresh")                  # sits on the base tip
+        out = self.plan("cleanup")
+        c = next(c for c in out["candidates"] if c["branch"] == "feature/fresh")
+        self.assertTrue(c["just_started"])
+        self.assertFalse(c["merged_into_base"])
+        self.assertIn("main", out["protected_branches"])
+        self.assertEqual(c["last_author"], "t")
 
     def test_the_current_branch_is_never_a_candidate(self):
         self.topic("feature/mine")

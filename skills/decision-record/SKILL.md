@@ -26,7 +26,7 @@ python3 scripts/next_id.py <repo-root>
 
 (from this skill's base directory). It returns `next_number` (4-digit, max+1 over the `NNNN-` filename prefixes; one global sequence, never reused even for a superseded record), `directory_exists` and `directory`.
 
-Read every existing record and the folder's `README.md` index. If the folder or index doesn't exist, this is the first record: create `README.md` first —
+Read every existing record and the folder's `README.md` index. If the folder or index doesn't exist, this is the first record: **do not create anything yet** — the index is created in step 6, after the user confirms, from this skeleton:
 
 ```markdown
 # Architecture Decision Records
@@ -78,6 +78,7 @@ Show the draft and ask one question with **AskUserQuestion** — "Record this de
 
 ### 6. Write the record and the index row
 
+0. If the folder or its `README.md` index did not exist (step 2), create them now from the skeleton there. Nothing under `<decisions_dir>` is written before this step.
 1. Write `<decisions_dir>/NNNN-title-slug.md`.
 2. Append `| NNNN | <Title> | Accepted | <YYYY-MM-DD> |` to the index table, preserving its format.
 

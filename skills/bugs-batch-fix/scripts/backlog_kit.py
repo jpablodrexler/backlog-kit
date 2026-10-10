@@ -73,6 +73,7 @@ DEFAULTS = {
     "work": {
         # Rounds of review-and-fix per review before the run stops and asks a human.
         "review_max_rounds": 3,
+        "gate_max_rounds": 3,
     },
     "guidance": {
         # Free text handed to the subagent that writes a bug's failing regression
@@ -206,6 +207,32 @@ def migrate_planned_header(path, cfg):
     tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
     os.replace(tmp, path)
     return {"changed": True, "rows": rows, "skipped": skipped}
+
+
+def spec_link(root, cfg, name, today=None):
+    """Relative link (from the backlog dir) to the archived change's proposal.md, or None.
+
+    Picks the most recent `<changes_dir>/archive/YYYY-MM-DD-<name>/`. The relative path is computed
+    from the real backlog dir, not assumed to be two levels deep. If no archive folder exists yet,
+    the link is built from `today` (YYYY-MM-DD) and `exists` is False.
+    """
+    import os
+    from datetime import date
+    arch = Path(root) / cfg["spec"]["changes_dir"] / "archive"
+    found = sorted(d.name for d in arch.glob(f"*-{name}") if d.is_dir() and re.fullmatch(rf"\d{{4}}-\d{{2}}-\d{{2}}-{re.escape(name)}", d.name)) if arch.is_dir() else []
+    dirname = found[-1] if found else f"{today or date.today().isoformat()}-{name}"
+    target = arch / dirname / "proposal.md"
+    backlog = Path(root) / cfg["paths"]["backlog_dir"]
+    return {"link": os.path.relpath(target, backlog).replace(os.sep, "/"), "exists": bool(found), "archive_dir": dirname}
+
+
+def spec_artifacts_ready(root, cfg, name):
+    """True if `<changes_dir>/<name>/` holds the artifacts a change needs before it can be applied
+    (proposal, tasks and at least one spec). The disk is the truth; the `SDD Artifacts` cell is a
+    convenience that can lag behind it."""
+    d = Path(root) / cfg["spec"]["changes_dir"] / name
+    return (d / "proposal.md").is_file() and (d / "tasks.md").is_file() and \
+        (d / "specs").is_dir() and any((d / "specs").rglob("spec.md"))
 
 
 IMPLEMENTED_HEADER = ["#", "Change name", "Priority", "Effort", "Area", "Details"]

@@ -46,7 +46,7 @@ def compute(root):
     }
     fixed_ids = {x.get("Bug ID", "").strip() for x in fixed_rows if x.get("Bug ID", "").strip()}
 
-    open_ids, active = [], []
+    open_ids, active, resolved_in_open = [], [], []
     for row in open_rows:
         bug_id = row.get("Bug ID", "").strip()
         open_ids.append(bug_id)
@@ -56,8 +56,10 @@ def compute(root):
             active.append(row)
         elif "Won't fix" in status or "Won’t fix" in status:
             r["wont_fix"] += 1
+            resolved_in_open.append(bug_id)
         elif "Cannot reproduce" in status:
             r["cannot_repro"] += 1
+            resolved_in_open.append(bug_id)
         elif "Fixed" in status:
             r["fixed_here"].append(bug_id)
         elif "Open" in status:
@@ -99,14 +101,15 @@ def compute(root):
             m = re.match(rf"^({prefix}-\d+)\.md$", f.name)
             if m:
                 file_ids.add(m.group(1))
-    r["rows_missing_file"] = sorted(i for i in (active_open_ids | fixed_ids) if i not in file_ids)
+    # Every row needs its details file, whatever its status (a Won't fix / Cannot reproduce bug keeps its write-up).
+    r["rows_missing_file"] = sorted(i for i in (active_open_ids | fixed_ids | set(resolved_in_open)) if i and i not in file_ids)
     r["files_without_row"] = sorted(file_ids - all_row_ids)
     for bid in sorted(file_ids):
         text = (p.bugs_dir / f"{bid}.md").read_text(encoding="utf-8")
         first = text.lstrip("﻿").splitlines()[0] if text.strip() else ""
         if not re.match(rf"^# {re.escape(bid)}(\s|$)", first):
             r["files_bad_h1"].append(bid)
-        if bid in fixed_ids and not re.search(r"^\s*-\s*\*\*Resolution:\*\*", text, re.M):
+        if (bid in fixed_ids or bid in resolved_in_open) and not re.search(r"^\s*-\s*\*\*Resolution:\*\*", text, re.M):
             r["fixed_missing_resolution"].append(bid)
     return r
 
@@ -150,7 +153,7 @@ def render(r, rel_backlog):
     issues += [f"- ⚠ {i} has a table row but no {bd}/{i}.md file." for i in r["rows_missing_file"]]
     issues += [f"- ⚠ {bd}/{i}.md exists but {i} has no table row in either file." for i in r["files_without_row"]]
     issues += [f"- ⚠ {bd}/{i}.md does not start with a `# {i}` heading." for i in r["files_bad_h1"]]
-    issues += [f"- ⚠ {i} is in bugs-fixed.md but {bd}/{i}.md has no **Resolution:** line." for i in r["fixed_missing_resolution"]]
+    issues += [f"- ⚠ {i} is closed (bugs-fixed.md, Won't fix or Cannot reproduce) but {bd}/{i}.md has no **Resolution:** line." for i in r["fixed_missing_resolution"]]
     issues += [f"- ⚠ {i} still shows ✅ Fixed in bugs-open.md — run `bugs-archive {i}` to finish the move." for i in r["fixed_here"]]
     if issues:
         L += ["### Data integrity", ""] + issues

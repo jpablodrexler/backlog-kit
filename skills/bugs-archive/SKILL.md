@@ -31,17 +31,17 @@ If either is missing there's nothing to archive — say so and stop.
 
 ### 3. Validate each id
 
-Find the row in `## Bug List` by its id (the link text of the first cell). Not there (already archived, or never existed) → warn and skip it. Check `bugs/<ID>.md` exists; if not, warn that there's no file to append the Resolution to and continue with the row move.
+Find the row in `## Bug List` by its id (the link text of the first cell). Not there (already archived, or never existed) → warn and skip it. Check `bugs/<ID>.md` exists; if not, warn the user that there is no file to hold the Resolution and offer to create it (step 5.3) or skip, then continue with the row move.
 
 ### 4. Won't fix / Cannot reproduce
 
-In one edit to `bugs-open.md`: set the row's Status to `🚫 Won't fix` or `❓ Cannot reproduce`, and remove it from `## Recommended fix order` if listed. Append `- **Resolution:** <note>` to the details file (step 5.3's rules). Skip steps 5.1–5.2 and 6.
+In one edit to `bugs-open.md`: set the row's Status to `🚫 Won't fix` or `❓ Cannot reproduce`, and remove it from `## Recommended fix order` if listed. Write the `- **Resolution:** <note>` line into the details file (step 5.3's rules: replace an existing one, never add a second). Skip steps 5.1–5.2 and 6.
 
 ### 5. Fixed — write the Resolution line and `bugs-fixed.md` first
 
 1. Copy the row, keeping the first-cell link. **In the copy**, drop `Status`, set `Fixed` to today's date (`YYYY-MM-DD`) and `Fix` to the supplied PR/commit (blank if none). The destination columns are `Bug ID | Severity | Area | Environment | Fixed | Fix | Summary`.
 2. Append the reshaped row to the end of `bugs-fixed.md`'s `## Bug List`.
-3. Append `- **Resolution:** <what the fix changed, and the PR/commit reference>` to the end of `bugs/<ID>.md`. Append only; never rewrite the file. If the file holds several `# <ID> — …` sections, append to the last.
+3. Write `- **Resolution:** <what the fix changed, and the PR/commit reference>` into `bugs/<ID>.md`: append it to the end of the file, **unless the file already has a `**Resolution:**` bullet** (an earlier run was interrupted after this step) — then replace that one line instead, so the file never ends up with two. Touch nothing else in the file. If it holds several `# <ID> — …` sections, use the last. If the file does not exist, tell the user plainly that the Resolution could not be recorded and ask whether to create it with just the `# <ID> — <title>` heading and the Resolution line, or to skip it.
 
 Save both and **confirm the saves succeeded** before step 6.
 
@@ -71,5 +71,6 @@ Resolution lines appended: <count>
 - The details file never moves, is never renamed or deleted, and its H1 and existing bullets are never edited. Never record Status, Severity or Area in it.
 - Reshape the row to the destination's columns (it has a `Fixed` date and no `Status`); preserve exact table formatting in both files.
 - An id that isn't in `bugs-open.md` is reported and skipped; continue with the rest.
+- Keep both files' section headers and structure intact: only add or remove table rows (no blank line inside a table) and the Resolution line. Never touch `## Details`.
 - Auto-detection is a convenience — the user decides which bugs to close and with what disposition.
 - **Never run `git commit`, `git push` or open a PR.** This skill never writes code or runs tests; it records an outcome a fix (or a decision) already produced.

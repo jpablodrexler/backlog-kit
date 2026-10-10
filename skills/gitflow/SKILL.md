@@ -45,7 +45,7 @@ On a topic branch with a clean tree. Run `python3 scripts/flow_plan.py <repo-roo
 
 On a topic branch (never on `<base>`) with changes. Run `python3 scripts/flow_plan.py <repo-root> --action commit` and stop on any `blockers`.
 
-1. Show the changed files grouped as code and backlog/reports (`kind`), the `diff_stat`, and `backlog_closed` (what this change finishes). **Files flagged `suspicious` are never staged** unless the user says yes to that specific file.
+1. Show the changed files grouped as code and backlog/reports (`kind`), the `diff_stat` (it includes new, untracked files), and `backlog_closed` (what this change finishes). **Files flagged `suspicious` are never staged** unless the user says yes to that specific file.
 2. Draft the commit message: a subject of at most 72 characters in the imperative, then a short body of the substantive changes (what changed and why, not a file list). Name backlog items as `feature 3` or `BUG-007`, never `#3`: GitHub turns `#<digits>` into a link to an unrelated issue.
 3. Ask: "Commit these N files with this message?" — yes / edit the message / change the file list / cancel.
 4. Stage by explicit path (`git add -- <paths>`, never `-A` or `.`), then `git commit` with the message. Never `--no-verify`. If a hook fails, show its output and stop; a fix gets a new commit, not an amend, and only if asked.
@@ -66,19 +66,21 @@ This opens the PR and nothing more. Review and merging are the human's. Say what
 
 ## cleanup
 
-Run `python3 scripts/flow_plan.py <repo-root> --action cleanup --fetch`. `candidates` are topic branches other than the current one and `<base>`.
+Run `python3 scripts/flow_plan.py <repo-root> --action cleanup --fetch`. `candidates` are topic branches other than the current one and the protected branches (`protected_branches`: `<base>`, `main`, `master`, `develop`, `trunk`), which are never deleted, whatever anyone asks.
 
-- `merged_into_base: true` is merged for certain.
-- Otherwise the branch may have been squash-merged: check through GitHub (`gh pr list --state merged --head <branch> --base <base>`, or the MCP equivalent with `head: "<owner>:<branch>"` and `state: "closed"`, counting only PRs with a `merged_at`). No merged PR, or a branch with `ahead_of_base` commits and no PR, is **unmerged work and is never deleted**; list it as kept.
+- `merged_into_base: true` means the branch has diverged and everything on it is now in `<base>`.
+- `just_started: true` means the branch sits on the base tip: it has not diverged, so nothing says it is finished (someone may have just created it). Never list it as merged; offer it only if the user names it.
+- Otherwise the branch may have been squash-merged: check through GitHub (`gh pr list --state merged --head <branch> --base <base> --json number,mergedAt,headRefOid`, or the MCP equivalent with `head: "<owner>:<branch>"` and `state: "closed"`, counting only PRs with a `merged_at`). It counts as merged only if the PR's head commit equals the branch tip (`git rev-parse <branch>`); a branch that got commits after its PR merged holds unmerged work. No merged PR, or a tip that differs, means **unmerged work, never deleted**; list it as kept.
+- A branch that exists only on the remote is somebody's work until shown otherwise: show `last_author` and require a separate yes naming it.
 
-Show the branches that will go (local and/or remote, with the evidence) and ask. Then delete each local one with `git branch -d <branch>`; a branch that `-d` refuses but a merged PR confirms needs its own yes before `git branch -D`. Delete a remote one with `git push origin --delete <branch>` only after a separate yes. Finally, if you are on a deleted branch or want the base current: `git switch <base>` then `git merge --ff-only origin/<base>` (clean tree only).
+Show the branches that will go (local and/or remote, with the evidence) and ask. Delete each local one with `git branch -d <branch>` only; `-d` refuses when the branch is not merged, and then the branch stays (never `-D`). Delete a remote one with `git push origin --delete <branch>` only after a separate yes. Finally, if you are on a deleted branch or want the base current: `git switch <base>` then `git merge --ff-only origin/<base>` (clean tree only).
 
 ---
 
 ## Guardrails
 
 - **Only run a git write the user asked for in this invocation and confirmed.** No other backlog-kit skill commits, pushes or opens PRs, and none invokes this one; it never runs from another skill's hand-off, only when the user asks.
-- Never merge a PR (no `gh pr merge`, no merge tool), never `--force` / `--force-with-lease`, never amend, rebase, reset, stash or cherry-pick, never commit or push to `<base>`, never delete a branch with unmerged work, never `--no-verify`.
+- Never merge a PR (no `gh pr merge`, no merge tool), never `--force` / `--force-with-lease`, never amend, rebase, reset, stash or cherry-pick, never commit or push to `<base>`, never delete a branch with unmerged work, never delete `<base>`, a protected branch or the current branch, never `git branch -D`, never `--no-verify`.
 - `start`, `sync` and `cleanup` need a clean working tree: if it is dirty, stop and report; never stash or discard.
 - Never change git configuration (name, email, signing). Commit with whatever identity the repository already has.
 - Don't assert a repo-state claim from memory ("merged", "up to date", "diverged"): run the check (`flow_plan.py`, `git log A..B`, the PR lookup) in the moment.

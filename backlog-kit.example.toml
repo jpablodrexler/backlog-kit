@@ -57,6 +57,7 @@ finish_skill   = "gitflow"
 
 [work]
 review_max_rounds = 3     # review-and-fix rounds before the run stops and asks a human
+gate_max_rounds   = 3     # fix-and-rerun rounds for ONE failing gate before the run stops (GATES_BLOCKED)
 
 [guidance]
 # Free text for the subagent that writes a bug's failing regression test.
