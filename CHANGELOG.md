@@ -2,6 +2,11 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.15
+- `code-reviewer`, `security-reviewer` and `database-reviewer` rebuilt from the projects' own skills (the first project's text is the base; the second's variants are in the ledgers). The kit carries the frame — workflow, scoped review, severity legend, dated report, fix workflow, full-codebase sweep process — with no stack named (D30).
+- The stack-specific checklists, pitfalls tables, metrics sections and the sweep layer tables are the project's: files in `.backlog-kit/review/<code|security|database>/`, each starting with `# Title` and a `Read when:` line; the reviewer loads only what the change touches, and says so in the report when there is no project checklist (D31). `examples/` holds both projects' files, moved from their originals without changes (the `Read when` lines were written for the database and security files, which had no index).
+- Removed: the kit's non-interactive mode and input contract (`changed_files`, `deleted_files`, `bulk_files`, `self_review`), the `[[reviews]]` wiring and the tests that guarded them. The pipeline phases pass the changed files as the scope, which the originals already supported.
+
 ## 0.2.14
 - `gitflow` rebuilt from the projects' own skill (the first project's text; the second's variants are in `fidelity/ledgers/gitflow.md`): topic branches `feature/`, `fix/`, `doc/`, `skill/`, `chore/` plus `release/` and `hotfix/` are fixed (D27); `start`, `sync`, `finish`, release/hotfix with changelog, two PRs and tag, and `cleanup` are the originals' text, with their own confirmations (first push, tag, delete) (D29).
 - New: project release phases. The project-specific part of `finish release/hotfix` (version bump, regression suite) lives in `.backlog-kit/release/NN-*.md` and runs through the same mechanism as the feature and bug phases (D28); `examples/` has both projects'. A phase file may now consist of an `## Orchestrator` section only.

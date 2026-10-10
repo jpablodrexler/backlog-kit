@@ -286,3 +286,7 @@ Seven more skills moved to the fidelity method (see "Fidelity method" above). Ch
 ## `gitflow` converted (0.2.14)
 
 `gitflow` follows the fidelity method (D27–D29). The first project's skill is the base; the only project-specific block, the release/hotfix version bump and e2e gate, moved to `.backlog-kit/release/` phase files run by the shared project-phase mechanism. The kit's earlier additions — a `commit` action with a yes before each write, a planning script, a branch-state script and the `[git]` settings — are gone: the originals never commit work (the user does) and ask before the first push, a tag and a deletion, which is what the skill does now.
+
+## Reviewers converted (0.2.15)
+
+The three reviewers follow D30–D31. Each original mixes a reusable frame with long stack-specific checklists (about 5,000 lines for the two projects). The frame stays in the kit, de-stacked; the checklists become project files found by their `Read when:` line, so a project keeps its conventions where they belong and the kit names no stack. Sections the two projects word differently are not merged: the first project's wording is the kit's, the second's stays in its own project files.

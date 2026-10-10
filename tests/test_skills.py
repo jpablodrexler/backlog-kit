@@ -210,22 +210,7 @@ class GeneralizedSkillsTest(unittest.TestCase):
             parts.append(ref.read_text(encoding="utf-8"))
         return "\n".join(parts)
 
-    def test_reviewers_have_a_non_interactive_mode_that_matches_the_review_phase(self):
-        for name in self.REVIEWERS:
-            with self.subTest(skill=name):
-                t = self.text(name)
-                self.assertIn("REVIEW: <n> critical, <n> warning, <n> suggestion", t)
-                self.assertRegex(t, r"(?i)non-interactive")
-                self.assertIn("- [ ]", t)
-                self.assertIn("🔴", t)
-                self.assertRegex(t, r"\[\[reviews\]\][^`]*skill\s*=\s*\"" + re.escape(name) + r"\"|skill = \"" + re.escape(name) + r"\"")
-                self.assertIn("reports_dir", t)
-                self.assertIn("<reports_dir>/review/", t)
 
-    def test_reviewers_show_a_reviews_block_a_project_can_paste(self):
-        for name in self.REVIEWERS:
-            with self.subTest(skill=name):
-                self.assertRegex(self.text(name), r"```toml\n\[\[reviews\]\]\nname\s*=")
 
     def test_every_new_skill_writes_only_where_it_says_and_never_commits(self):
         for name in self.REVIEWERS + self.STANDALONE:
@@ -331,3 +316,25 @@ class ListMergeCandidates(unittest.TestCase):
                                             capture_output=True, text=True, check=True).stdout)
             self.assertEqual([c["branch"] for c in out["candidates"]], ["feature/a", "hotfix/v1.0.1"])
             self.assertEqual(out["candidates"][0]["where"], ["local"])
+
+
+class ReviewerFrames(unittest.TestCase):
+    """D30/D31: the reviewers carry the frame; the checklists are the project's, found by their `Read when:` line."""
+
+    def test_each_reviewer_reads_the_project_checklists_and_warns_when_there_are_none(self):
+        for name, kind in (("code-reviewer", "code"), ("security-reviewer", "security"), ("database-reviewer", "database")):
+            with self.subTest(skill=name):
+                text = (KIT / "skills" / name / "SKILL.md").read_text()
+                self.assertIn(f".backlog-kit/review/{kind}/", text)
+                self.assertIn("Read when:", text)
+                self.assertIn("no project checklist", " ".join(text.lower().split()))
+                self.assertIn("**Never run `git commit`, `git push` or open a PR.**", text)
+
+    def test_example_review_files_declare_when_to_read_them(self):
+        files = list((KIT / "examples").glob("*/.backlog-kit/review/*/*.md"))
+        self.assertTrue(files)
+        for f in files:
+            with self.subTest(file=str(f.relative_to(KIT))):
+                lines = f.read_text().splitlines()
+                self.assertTrue(lines[0].startswith("#"), "first line is the title")
+                self.assertTrue(any(l.startswith("Read when:") for l in lines[:4]), "a Read when: line near the top")

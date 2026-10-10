@@ -25,7 +25,7 @@ The middle of the loop (`feature-development`, `bug-fix`, the batch runners) nev
 | --- | --- |
 | Plan and track | `feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`, `decision-record` |
 | Work one item | `feature-development`, `bug-fix` (reproduce with a failing test first, then fix), `spec-compliance-check` (proves each scenario with a test it ran and writes the evidence). Both run your own phase files from `.backlog-kit/feature/` and `.backlog-kit/bug/` for everything project-specific: tests, E2E, build, conditional reviews |
-| Review a change | `code-reviewer`, `security-reviewer`, `database-reviewer` — each has a non-interactive mode the review phase calls through `[[reviews]] skill = "…"`, and interactive audit and fix-the-findings modes |
+| Review a change | `code-reviewer`, `security-reviewer`, `database-reviewer` — the frame (workflow, severities, dated report, fix workflow) is the kit's; the stack-specific checklists are yours, as files in `.backlog-kit/review/<code\|security\|database>/` that each start with a `Read when:` line. `examples/` has the two source projects' |
 | Review the whole | `architecture-reviewer` (qualitative, grounded system health check), `product-scope-roaster` (harsh product-owner critique of the whole backlog) |
 | Keep things current | `docs-sync` (docs follow the code; optional `[[docs.map]]`; plugs into `[docs] sync_skill`), `dependency-upgrade` (grouped, gated, rolled back on failure) |
 | Branch, PR, release, clean up | `gitflow` — start and sync `feature/`, `fix/`, `doc/`, `skill/`, `chore/` branches, `finish` (push and open the PR), `release`/`hotfix` (changelog, your own release phases from `.backlog-kit/release/`, two PRs, tag), `cleanup`; only when you ask, with the confirmations of the original skills (first push, tag, delete) |
@@ -66,7 +66,6 @@ Everything is optional; see [`backlog-kit.example.toml`](backlog-kit.example.tom
 | `[spec]` | `workflow` (`none` or `openspec`), `changes_dir`, `compliance_skill` |
 | `[work]` | `review_max_rounds`, `gate_max_rounds` |
 | `[[gates]]` | `name`, `run`, `cwd`, `when`, `ask_before`, `timeout_minutes`, `known_failures` |
-| `[[reviews]]` | `name`, `focus`, `skill`, `when` |
 | `[docs]`, `[[docs.map]]` | `sync_skill`, and per entry `doc`, `section`, `source`, `check` |
 
 A worked example for an Angular project: [`examples/angular-supabase.toml`](examples/angular-supabase.toml).
@@ -82,7 +81,6 @@ Early software (0.2), exercised live on real repositories but not exhaustively. 
 - **`gitflow` has been tested against real git repositories, not yet against GitHub.** Opening a PR and deleting remote branches have not been run end to end.
 - **The OpenSpec path has run live once** (one feature through propose, apply, archive); the unattended batch runner with OpenSpec has not.
 - **Windows and macOS are exercised only in CI as non-blocking jobs.** The scripts force UTF-8 output, but expect rough edges.
-- **A review can be a self-review.** Where the implementing subagent cannot spawn another agent, it reviews its own diff after re-reading it cold. The report and the final summary say so; it is not an independent review.
 - **Subagent hand-backs are claims.** The orchestrator spot-checks the important ones, but not every statement a subagent makes.
 - **The review, docs and upgrade skills are first versions.** They are generalized from two projects' skills, covered by structural tests only, and not yet run live: expect to tune their checklists to your stack through the project's own conventions documents.
 - **Dependency detection is a heuristic.** It finds briefs that name another pending feature or use a symbol that only another brief introduces; it cannot see a dependency described in prose with no named thing.

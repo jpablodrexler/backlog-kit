@@ -1,225 +1,329 @@
 ---
 name: security-reviewer
-description: Stack-agnostic security review of code changes or a whole repository. Covers dependency vulnerabilities and update hygiene, secrets and credentials in code, config and history, authentication and session handling, authorization and access checks, injection and unsafe input, output encoding and XSS-class issues, logging of sensitive data, error disclosure, transport/CORS/CSP-class configuration, and file handling. Has a non-interactive review mode (a file list in, one dated checkbox report out, one hand-back line) for use as a `[[reviews]]` skill, plus interactive full audit, dependency audit and a fix workflow for an existing findings report. TRIGGER when code touches authentication, authorization, user input, file I/O, secrets or dependencies, when a review phase invokes it with a changed-files list, or when asked for a security review, audit, or to fix findings from a security report.
+description: >
+  Security review skill. TRIGGER when code touches authentication,
+  authorization or access-control rules, user input handling, data
+  persistence, or dependency changes — including when implementing planned
+  tasks that affect any of these areas. Do not wait to be asked: run this
+  review proactively after writing security-sensitive code. Covers
+  dependency vulnerabilities, the project's authorization boundary,
+  sensitive data and secret handling, session/token storage, and injection
+  and client-side scripting risks, using the checklists the project keeps
+  in `.backlog-kit/review/security/`. A full-codebase sweep produces one
+  report per architecture layer instead of a single consolidated report —
+  see "Full-Codebase Sweeps" below. Also TRIGGERS when asked to audit the
+  codebase's security, and when asked to fix, address, resolve, or work
+  through findings from an existing dated SECURITY_REVIEW_FINDINGS report —
+  see "Fix Workflow" below.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Review code for security vulnerabilities, sensitive-data mishandling and insecure patterns, on whatever stack the project uses. Paths come from `.backlog-kit.toml` (`[paths] reports_dir`, default `docs/reports`); with no file the defaults apply.
+# Security Reviewer Skill
 
-The skill has four modes. Pick the one that matches how it was invoked and do not mix them:
+Review code in this project for security vulnerabilities, sensitive data
+mishandling, and insecure patterns. Where authorization is enforced, which
+keys or values are meant to be public, and how sessions are stored differ
+from one project to the next: the project's own security checklist files
+(see step 4 of the Workflow) describe that model, and a reviewer must read
+them before flagging anything that looks like a leaked credential or a
+missing check.
 
-| Mode | When | Interactive |
-| --- | --- | --- |
-| **Non-interactive review** | Invoked by a review phase with a file list (`[[reviews]] skill = "security-reviewer"`) | No, never ask questions |
-| **Security audit** | The user asks for a security review or audit of a scope or the whole repository | Yes |
-| **Dependency audit** | The user asks about vulnerable or outdated dependencies | Yes |
-| **Fix workflow** | The user asks to fix or work through findings of an existing report | Yes |
+`<reports>` below is `docs/reports` unless `.backlog-kit.toml` sets
+`[paths] backlog_dir`, in which case it is the `reports` folder inside that
+directory's parent folder.
 
-## Project context first
+**Never run `git commit`, `git push` or open a PR.**
 
-Before judging anything, identify the project's own security model, because the same code is a finding in one architecture and normal in another:
+This skill covers two distinct workflows:
 
-- Look for the project's own security notes (a security or architecture document, an ADR, the contributor guide) and load them if present. Their rules override the generic checks below where they conflict; say so in the finding.
-- Identify the authentication mechanism (sessions, tokens, cookies, an identity provider) and where authorization is actually enforced (middleware, handlers, a data layer, the database). Client-side checks are never an authorization boundary when a server or data layer exists behind them.
-- Identify which values are intentionally public (for example a client-side identifier documented as public) and which are secrets. Do not flag a documented public value as a leak; do flag anything that holds a privileged credential in code that ships to clients.
-- If none of this can be determined, say so in the report header and fall back to the generic checks.
+- **Review** (below) — produce findings and a dated report. This is the
+  default when reviewing new/changed code.
+- **Fix** (§9) — work through the findings in an *existing* dated report,
+  fixing them and checking them off. Use this when asked to fix, address, or
+  resolve issues from a report rather than to review code.
 
-## Severity
+## Workflow
 
-| Level | Meaning |
-| --- | --- |
-| 🔴 Critical | Exploitable now, leaks data or credentials, or lets one user reach another's data or privileges. Fix immediately. |
-| 🟡 Warning | Insecure pattern that raises risk. Fix before merging. |
-| 🔵 Suggestion | Defence in depth or minor hardening. Fix if convenient. |
+1. Identify the **scope**: a full-codebase sweep of the whole project, or a
+   scoped review (single file, a list of changed files, PR, or feature).
+   - **Scoped review** → follow steps 2–6 below as a single pass, producing
+     one report.
+   - **Full-codebase sweep** → follow "Full-Codebase Sweeps: Review by
+     Layer" instead. It runs steps 2–6 once per layer, each producing its
+     own report.
+2. Scan for dependency changes (the project's dependency manifests and
+   lockfiles).
+3. Read every changed file that touches auth, access-control rules, user
+   input, or data persistence before forming any opinion.
+4. **Project checklists:** list `.backlog-kit/review/security/` (relative to
+   the repository root); each file's second line is `Read when: …`; read
+   every file marked `every review` and every file whose `Read when` matches
+   what changed; work through their checklist sections one by one. If the
+   folder does not exist or is empty, review with the frame above plus what
+   the project's CLAUDE.md and docs say, and state in the report that no
+   project checklist was found.
+5. Report findings grouped by **severity**, then by file.
+6. Summarise with a short verdict and the top action items, then write the
+   full report to a new, dated markdown file — see "Review Report Format &
+   Output File" below. Do this on every run, not just full-codebase
+   sweeps: a single-file or single-PR review still gets its own dated
+   report, scoped to whatever was actually reviewed.
 
-Severity discipline: rate by what an attacker can do with the code as written, not by how the pattern looks. Do not inflate a theoretical issue to Critical, and do not downgrade a reachable one. When a finding's severity depends on a project fact (for example whether a session token is readable by page scripts, which raises the stakes of any XSS-class issue), state that fact in the finding.
+### Full-Codebase Sweeps: Review by Layer
 
-## Evidence rule
+When asked to review the whole project's security, don't produce one giant
+consolidated report and don't review it inline in the main conversation.
+Instead, split the sweep into one pass per **architecture layer**, each run
+by its own subagent and producing its own dated report file (see "Process"
+below).
 
-Every finding needs `file:line`, what is wrong, and why it matters (the exploit scenario or the data at risk). Read the code around the line before flagging; a finding you cannot point at is not a finding. Never speculate about files you did not read.
+These are the same layer boundaries `code-reviewer` uses, so a combined
+code+security sweep produces parallel, directly comparable report sets per
+layer.
 
-**Never put a secret's actual value in a report, in chat, or in a fix note.** Cite the location (`file:line`), the kind of secret (API key, password, private key, token) and the variable or key name only. If you must show that two values match, say so without printing either.
+**The layers:** the layer table (layer key, report suffix, directory scope,
+primary checklist sections) comes from the project file under
+`.backlog-kit/review/security/` whose `Read when` is `a full-codebase
+sweep`. If there is none, the sweep is not available — say so and ask for a
+scope instead.
 
-If the project documents a file as holding real secrets that must not be read (a credentials file, a deployment secrets manifest), do not read it even in a broad sweep; read its example or template counterpart instead and skip only that file.
+If only part of the codebase is in scope, skip the layers that don't apply.
 
-## Checklist
+**Process — one subagent per layer:**
 
-Apply the sections relevant to the files in scope; skip the rest silently.
+Each layer's review runs in its own subagent (`Agent` tool,
+`subagent_type: general-purpose`), not inline in the main conversation.
 
-### 1. Dependencies and update hygiene
+1. Before starting, check `<reports>/security-review/` for layer report
+   files already dated today. If a sweep was interrupted in an earlier
+   session, resume by only dispatching subagents for the layers that don't
+   have a report yet for today's date.
+2. The remaining applicable layers are independent of each other, so
+   dispatch all of them together: one `Agent` call per layer, all issued
+   in the **same message** so they run in parallel.
+3. Each subagent's prompt must be self-contained — it has no memory of this
+   conversation — and must include:
+   - The layer key, its directory scope, and its primary checklist sections
+     (copy the relevant row from the layer table into the prompt).
+   - An instruction to first read this skill's `SKILL.md` for the severity
+     legend and the "Review Report Format & Output File" section (§8), and
+     the project checklist files under `.backlog-kit/review/security/`
+     that hold those checklist sections — don't restate the whole
+     checklist in the prompt.
+   - The exact output path to write:
+     `<reports>/security-review/SECURITY_REVIEW_FINDINGS_{today's date}_{layer suffix}.md`
+     (apply the `-2`/`-3` collision rule from §8 itself if the file already
+     exists).
+   - An explicit instruction to only read/review files under that layer's
+     own directory scope, and to write the report file itself rather than
+     just returning findings as chat text.
+   - Any subagent reminders listed in the layer file (for example files that
+     must never be read, or values that look like secrets but are not).
+   - A short return-message instruction: report back the Critical/Warning/
+     Suggestion counts and the path it wrote, not the full findings text.
+4. These are launched as background agents by default — don't poll or
+   sleep waiting for them; you'll be notified as each one completes.
+5. Once every dispatched subagent has completed, give a short in-chat
+   summary: the list of report files written, and the Critical/Warning/
+   Suggestion count per layer.
 
-- Identify the package managers in use (manifests and lockfiles). Flag a dependency with a known critical or high advisory that has a fixed version available: 🔴 for a runtime dependency, 🟡 for a build or dev-only dependency.
-- 🟡 A security-relevant library (framework, auth, crypto, HTTP, parser) far behind the latest stable release with a known advisory. 🟡 A transitive dependency pinned or overridden to an older version without a recorded reason.
-- 🟡 A manifest changed without its lockfile, or a lockfile that is not committed.
-- 🔵 Unpinned or wildcard versions where the project otherwise pins.
-- Audit commands: see "Dependency audit" below. In non-interactive review mode, judge from the manifests and lockfile in the file list only.
+Severity levels:
 
-### 2. Secrets and credentials
-
-- 🔴 A hardcoded password, API key, private key, token or connection string with embedded credentials in source, config, scripts, fixtures or examples that look real. Secrets belong in environment variables or a secrets manager.
-- 🔴 A secret in a file that is not ignored by version control, or a config file meant to hold local secrets that is missing from the ignore list.
-- 🔴 A privileged or server-side credential referenced anywhere in code that ships to clients.
-- Secrets in history: only in an interactive audit, and only by listing which commits and files are affected (kind and location, never the value), using read-only history commands. The remedy is rotation first, history rewriting second.
-- Not a finding: a documented public identifier, and a placeholder in an example or template file.
-
-### 3. Authentication and session handling
-
-- 🔴 Passwords stored or compared in plaintext, or hashed with a fast or broken algorithm (MD5, SHA-1, unsalted hashes) instead of a slow password hash with adequate cost.
-- 🔴 A token or session identifier in a URL or query string (it lands in logs and history), or a credential written to a second storage location beyond the one the auth mechanism manages.
-- 🔴 Hand-rolled token parsing or signature handling where the project's auth library provides it, or token verification that can be skipped or accepts an unsigned or "none" algorithm.
-- 🟡 Cookies carrying session credentials without the protective attributes the stack offers (HttpOnly, Secure over HTTPS, a SameSite policy), or a session without expiry or invalidation on logout and password change.
-- 🟡 An authentication error path that is swallowed, leaving the UI or caller in a signed-in-looking state with no real session.
-- 🟡 Login, reset or sign-up responses that reveal whether an account exists, and no rate limiting or lockout on credential endpoints.
-- 🟡 State-changing requests authenticated by an ambient credential (cookie) with no CSRF protection, or CSRF protection disabled without a comment explaining why it is safe.
-- 🟡 A new redirect-based flow (password reset, email confirmation, OAuth callback) whose allowed redirect targets are configured outside the repository: note that the configuration step is needed.
-
-### 4. Authorization and access checks
-
-- Identify where authorization is enforced, then check that it is enforced there for the code in scope.
-- 🔴 A route, endpoint or operation returning or changing user-owned data with no authentication or ownership check; a write operation reachable without authentication.
-- 🔴 An object looked up by a client-supplied id with no check that the caller may access it (insecure direct object reference), including privilege fields a client can set on itself (mass assignment).
-- 🔴 Data hidden or filtered only in client code (a filter in the UI layer) as the means of keeping other users' data safe, when the underlying query returns it.
-- 🟡 A new data-access method whose scoping intent is not backed by a corresponding access rule in the same change.
-- 🟡 Administrative or diagnostic endpoints (health detail, environment dump, metrics, debug) reachable without authentication in production configuration.
-- 🟡 A privileged-execution construct (a function or service running with elevated rights) with no comment justifying why it bypasses the normal access model.
-- 🟡 A 404 versus 403 distinction that confirms the existence of resources the caller must not know about.
-
-### 5. Injection and unsafe input handling
-
-- 🔴 User input concatenated into a SQL, query-language, LDAP, template or expression string instead of bound parameters.
-- 🔴 User input reaching a shell or process invocation through a shell string; arguments must be passed separately and validated.
-- 🔴 Deserialization of untrusted data into arbitrary types, or evaluation of user-supplied code or expressions.
-- 🟡 Missing validation of type, length, range or format at the trust boundary; unbounded request sizes, page sizes or pagination limits.
-- 🟡 Server-side requests to a user-supplied URL with no allow-list (SSRF), and regular expressions with catastrophic backtracking on user input.
-- 🟡 Redirects to a user-supplied target with no allow-list.
-
-### 6. Output encoding and XSS-class issues
-
-- 🔴 User-controlled content written into HTML, script, style or attribute context without encoding or sanitization, or via an "insert raw HTML" API. If the session credential is readable by page scripts, say so: it raises the stakes of every finding in this section.
-- 🟡 A user-controlled URL in a link or source attribute with no scheme allow-list (javascript: and data: schemes).
-- 🟡 Every use of an API that disables the framework's built-in sanitization needs an adjacent comment justifying it; flag the ones without.
-- 🟡 User input embedded in a response header, a log line or a generated file format (header, log or CSV/formula injection).
-
-### 7. Logging of sensitive data
-
-- 🔴 Passwords, password hashes, tokens, session objects, keys or full payment or identity data written to logs, analytics or crash reports, even at debug level.
-- 🟡 Personal data or absolute paths containing a user's home directory in logs; log identifiers or relative paths instead.
-- 🔵 Logs and error reports lacking a redaction step for request bodies and headers.
-
-### 8. Error disclosure
-
-- 🔴 Stack traces, query text, internal paths or schema details returned to the client in an error response body.
-- 🟡 A caught exception re-thrown with its original message embedded in a response; return a generic message to the client and log the detail server-side.
-- 🟡 Debug or verbose-error mode enabled in a production configuration.
-
-### 9. Transport, CORS and CSP-class configuration
-
-- 🟡 Wildcard cross-origin access (`*`) on endpoints that use credentials or return private data; the allow-list should name the known frontend origins in production. 🟡 An allowed-methods or allowed-headers list that does not match what the API actually uses.
-- 🟡 Plain HTTP for anything carrying credentials, TLS verification disabled, or missing transport-security headers where the project controls them.
-- 🔵 Missing content-security-policy, frame-ancestors, content-type-sniffing and referrer headers where the project controls response headers.
-- 🔵 Secure defaults overridden in framework configuration with no comment.
-
-### 10. File handling
-
-- 🔴 A file operation using a user-supplied path without canonicalization and a containment check against an allowed root (path traversal), including endpoints that return file contents for a path derived from a request.
-- 🔴 A user-supplied filename written to disk without sanitizing separators, parent-directory segments, null bytes and leading dots.
-- 🔴 An API response that exposes an absolute filesystem path; hand callers an opaque id.
-- 🟡 An upload or read path that trusts the extension alone to determine content type; verify the content as well, and enforce size limits.
-- 🟡 Decoding of images, archives or documents with no limit on dimensions or expanded size (decompression bombs, zip slip).
-- 🔵 Temporary files not cleaned up on every path, or created with predictable names or broad permissions.
-
-## Non-interactive review mode
-
-Used when a review phase invokes the skill with a file list (`[[reviews]] skill = "security-reviewer"`). No sweep, no questions, no edits to source. A project wires it like this:
-
-```toml
-[[reviews]]
-name  = "security"
-focus = "authentication, authorization, input handling, secrets, dependencies"
-skill = "security-reviewer"
-when  = ["**/auth/**", "**/*.env*", "**/package.json", "**/requirements*.txt", "**/pom.xml"]
-```
-
-**Input**
-- `changed_files`: the files to review, taken verbatim. These are the entire scope.
-- `deleted_files` (optional): the subset of `changed_files` that no longer exists. Review what the deletion removes (`git show HEAD:<file>`); do not route it to "Not reviewed".
-- `bulk_files` (optional): the subset that is a lockfile, generated, minified or binary file. Do not read these in full; check only what the change implies (a manifest changed with no lockfile change, an unexpected new dependency in a lockfile hunk).
-- `id`: the bug id or change name, used in the report filename. Default `adhoc` when absent.
-- `focus` (optional): extra text from the review's `focus`; give it extra weight, it does not narrow the scope.
-- `self_review` (optional): `yes` when the caller runs you inside its own context, which is always so from the review phase. The report then starts with `Self-reviewed: yes`.
-- Review the change, not the files: see the changed lines with `git diff HEAD -- <file>` (an untracked file is new in full). A defect on a line the change did not touch is not a finding; mention it, if at all, in a plain (non-checkbox) "Pre-existing, not counted" bullet in the header.
-- A finding cites `<file>[:<line>]`; leave out the line when it has none (a missing test, a lockfile not updated).
-
-1. Review exactly the listed files. Read each one fully, plus the minimum surrounding code needed to judge a finding (a caller, a config it reads). Lockfiles and manifests are in scope only if they are in the list. Do not widen the scope to the rest of the repository and do not review files that are not listed.
-2. Load the project context (see "Project context first"); apply the checklist sections that fit the files, and weight the optional focus text. In this mode, project facts you cannot determine without asking become a stated assumption in the report header, not a question.
-3. Write `<reports_dir>/review/security-<id>-<YYYY-MM-DD>.md` (create the folder if needed; if the name exists, append `-2`, `-3`). Start with a header line naming the scope (the files reviewed, the focus) and the assumptions made. When `self_review` is `yes`, the report starts with `Self-reviewed: yes`. Then one checkbox line per finding, and nothing else per finding:
-
-   ```
-   - [ ] 🔴|🟡|🔵 <file>[:<line>] — <what is wrong and why it matters>
-   ```
-
-   Group by severity, Critical first. No findings: write the header and the line `No findings.` Never include a secret's actual value, only its file:line and kind.
-4. Hand back exactly one line and no other text:
-
-   ```
-   REVIEW: <n> critical, <n> warning, <n> suggestion — report <path>
-   ```
-
-   Counts are computed from the checkbox lines in the report just written, not from memory. A review that could not read some listed file says so in the report header; it does not silently skip it.
-
-The caller fixes the findings and may invoke the review again; each round writes a fresh report. Do not tick boxes or edit source in this mode.
-
-Example `.backlog-kit.toml` entry:
-
-```toml
-[[reviews]]
-name  = "security"
-focus = "authentication, authorization, user input, file handling, secrets, dependencies"
-skill = "security-reviewer"
-when  = ["src/**/auth*", "src/**/api/**", "**/*.sql", "package.json", "package-lock.json", "requirements*.txt"]
-```
-
-## Security audit (interactive)
-
-1. Agree the scope with the user: the whole repository, a directory, a pull request or a feature. For a whole-repository audit, split it by architecture layer or top-level area (for example one pass per source area plus one cross-cutting pass for dependencies, configuration and anything spanning two layers) and write one report per pass, so each is small and the user can fix one at a time. If the host can run subagents, run the passes in parallel with self-contained prompts (area, checklist sections, output path, "write the report yourself and return only the counts and the path"); otherwise run them one after another.
-2. Read every file in scope that touches authentication, authorization, input handling, file I/O, secrets or persistence before forming an opinion. Load the project context first.
-3. Apply the checklist and write the report to `<reports_dir>/security-review/SECURITY_REVIEW_FINDINGS_<YYYY-MM-DD>[_<area>].md` (append `-2`, `-3` on collision; never overwrite an earlier report). Use the same checkbox line format as above, grouped by severity, with a short header naming the scope and the repository state reviewed. Write only what this run found.
-4. Show the user a short summary: counts per severity, the single most important issue, a verdict on whether it is safe to merge, and the report path. Omit empty severity groups.
-
-## Dependency audit (interactive)
-
-1. List the manifests and lockfiles and the package managers they imply.
-2. Use the project's own package-manager audit command (for example the manager's `audit` or `outdated` subcommand) only if it is already installed and needs no installation and no network write (no auto-fix, no lockfile modification). If it needs installation, an account, or would modify anything, report `NOT RUN` with the reason and fall back to reading the manifests and lockfile against what is known.
-3. Report advisories by severity with the fixed version if one exists, then outdated security-relevant libraries, then hygiene issues (checklist section 1). Write the report as in the security audit, with suffix `_dependencies`. Upgrading is not done here; offer the fix workflow or the project's own dependency-upgrade process.
-
-## Fix workflow (interactive)
-
-For an existing findings report. **This workflow never commits**; changes stay uncommitted in the working tree.
-
-1. **Locate.** Use the report the user names; otherwise the most recent date with any `SECURITY_REVIEW_FINDINGS_*` or `review/security-*` report under `<reports_dir>`. Drop reports with no unchecked boxes. If several remain, show each with its scope and severity counts and ask which to do first; work on one report at a time, Critical-heavy first by default. If none exist, say so and stop.
-2. **Read and ask.** Read the whole report, then ask whether to fix a whole severity group or a specific finding; offer only those with unchecked boxes.
-3. **Fix loop**, one finding at a time:
-   1. Read the affected file in full context before changing anything.
-   2. If the fix hinges on a real decision (a breaking change to an auth flow, several valid remediations, a credential that needs rotating), stop and ask the user. A leaked credential is rotated by the user; the fix here removes it from code and says rotation is needed.
-   3. Apply the fix and update or add tests for the new shape of the code.
-   4. Verify with the project's own tests for the affected area. Run only commands that need no installation; if one cannot run, record `NOT RUN` with the reason.
-   5. Tick the box immediately (`- [x]`) and append `**Fixed:** <what changed and why>` or `**Evaluated, no change made:** <rationale>`. A fix that incidentally resolves another unchecked finding ticks it too, with a note.
-   6. Never write a secret's value into a fix note or report.
-4. **Continue.** After the selected scope, run the widest verification available once (the project's full tests and build, if configured in `[[gates]]`), then ask what is next. Stop when the user says to or every report is fully ticked.
-5. Say plainly at the end that nothing was committed and what to review.
+| Level             | Meaning                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| 🔴 **CRITICAL**   | Exploitable vulnerability, data leak, access-control gap, or privilege escalation. Must be fixed immediately. |
+| 🟡 **WARNING**    | Insecure pattern that raises risk. Should be fixed before merging.                         |
+| 🟢 **SUGGESTION** | Defence-in-depth improvement or minor hardening. Fix if convenient.                        |
 
 ---
 
-## Guardrails
+## 1. Dependency Vulnerabilities
 
-- **Never run `git commit`, `git push` or open a PR.** This skill reads code and writes reports under `<reports_dir>`; only the fix workflow edits source, and only with the user driving it.
-- Non-interactive review mode asks no questions, reviews only the listed files, edits no source and writes exactly one report.
-- Never print, quote or copy a secret's value into a report, chat message, commit-style note or tool argument; location and kind only.
-- Do not read files the project documents as holding real secrets; use their example counterparts.
-- Every finding carries file:line evidence from code that was actually read. No speculative findings, and no severity inflation.
-- Never install system packages or change anything outside the repository. A dependency audit runs the project's own audit command only if it needs no installation and no network write; otherwise report `NOT RUN`.
-- Use read-only history commands when inspecting history; never rewrite it.
-- Do not invent rules beyond the checklist and the project's own security notes. If the project's notes conflict with a generic check, follow the notes and say so.
-- Keep the modes separate: a review phase invocation never starts a sweep, a fix, or a question.
+Run the project's dependency audit tooling (its package manager's audit
+command or a vulnerability scanner) for every dependency manifest in the
+repository; the project's checklist files name the exact commands.
+
+🔴 Flag any package with a `critical` or `high` severity audit finding that
+has a fix available.
+
+🟡 Flag core framework or backend-client libraries significantly behind
+latest with a known security advisory.
+
+🟢 Flag development-only dependencies with audit findings — lower risk but
+still worth updating, since build tools can be exploited in CI and in the
+deployment build environment.
+
+---
+
+## 2.–7. Project security checklists
+
+The stack-specific checklist sections are not part of this skill; they live
+in the project's security checklist files under
+`.backlog-kit/review/security/` (see Workflow step 4). Their section numbers
+are kept, so findings and fixes can cite them:
+
+- **§2 Authorization boundary** — where access control is actually enforced
+  and what the client side must never be trusted to enforce: see the
+  project's security checklist files.
+- **§3 Sensitive data handling** — logging, error responses, keys and
+  secrets (including which values are meant to be public): see the
+  project's security checklist files.
+- **§4 Authentication & session security** — token and session storage,
+  credential hashing, auth flow correctness: see the project's security
+  checklist files.
+- **§5 Migration- and injection-specific checks** — schema/policy
+  migrations, query and command injection, file-system security: see the
+  project's security checklist files.
+- **§6 Client-side security** — storage of sensitive data, scripting
+  injection, cross-origin and redirect configuration: see the project's
+  security checklist files.
+- **§7 Known project-specific pitfalls** — the project's table of recurring
+  security mistakes: see the project's security checklist files.
+
+---
+
+## 8. Review Report Format & Output File
+
+Structure the in-chat summary as follows:
+
+```
+## Security Review: <file or PR title>
+
+### 🔴 Critical
+- `path/to/file:42` — <vulnerability description and exploit scenario>
+
+### 🟡 Warnings
+- `path/to/file:15` — <insecure pattern and recommended fix>
+
+### 🟢 Suggestions
+- `path/to/file:88` — <hardening improvement>
+
+### Verdict
+<One or two sentences: overall risk level, whether it is safe to merge, and
+the single most important issue to fix first.>
+```
+
+If there are no findings in a severity category, omit that category
+entirely.
+
+### Write the report to a dated markdown file
+
+Every time this skill runs — full-codebase sweep, single file, or PR
+review — also write the findings to a new markdown file so work can be
+resumed later without re-deriving context.
+
+**Scoped review (single file, PR, or feature) — one file:**
+
+- **Path:** `<reports>/security-review/SECURITY_REVIEW_FINDINGS_{YYYY-MM-DD}.md`
+  (repo root, today's date, ISO 8601). If a file for that date already
+  exists, append `-2`, `-3`, etc. rather than overwriting the earlier run's
+  report.
+
+**Full-codebase sweep (§"Full-Codebase Sweeps: Review by Layer") — one file
+per layer:**
+
+- **Path:**
+  `<reports>/security-review/SECURITY_REVIEW_FINDINGS_{YYYY-MM-DD}_{layer}.md`,
+  where `{layer}` is the report suffix from the layer table. Same `-2`,
+  `-3` collision rule.
+- Write each layer's file as soon as that layer's pass is done — don't hold
+  all layers in memory to write at once.
+
+**Both cases:**
+
+- This directory is gitignored — reports are local working artifacts, not
+  committed history. Create the directory if it doesn't exist yet.
+- **Content:** the same Critical/Warnings/Suggestions grouping as the
+  in-chat summary, using GitHub task-list checkboxes (`- [ ]`) per finding
+  instead of plain bullets. Include a short header noting the scope
+  reviewed and which commit/state the review was run against. Only include
+  categories that have findings.
+- **Scope of content:** write only what was actually found in *this* run —
+  don't carry forward unresolved items from a previous dated report by
+  default.
+- Do not overwrite or delete a previous dated report — each run's file is a
+  point-in-time snapshot.
+- **Never quote a secret value in a report.** If a finding involves an
+  actual secret or credential, reference its location and
+  variable/property name only — never copy the literal value into the
+  report file or the in-chat summary.
+
+---
+
+## 9. Fix Workflow
+
+Use this workflow when asked to fix, address, resolve, or work through
+findings from an **existing** dated report, instead of running a new
+review. It is interactive and incremental: fix a chunk, check it off, ask
+what's next. **This workflow never commits** — all changes stay uncommitted
+in the working tree for the user to review and commit themselves.
+
+### 9.1 Locate the report(s) for a date
+
+1. If the user names a specific report file, skip straight to §9.2 with
+   that file. Otherwise resolve a **date**: the date the user asked for, or
+   (default) the most recent date that has any
+   `<reports>/security-review/SECURITY_REVIEW_FINDINGS_*.md` file. If none
+   exists, say so and stop.
+2. List every report file for that date. For each, quickly check whether
+   it has any unchecked (`- [ ]`) boxes left; drop fully-checked-off
+   reports from the list.
+3. **If exactly one report remains**, use it directly. **If more than one
+   remains**, ask the user which report to work on first, showing the
+   layer name (or scope) and a rough Critical/Warning/Suggestion count for
+   each. Work on exactly one report at a time. Default to surfacing 🔴
+   Critical-heavy reports first if the user has no preference.
+
+### 9.2 Read the report, then ask what to fix
+
+1. Read the full report before asking anything.
+2. Ask the user whether they want to fix an entire severity category, or a
+   specific finding — only offer categories/findings with unchecked boxes
+   remaining.
+
+### 9.3 Fix loop
+
+For the selected scope, work through each unchecked finding one at a time:
+
+1. Read the affected file(s) and understand the finding in full context
+   before changing anything.
+2. Apply the fix. The project's checklist sections (§2–§7) tell you what
+   "right" looks like for that category of issue. For an access-policy or
+   schema fix specifically, follow `database-reviewer`'s rule: a new
+   migration, never an edit to an already-applied one.
+3. If a fix hinges on a real design decision (a breaking auth-flow change,
+   several equally valid remediations), stop and ask the user before
+   proceeding.
+4. Verify the fix: run the narrowest relevant tests for the affected code,
+   and for anything access-control-related, re-check scoping manually with
+   two separate accounts.
+5. Update tests for the new shape of the code.
+6. Mark the finding complete in the report file immediately: change
+   `- [ ]` to `- [x]` and append a bolded outcome note:
+   - `**Fixed:** <what changed and why, one or two sentences>.`
+   - `**Evaluated, no change made:** <rationale>`
+7. If fixing one finding incidentally resolves another still-unchecked one,
+   check that one off too with a note explaining it was fixed as a
+   byproduct.
+8. Never write an actual secret value into the fix commentary or the
+   report file — reference it by name/location only (same rule as §8).
+
+### 9.4 Continue until done
+
+After finishing the selected scope, run the widest verification available
+(the full test suite and a production build) once before asking what's
+next. Then:
+
+- If the current report still has unchecked findings, repeat from §9.2.
+- If the current report is now fully checked off, go back to §9.1.
+
+Stop when the user says to stop, or when every report for the date is
+fully checked off.
+
+### 9.5 Never commit
+
+Do not run `git add`, `git commit`, or any other state-changing git command
+as part of this workflow, not even implicitly. Leave all changes
+uncommitted so the user can review the diff and commit it themselves.
