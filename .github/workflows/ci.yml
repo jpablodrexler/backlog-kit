@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13"]
+        experimental: [false]
+        include:
+          # The kit is used on Windows, but its tests have only been run on Linux so far:
+          # report Windows failures without blocking until they are known to be clean.
+          - os: windows-latest
+            python: "3.12"
+            experimental: true
+          - os: macos-latest
+            python: "3.12"
+            experimental: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Show tool versions
+        run: |
+          python --version
+          git --version
+      - name: Vendored copies are current
+        run: python tools/vendor.py --check
+      - name: Unit and integration tests
+        run: python -m unittest discover -s tests -v
+
+  manifests:
+    name: plugin manifests are valid JSON
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check manifests and that the plugin version matches the changelog
+        run: |
+          python - <<'PY'
+          import json, re, sys
+          plugin = json.load(open(".claude-plugin/plugin.json"))
+          market = json.load(open(".claude-plugin/marketplace.json"))
+          assert [p["name"] for p in market["plugins"]] == [plugin["name"]], "marketplace and plugin names differ"
+          version = plugin["version"]
+          assert re.fullmatch(r"\d+\.\d+\.\d+", version), version
+          top = re.search(r"^## \[?(\d+\.\d+\.\d+)", open("CHANGELOG.md", encoding="utf-8").read(), re.M)
+          assert top and top.group(1) == version, f"CHANGELOG top entry {top and top.group(1)} != plugin version {version}"
+          print("ok", version)
+          PY

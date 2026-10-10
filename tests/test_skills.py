@@ -231,3 +231,25 @@ class FinishSkillPointerTest(unittest.TestCase):
         import backlog_kit
         self.assertEqual(backlog_kit.load_config(self.ROOT)["git"]["finish_skill"], "gitflow")
         self.assertIn("finish_skill", (self.ROOT / "backlog-kit.example.toml").read_text(encoding="utf-8"))
+
+
+class ReleaseHygieneTest(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parents[1]
+
+    def test_changelog_top_entry_matches_the_plugin_version(self):
+        import json
+        version = json.loads((self.ROOT / ".claude-plugin/plugin.json").read_text())["version"]
+        top = re.search(r"^## \[?(\d+\.\d+\.\d+)", (self.ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), re.M)
+        self.assertIsNotNone(top)
+        self.assertEqual(top.group(1), version)
+
+    def test_ci_runs_the_drift_check_and_the_tests(self):
+        ci = (self.ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertIn("tools/vendor.py --check", ci)
+        self.assertIn("unittest discover -s tests", ci)
+
+    def test_readme_states_its_limits_and_the_loop(self):
+        readme = (self.ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("## Limitations", readme)
+        self.assertIn("has been tested against real git repositories, not yet against GitHub", readme)
+        self.assertIn("## The loop", readme)
