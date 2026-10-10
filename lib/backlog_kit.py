@@ -319,28 +319,30 @@ def table_rows(path, heading, id_column=None):
 
 # --- scoring -----------------------------------------------------------------
 
-# --- ranking, shared by features-next / bugs-next and the batch runners' --all ---------------------
+# --- ranking, shared by the batch runners' --all (features-next / bugs-next keep their own copy,
+# which is the original projects' scripts; tests/test_batch.py checks the two agree) ----------------
 
-IN_PROGRESS_BONUS, PROD_BONUS, SPEC_BONUS, ORDER_BONUS, EFFORT_BONUS = 1000, 20, 20, 10, 5
+IN_PROGRESS_BONUS, ENVIRONMENT_BONUS, SPEC_BONUS, ORDER_BONUS, NO_SCHEMA_BONUS = 1000, 20, 20, 10, 5
+PRIORITY_POINTS = {"P0": 400, "P1": 300, "P2": 200, "P3": 100}
+SEVERITY_POINTS = {"S1": 400, "S2": 300, "S3": 200, "S4": 100}
+UNTIERED = 50
 
 
-def score_feature(cfg, priority, effort, in_progress, artifacts_ready, in_order):
-    f = cfg["features"]
+def score_feature(priority, schema_change, in_progress, artifacts_ready, in_order):
     s = IN_PROGRESS_BONUS if in_progress else 0
-    s += tier_score(priority, f["priorities"])
+    s += PRIORITY_POINTS.get(priority, UNTIERED)
     s += SPEC_BONUS if artifacts_ready else 0
     s += ORDER_BONUS if in_order else 0
-    if f["efforts"] and effort == f["efforts"][0]:
-        s += EFFORT_BONUS
+    s += NO_SCHEMA_BONUS if schema_change == "No" else 0
     return s
 
 
-def score_bug(cfg, severity, environment, in_progress, in_order):
-    b = cfg["bugs"]
+def score_bug(severity, environment, in_progress, in_order, schema):
     s = IN_PROGRESS_BONUS if in_progress else 0
-    s += tier_score(severity, b["severities"])
-    s += PROD_BONUS if environment in b["prod_environments"] else 0
+    s += SEVERITY_POINTS.get(severity, UNTIERED)
+    s += ENVIRONMENT_BONUS if environment not in ("", "local") else 0
     s += ORDER_BONUS if in_order else 0
+    s += NO_SCHEMA_BONUS if not schema else 0
     return s
 
 

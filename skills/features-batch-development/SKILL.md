@@ -27,12 +27,12 @@ Each feature's full brief lives in `<backlog>/features/NNN-<change-name>.md`. Th
 
 ## Outcome mapping (loop step 3)
 
-After `feature-development <change-name> --skip-branch-setup --confirmed` returns:
+After `feature-development <change-name> --skip-branch-setup` returns:
 
 | What `feature-development` did | Report status |
 | ------------------------------ | ------------- |
 | Showed its "Feature Development Complete" summary — the feature was archived and marked implemented | `completed`, with a ≤2-sentence summary of what was built. Read the implemented row `features-archive` just wrote and the work's own summary. |
-| Refused at selection — `features-next --confirmed` returned no `CHANGE_NAME:` line because the feature is **blocked by a prerequisite that hasn't shipped**, is already implemented, or no longer exists | `blocked`, with the reason and the prerequisite named; ask Retry now / Skip and continue / Stop (loop step 4). The approval of the list never overrides an unbuilt prerequisite. |
+| Refused at selection — `features-next` returned no `CHANGE_NAME:` line (the user cancelled the confirmation, or the feature is **blocked by a prerequisite that hasn't shipped**, is already implemented, or no longer exists) | `blocked`, with the reason and the prerequisite named; ask Retry now / Skip and continue / Stop (loop step 4). |
 | Stopped on `PLAN_NEEDS_DEPENDENCY_DECISION` and the user chose "stop" | `blocked` with the dependency named; ask whether to continue with the next feature or stop the run |
 | Stopped on any other `*_BLOCKED` reason | ask Retry now / Skip and continue / Stop (loop step 4) → `blocked` with the reason |
 
@@ -45,7 +45,7 @@ When the run ends, show the counts from `batch_report.py finish` plus, for each 
 ## Guardrails (feature-specific; the rest are in `reference/batch-runner.md`)
 
 - **Never run `git commit`, `git push` or open a PR.** The branch step's `git switch` / `git switch -c` / `git merge --ff-only` are the only git writes, and every `feature-development` call passes `--skip-branch-setup`.
-- Invoke `feature-development <name> --skip-branch-setup --confirmed` through the Skill tool directly — never in a backgrounded Agent call. The list you confirmed in step 1 *is* the per-feature approval; `feature-development` still raises the dependency decision, the gate setup, a partial-gates result and blocker prompts, and each must reach the user live.
+- Invoke `feature-development <name> --skip-branch-setup` through the Skill tool directly — never in a backgrounded Agent call. `feature-development` still asks the user to confirm each feature, and raises the dependency decision, the gate setup, a partial-gates result and blocker prompts; each must reach the user live.
 - Process features strictly one at a time, in the resolved order. Later features' reviews will see earlier features' uncommitted files; that is expected.
 - A feature already implemented is only offered "skip" or "stop", never silently dropped.
 - With `spec.workflow = "openspec"`, each feature's spec change is archived as that feature completes — OpenSpec is a dependency, never bundled.

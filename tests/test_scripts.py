@@ -86,15 +86,16 @@ class FeatureFlow(unittest.TestCase):
         self.assertTrue(sel["blocked"])
         self.assertEqual(sel["blocked_on"], "1")
 
-    def test_priority_scoring_follows_configured_order(self):
-        (self.root / ".backlog-kit.toml").write_text('[features]\npriorities = ["urgent", "normal"]\nefforts = ["S", "L"]\n')
+    def test_priority_scoring_is_the_fixed_scale_of_the_source_projects(self):
         run("f_scaffold", self.root)
         rel = "docs/backlog/features-planned.md"
-        add_feature_row(self.root, rel, "| 1 | `a` | normal | S | X | ⬜ Pending | a | [brief](features/001-a.md) |")
-        add_feature_row(self.root, rel, "| 2 | `b` | urgent | L | X | ⬜ Pending | b | [brief](features/002-b.md) |")
+        add_feature_row(self.root, rel, "| 1 | `a` | P2 | S | X | ⬜ Pending | a | [brief](features/001-a.md) |")
+        add_feature_row(self.root, rel, "| 2 | `b` | P0 | L | X | ⬜ Pending | b | [brief](features/002-b.md) |")
+        add_feature_row(self.root, rel, "| 3 | `c` | none | L | X | ⬜ Pending | c | [brief](features/003-c.md) |")
         out = run("f_rank", self.root, "--json")
         self.assertEqual(out["top"]["name"], "b")
-        self.assertEqual(out["top"]["score"], 200)  # 2 tiers -> urgent = 200
+        self.assertEqual(out["top"]["score"], 400)                                    # P0
+        self.assertEqual([(r["name"], r["score"]) for r in out["runners_up"]], [("a", 200), ("c", 50)])
 
     def test_openspec_workflow_adds_column_and_ready_bonus(self):
         (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "openspec"\n')
@@ -165,7 +166,7 @@ class BugFlow(unittest.TestCase):
         self.assertEqual([r["id"] for r in out["runners_up"]], ["BUG-001", "BUG-002"])
 
     def test_select_revalidates_so_a_stale_confirmed_id_is_refused(self):
-        # bugs-next --confirmed resolves the id with --select; a closed / won't-fix / unknown id must not resolve.
+        # bugs-next resolves a typed id with --select; a closed / won't-fix / unknown id must not resolve.
         run("b_scaffold", self.root)
         self.add_bug("BUG-001", "S2", "local")
         self.add_bug("BUG-002", "S2", "local", status="🚫 Won't fix")

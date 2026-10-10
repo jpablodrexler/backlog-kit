@@ -10,7 +10,7 @@ Orchestrate one bug fix from selection to close, one subagent per phase. Its dis
 
 `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise. Everything project-specific — which commands verify a change, which reviews apply, branch prefixes — comes from that file, never from this skill; with none configured, the first run proposes gates and asks (see the gates phase).
 
-**Input**: an optional bug id (`BUG-004`), optionally followed by `--skip-branch-setup` and/or `--confirmed`. The id is passed to `bugs-next` to skip the recommendation and go straight to confirmation. `--skip-branch-setup` is for orchestrators (a batch runner) that already checked out one shared branch and run several fixes on it without committing between them. `--confirmed` (only with an id) means the caller already got the user's approval of this exact bug as part of a confirmed list, so the per-bug question is skipped. A batch runner passes both; omit both for normal single-bug use.
+**Input**: an optional bug id (`BUG-004`), optionally followed by `--skip-branch-setup`. The id is passed to `bugs-next` to skip the recommendation and go straight to confirmation. `--skip-branch-setup` is for orchestrators (a batch runner) that already checked out one shared branch and run several fixes on it without committing between them. A batch runner passes it; omit it for normal single-bug use.
 
 **Before starting**, read `reference/pipeline-guardrails.md` — the rules that hold across every phase (no commits, confirmations reach the user, one branch, no weakening tests, no secrets).
 
@@ -31,7 +31,7 @@ Orchestrate one bug fix from selection to close, one subagent per phase. Its dis
 
 Which bug gets fixed is the user's decision; a spawned subagent can't reliably surface `AskUserQuestion`, and an "auto mode" instruction never changes that.
 
-1. Invoke `bugs-next` with the Skill tool directly (not inside an Agent call), passing the id if one was given — and `--confirmed` if this skill was given it. Let it present its recommendation and ask for confirmation in this context; in `--confirmed` mode it validates the id and asks nothing.
+1. Invoke `bugs-next` with the Skill tool directly (not inside an Agent call), passing the id if one was given Let it present its recommendation and ask for confirmation in this context, every time.
 2. No `BUG_ID:` line back (cancelled, or confirmation couldn't be obtained) → stop and tell the user. Never go on without a confirmed id.
 3. Otherwise `<id>` is the confirmed id. Read its row in `<backlog>/bugs-open.md` and its details in `<backlog>/bugs/<id>.md` now (if the details file is missing, fall back to the row's Summary as the report, and tell the user the write-up is missing and thin), and keep the steps to reproduce / expected / actual / environment / notes as `<repro-details>` to paste verbatim into the reproduce subagent's prompt — a subagent shouldn't have to hunt for them.
 
@@ -128,4 +128,4 @@ Nothing was committed. The fix and its regression test are on `<branch>`, uncomm
 - **Phase 4's gates always run.** They are never skipped because the fix "only touched" something small.
 - Reviews are always scoped to the current diff and non-interactive; they never sweep the whole codebase.
 - `--skip-branch-setup` affects only Phase 1 (it passes `--batch`). Every other phase already works on "whatever branch is checked out".
-- `--confirmed` removes only Phase 0's per-bug question, and only for an id the caller vouches the user approved. Every other decision point — the cannot-reproduce choice, gate setup, a partial-gates result, a `PROD_CODE_FIXED` choice, any blocker — still goes to the user.
+- Every decision point — the bug confirmation, the cannot-reproduce choice, gate setup, a partial-gates result, a `PROD_CODE_FIXED` choice, any blocker — goes to the user, also when this skill runs inside a batch.

@@ -250,3 +250,16 @@ Other choices: snapshots moved into `<git-dir>/backlog-kit/` because under `docs
 
 Content restorations in the same release are small and listed in the changelog. Left for later: the code-level items from round 2 (encoding, CRLF, config types, batch report edge cases), which belong with robustness work.
 
+> Note (0.2.11): the `--confirmed` mode described in the 0.2.4 section above was removed to match the source projects, which confirm every item (decision D8, `fidelity/decisions.md`).
+
+## Fidelity method (0.2.11)
+
+Two comparison rounds kept finding losses because the skills had been written from scratch while reading the originals: measured against the two projects' skills, between 0% and 20% of the original text survived in any kit skill. The method now is the opposite. The original is the base; the kit's skill is the original plus *named* edits.
+
+- `fidelity/base/<project>/<skill>/` holds snapshots of the originals; `fidelity/ledgers/<skill>.md` records each deliberate difference as PARAM (wording or value changed), COND (kept under a condition), MOVED (now in a script, a shared phase or a project document) or DROPPED, with a reason and the decision id from `fidelity/decisions.md`.
+- `tools/fidelity.py` splits both sides into paragraphs, list items, table rows and code lines and classifies each original unit: KEPT (verbatim), VARIANT (the two projects differ and the kit keeps one of them), EDITED, or ABSENT. `--check` fails on an EDITED/ABSENT unit with no ledger entry, a stale entry, or an entry without a reason; `--added` lists kit text that has no origin, including sentences appended inside an otherwise verbatim paragraph.
+- Anything that would become configurable is put to the owner first and recorded in `fidelity/decisions.md`. Fewer knobs is the default: vocabularies stay fixed where both projects agree, and the legend of the backlog file defines the values where they differ.
+- Scripts follow the same rule: the kit's `rank_features.py` and `rank_bugs.py` are the originals with the path lookup, the schema flag and one warning edited. `tests/test_fidelity.py` runs original and kit side by side.
+
+Not yet converted (still the earlier rewrites): the other seven planning skills, the pipelines, the batch runners, `gitflow`, the reviewers. They move over family by family; the interim kit mixes both generations, which is why `bugs-next` already reads a `Schema change` line that `bug-report` does not write yet.
+

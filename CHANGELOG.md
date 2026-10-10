@@ -2,6 +2,11 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.11
+- Fidelity pilot, first step. `features-next` and `bugs-next` are rebuilt from the source projects' own skills and scripts instead of being rewritten: 84% and 77% of the original paragraphs are verbatim, and every other difference is recorded in `fidelity/ledgers/` with the owner's decision (`fidelity/decisions.md`). `tools/fidelity.py --check` (also part of the test suite) fails when a difference is unrecorded; `rank_features.py` and `rank_bugs.py` are the originals plus a few edited lines and give identical results on both projects' real backlogs.
+- Behaviour restored to what the projects do: `Schema Change` column and the +5 "no schema change" tier (the kit's own effort bonus is gone); fixed P0–P3 / S1–S4 scales; the +20 environment bonus for anything other than `local`; a prerequisite with no row counts as shipped, with a warning when it is in neither file; every item is confirmed by the user also in a batch (`--confirmed` removed).
+- `bugs-next` reads an explicit `- **Schema change:** yes` line from the bug's details file instead of a regex.
+
 ## 0.2.10
 - `dependency-upgrade` reworked: snapshots live in the git directory (never in `git status`) and also cover every file the skill edits; a group whose tool rewrites source is declared beforehand and, if it fails, is reported with the files it changed instead of being half-restored; the vulnerability check runs before and after and says "not checked" when it could not run; the command table is corrected (Maven, uv, cargo, dotnet, npm caret, yarn flavour, workspaces); a BOM or parent is bumped first; `ask_before` gates, the unused-dependency caveat and the base-branch warning are back.
 - `docs-sync` reads staged work and skips backlog bookkeeping, re-derives cumulative facts from the whole glob, and requires map docs to be in-repo Markdown; `product-scope-roaster` no longer contradicts itself on cited documents; `architecture-reviewer` writes to `architecture-review/` and its data-access and state dimensions regain the transaction, caching, N+1, migration-discipline, API-consistency and client-storage checks.

@@ -17,10 +17,10 @@ Output is JSON:
   order_basis how `--all` was ordered
 
 Ordering for `--all` (the same scoring features-next / bugs-next apply, from backlog_kit.score_*):
-  features  in-progress, priority tier, spec-ready, listed in the order list, smallest effort;
+  features  in-progress, priority tier, spec-ready, listed in the order list, no schema change;
             ties follow the order-list position, then table order; a hard prerequisite always
             precedes its dependents
-  bugs      in-progress, severity tier, production environment, listed in the order list;
+  bugs      in-progress, severity tier, deployed environment, listed in the order list, no schema fix;
             ties follow the order-list position, then bug number
 A named `--ids` list is always run exactly as given.
 
@@ -56,6 +56,12 @@ def normalize_bug_id(raw, prefix):
     return s
 
 
+def bug_schema(p, bid):
+    """True when the bug's details file says its fix needs a schema change (`- **Schema change:** yes`)."""
+    text = bk.read_lines(p.backlog / "bugs" / f"{bid}.md")
+    return bool(text) and bool(re.search(r"\*\*Schema change:\*\*\s*yes\b", "\n".join(text), re.I))
+
+
 def plan_bugs(root, cfg, ids, want_all):
     p = bk.Paths(root, cfg)
     b = cfg["bugs"]
@@ -82,8 +88,8 @@ def plan_bugs(root, cfg, ids, want_all):
 
         def key(r):
             bid = r["Bug ID"].strip()
-            score = bk.score_bug(cfg, r.get("Severity", "").strip(), r.get("Environment", "").strip(),
-                                 "In Progress" in r.get("Status", ""), bid in fix_order)
+            score = bk.score_bug(r.get("Severity", "").strip(), r.get("Environment", "").strip(),
+                                 "In Progress" in r.get("Status", ""), bid in fix_order, bug_schema(p, bid))
             return (-score, fix_order.get(bid, UNLISTED), bk.id_number(bid))
 
         seen_ids = set()
@@ -152,7 +158,7 @@ def rank_features(rows, deps, order, cfg):
             before[a].add(bq)
 
     def key(r):
-        score = bk.score_feature(cfg, r["priority"], r["effort"], r["in_progress"], r["artifacts_ready"],
+        score = bk.score_feature(r["priority"], r["schema_change"], r["in_progress"], r["artifacts_ready"],
                                  r["number"] in order)
         return (-score, order.get(r["number"], UNLISTED), index[r["number"]])
 
@@ -180,10 +186,8 @@ def plan_features(root, cfg, ids, want_all):
     def row(r):
         return {"number": r.get("#", "").strip(), "id": bk.strip_backticks(r.get("Change name", "")),
                 "summary": r.get("Summary", "").strip(), "priority": r.get("Priority", "").strip(),
-                "effort": r.get("Effort", "").strip(),
-                "artifacts_ready": cfg["spec"]["workflow"] == "openspec" and (
-                    "Created" in r.get("SDD Artifacts", "")
-                    or bk.spec_artifacts_ready(root, cfg, bk.strip_backticks(r.get("Change name", "")))),
+                "schema_change": r.get("Schema Change", "").strip(),
+                "artifacts_ready": "Created" in r.get("SDD Artifacts", ""),
                 "in_progress": "In Progress" in r.get("Implementation", "")}
 
     pending = [row(r) for r in planned_rows

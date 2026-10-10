@@ -1,105 +1,203 @@
 ---
 name: features-next
-description: Recommends which feature to implement next from features-planned.md — priority, hard dependencies, in-progress work and the Recommended implementation order — then asks the user to confirm. Returns the confirmed change name on a final CHANGE_NAME line; it does not start any work. TRIGGER when the user asks which feature to build next, what to work on next, or for a next-feature recommendation.
+description: Recommends which feature to implement next based on the backlog's features-planned.md priorities, dependencies, and its Recommended implementation order, then asks for user confirmation. If any in-progress exploration exists under the explorations folder, first offers (optionally) to keep exploring one of those ideas instead of picking a feature. Returns the confirmed change name to the caller — does NOT invoke opsx:propose or opsx:apply. TRIGGER when the user asks which feature to implement next, what to work on next, or which feature to suggest — including phrases like "recommend the next feature", "suggest the next feature", "what feature should we do next", or any similar request for a next-step recommendation from the features list.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Recommend the next feature and return the confirmed change name to the caller. `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise.
+Recommend the next feature to implement and return the confirmed change name to the caller.
 
-**Input**: optionally a feature number or name, to skip the recommendation and go straight to confirming that feature. With one, optionally `--confirmed`: the caller (a batch runner) has **already obtained the user's approval of this exact feature** as part of a list the user confirmed, so step 6's question is skipped (see "Confirmed mode" below).
+`<backlog>` is `docs/backlog` and `<explorations>` is `docs/explorations`, unless `.backlog-kit.toml` sets `[paths] backlog_dir` / `explorations_dir`.
+
+**Input**: Optional feature number or name to skip the recommendation step and jump straight to confirmation.
+
+---
 
 ## Script
 
-`scripts/rank_features.py` (run from this skill's base directory) does the mechanical work of steps 2–4 — collecting pending and in-progress rows, resolving dependency blocking from each prerequisite's *live* Implementation status, and applying the scoring below. Use its output instead of re-deriving the ranking:
+`scripts/rank_features.py` owns steps 2-4's mechanical work — collecting
+pending/in-progress rows, resolving hard-dependency blocking from each
+candidate's *live* Implementation-column status (never a dependency
+note's own possibly-stale parenthetical), and applying the fixed
+point-tier scoring with its tie-breaks. Run it from this skill's base directory and use its output for
+steps 2-5 rather than re-deriving the ranking by hand:
 
 ```
 python3 scripts/rank_features.py <repo-root>
 ```
 
-`--select <number-or-name>` resolves one feature directly (for the optional input or a free-text answer in step 6); `--json` gives raw data. The script never asks the user anything and never decides — the confirmation in step 6 is this skill's job.
+Pass `--select <number-or-name>` to resolve one specific feature
+directly instead of ranking (for the skill's own optional input, or for
+resolving a step-6 "Other" free-text answer) — see "Resolving a feature
+by number or name" in the Guardrails. Add `--json` for the raw
+structured data. The script never calls `AskUserQuestion` and never
+returns a final decision — step 6's mandatory confirmation is still this
+skill's job, not the script's. Steps 2-4 below document exactly what it
+computes, for maintaining it.
 
 ## Steps
 
-### 0. Offer an open exploration first (optional; only if the project uses one)
+### 0. Offer an in-progress exploration first (optional off-ramp)
 
-If `<explorations_dir>` (default `docs/explorations`) exists and holds markdown files, read each one's `**Status:**` line and `# ` title. An exploration is **open** unless its status contains `archived`, `superseded`, `proposed`, `done` or `dropped` (no status line counts as open). If none are open, skip this step silently.
+Before recommending a feature, check whether there's an open exploration the user might want to keep developing instead of starting a new feature.
 
-Otherwise ask with **AskUserQuestion** — "There's an in-progress exploration. Recommend the next feature, or keep working on one of these?" — options: "Recommend the next feature" (default), then up to three open explorations by title (most recently modified first). If the tool is unavailable, skip this step; don't block on it. If the user picks an exploration, **stop**: emit no `CHANGE_NAME:` line, point them at that file and tell them to continue it with their exploration workflow (with `spec.workflow = "openspec"`, that's `/opsx:explore`).
+1. List `<explorations>/*.md` (skip a `README.md` if present). If the directory doesn't exist or holds no such files, skip this step entirely and go to step 1.
+2. For each file, read its `**Status:**` line near the top and its `# ` H1 title. Treat the exploration as **open** unless the status line marks it finished — i.e. it contains `archived`, `superseded`, `proposed`, `done`, or `dropped`. A file with no `**Status:**` line counts as open. Record each open exploration's title and path.
+3. If there are no open explorations, go to step 1 without mentioning this — it's not worth a line of output when there's nothing to offer.
+4. If there is at least one open exploration, use the **AskUserQuestion tool** — this is a genuine optional off-ramp and must actually reach the user. If `AskUserQuestion` is unavailable in this context, skip this step and proceed to the normal recommendation (do **not** block on it — unlike step 6, choosing to explore is not a prerequisite for anything):
+   - **Question**: "There's an in-progress exploration. Recommend the next feature to implement, or keep working on one of these explorations?"
+   - **Options** (at most 4 total):
+     1. "Recommend the next feature" — the normal path, and this skill's default job
+     2. "`<exploration 1 title>`" — "keep exploring this"
+     3. "`<exploration 2 title>`" (if present)
+     4. "`<exploration 3 title>`" (only if the total stays at or under 4)
+   - If more than 3 open explorations exist, list the 3 most recently modified and let the tool's built-in "Other" cover the rest — resolve a free-text answer to the file whose title or filename matches.
+5. If the user picks "Recommend the next feature" (or the tool was unavailable), continue to step 1.
+6. If the user picks an exploration, **stop here.** Do not collect or score features, and do not emit a `CHANGE_NAME:` line. Point the user at the exploration's file path and tell them to continue it with `/opsx:explore` (or `/openspec-explore`, whichever your OpenSpec install generated) naming the topic. This skill's job is done — the caller treats the absence of a `CHANGE_NAME:` line exactly as it treats a step-6 "Cancel".
 
-### 1. Read the backlog
+### 1. Read features-planned.md
 
-Read `<backlog>/features-planned.md`. If it doesn't exist, tell the user to run `feature-plan` first and stop.
+Read `<backlog>/features-planned.md` in full. If it doesn't exist yet, there's no backlog to recommend from — tell the user to run `feature-plan` first to add at least one feature, and stop.
 
 ### 2. Collect pending features
 
-Every row of `## Feature List` whose Implementation shows `⬜ Pending` or `🔶 In Progress`, with its number, name, priority, effort, area, in-progress flag, Summary, and the brief file path from its `Brief` link (the brief — never the Summary — is what a later spec/implementation step receives). With `spec.workflow = "openspec"` also record whether its `SDD Artifacts` cell is `✅ Created`. Zero rows → say the backlog is empty and stop.
+From the `## Feature List` table, collect every row whose **Implementation** column shows `⬜ Pending` or `🔶 In Progress`. For each row record:
 
-### 3. Determine which are unblocked
+- `number` — the `#` column value (integer)
+- `name` — the backtick-wrapped value in the **Change name** column (e.g. `task-due-dates`)
+- `priority` — the **Priority** column value (`P0`/`P1`/`P2`/`P3`)
+- `schema_change` — the **Schema Change** column value (`Yes`/`No`)
+- `effort` — the **Effort** column value (`S`/`M`/`L`)
+- `area` — the **Area** column value (one of the values the backlog's own legend defines)
+- `artifacts_ready` — `true` if the **SDD Artifacts** column shows `✅ Created`, `false` if `⬜ Pending` or if the table has no `SDD Artifacts` column
+- `in_progress` — `true` if the **Implementation** column shows `🔶 In Progress` (`feature-development` has already started this one — see `feature-development`'s Step 1.6), `false` if `⬜ Pending`
+- `brief` — the **Summary** column text (a hand-written one-liner of at most 250 characters, for display only)
+- `brief_file` — the repo-relative path of the feature's full brief file, `<backlog>/features/NNN-<name>.md`, taken from the **Brief** column's `[brief](features/NNN-<name>.md)` link. This file, never the Summary, is what the spec step later receives. The script warns when the file does not exist.
 
-A feature is **blocked** if a hard dependency `**Feature A → Feature B**` (under `### Hard implementation dependencies`) names a prerequisite B that still has a row showing `⬜ Pending` **or** `🔶 In Progress` — a prerequisite being worked on hasn't shipped either. A B with no row in the planned table has been archived, so it no longer blocks. Always judge from B's live row, **never** from the dependency note's own "(still pending)" / "(resolved)" annotation, which can lag.
+If the table has zero rows, tell the user the backlog is empty and stop — there's nothing to recommend.
 
-### 4. Score
+### 3. Determine which features are unblocked
 
-Higher is better:
+A feature is **blocked** if it has a hard dependency on another feature that is not yet `✅ Implemented`. Derive this from the **Hard implementation dependencies** sub-section of `## Dependencies`.
 
-| Tier | Rule | Points |
-| ---- | ---- | ------ |
-| 0 | In progress — resuming beats starting | +1000 |
-| 1 | Priority, by position in the configured list (first = highest): 4 tiers → 400/300/200/100 | n×100 … 100 (unknown/blank: 50) |
-| 2 | Spec artifacts already created (`openspec` only) | +20 |
-| 3 | Listed in `### Recommended implementation order` | +10 |
-| 4 | Smallest configured effort tier (quick to deliver) | +5 |
+Build a blocked set: for each hard-dependency statement `A → B` found there, look up B's row in the `## Feature List` table you just read:
+- If B's row shows `⬜ Pending` **or** `🔶 In Progress`, mark A as blocked — a prerequisite that's actively being worked on hasn't shipped yet either, so it blocks exactly like a merely-pending one does. Do not treat "not literally `⬜ Pending`" as "safe to recommend"; the only status that clears a dependency is B actually being done.
+- If B has no row at all in the `## Feature List` table, treat the dependency as satisfied (not blocking) — the only way a feature is absent from that table is that `features-archive` already moved it to `features-implemented.md` as `✅ Implemented`. Do not treat a missing row as "unknown, so don't block" by accident; confirm it's genuinely archived (a quick check against `<backlog>/features-implemented.md` if there's any doubt) rather than assuming. The script makes that check: a prerequisite that has no row in either `features-planned.md` or `features-implemented.md` is reported as a warning (a mistyped or deleted number), never silently treated as shipped.
+- **Never fall back to the dependency statement's own parenthetical annotation** (e.g. "(still pending)" / "(resolved)") to decide blocking — that text is a human-readable summary maintained by `features-archive` and can lag the actual Implementation-column status (this has happened before). Always re-derive from B's live row in the Feature List table itself.
 
-Ties break by earlier position in the order list (listed beats unlisted), then lower feature number. Tier 1 dominates tier 3, so the order list only sequences *within* a priority tier; tier 0 is the one thing that outranks priority.
+A feature is **unblocked** if it is not in the blocked set.
 
-### 5. Present
+### 4. Score and rank unblocked features
+
+Apply the following scoring rules in order (higher score = higher priority):
+
+**Tier 0 — In Progress bonus**
+
+Add +1000 if `in_progress` is `true`. This dominates every other tier
+(worth at most 400+20+10+5 = 435 combined), so a feature `feature-development`
+has already started always outranks every merely-pending one, regardless of
+priority — resuming existing work takes precedence over starting something
+new. See the Guardrails below for why.
+
+**Tier 1 — Priority column**
+
+Read the row's `priority` value directly. Assign:
+- P0 → score 400
+- P1 → score 300
+- P2 → score 200
+- P3 → score 100
+- Missing/blank → score 50 (treat as untiered rather than erroring)
+
+**Tier 2 — SDD Artifacts ready bonus**
+
+Add +20 if `artifacts_ready` is `true` (SDD already created, can apply immediately without the propose step).
+
+**Tier 3 — Recommended implementation order bonus**
+
+The `### Recommended implementation order` subsection lists features in suggested sequence (a bullet list of `` `change-name` (#number) `` entries — list position, not a printed number, encodes order). Add +10 for features that appear in that list (they have been explicitly ordered), and record each such feature's line position (1 = first bullet) for the tie-break below — a feature absent from the list has no position.
+
+**Tier 4 — No schema change bonus**
+
+Add +5 if the row's `schema_change` value is `No` — these are simpler to deliver (no migration to write, sequence, or coordinate with other pending migrations).
+
+Select the highest-scoring unblocked feature. Break ties, in order:
+1. Earlier position in the `### Recommended implementation order` list wins (a feature with a position beats one without).
+2. If neither tied feature has a position (or both are missing from the list), the lower feature number wins (smaller = older = likely simpler).
+
+Because Tier 1 (priority, worth 100–400 points) dominates Tier 3 (worth 10), the order list only ever breaks ties *within* a priority tier or acts as the final tie-break — it does not override an explicit priority difference between features. That's deliberate: `features-planned.md`'s own Priority column is the primary signal; the order list is a same-priority sequencing aid. Tier 0 (worth 1000) is the one exception that *does* override priority — see Tier 0 above.
+
+### 5. Present the recommendation
+
+Display:
 
 ```
 ## Recommended Next Feature
 
 **#<number> `<name>`**
-<Summary>
-Full brief: <brief file>
+<brief — the Summary>
+Full brief: <brief_file>
 
-**Priority:** <p>  **Effort:** <e>  **Area:** <a>
+**Priority:** <priority>  **Effort:** <effort>  **Area:** <area>  **Schema change:** <schema_change>
 
 **Why this feature:**
-- <in progress: "🔶 Already in progress — resuming beats starting something new", always first when true>
-- <tier reason>
+- <if in_progress: "🔶 Already in progress — feature-development started this one; resuming beats starting something new" as the first bullet, always>
+- <tier reason, e.g. "P0 production-safety gap" or "unblocked, artifacts already created">
 - <dependency status, e.g. "all prerequisites implemented">
-- <order-list position, if listed>
+- <position in the Recommended implementation order, if listed, e.g. "sequenced first among the P2s in the recommended order" — omit this bullet if the feature isn't in that list>
+- <any relevant note from implementation notes>
+
+**SDD Artifacts:** <✅ Created / ⬜ Not yet created>   (omit this line when the table has no `SDD Artifacts` column)
 ```
 
-Add `**Spec artifacts:** ✅ Created / ⬜ Not yet created` with `openspec`. Repeat any missing-brief warning the script emitted under the `Full brief:` line — the implementation step will stop on a missing brief, so say so now. Show the top 3 runners-up with a one-line reason each.
+If the script emitted a missing-brief-file warning for the recommended feature (or a runner-up), repeat it right under that feature's `Full brief:` line: `feature-development` stops with `PROPOSE_BLOCKED` when a planned feature's brief file is missing or empty and its SDD artifacts do not exist yet, so the user should hear about it now rather than mid-run.
 
-### 6. Confirm — mandatory
+Also show the top 3 runners-up (by score) with a one-line reason each so the user can override, if there are that many unblocked features.
 
-Which feature gets built commits hours of work and a branch, so it is **always the user's call**. Ask with **AskUserQuestion** (2–4 options per question): "Proceed with implementing `<name>`?" (or "Resume implementing `<name>`?" when in progress) with options "Yes, proceed with `<name>`", up to two runners-up, and "Cancel". The tool's built-in "Other" lets the user type any number or name — resolve it with `--select`: it must match a real pending row; if it matches nothing or an implemented feature, say so and ask again. Remind the user that the brief file (not the Summary) is what the next step receives, so edits belong there before confirming.
+### 6. Ask for user confirmation
 
-If `AskUserQuestion` is unavailable (for instance inside a subagent), do **not** fall back to the top pick: end without a `CHANGE_NAME:` line and state plainly that confirmation couldn't be obtained. An autonomous-operation or "auto mode" instruction never substitutes for this question.
+**This confirmation is mandatory and unconditional — it must always actually reach the user, never be silently skipped or auto-answered.** This holds even when the caller is running under an "Auto Mode" or similar autonomous-operation instruction that biases toward proceeding without stopping to ask: that bias is meant for implementation judgment calls (which helper function to use, how to phrase a commit message), never for which feature gets built. Selecting a feature commits potentially hours of automated work and a real git branch — that is always the user's call, not a "reasonable default" for the model to make on their behalf.
 
-On "Cancel", stop with no change name.
+If `AskUserQuestion` is not available in the current execution context — e.g. this skill is being invoked from inside a spawned/backgrounded subagent that has no interactive tool access, rather than the orchestrator's own foreground context — do **not** fall back to picking the top-scored recommendation and proceeding. Stop instead: end the response without a `CHANGE_NAME:` line, and state plainly that confirmation could not be obtained in this context because `AskUserQuestion` was unavailable. The caller is responsible for re-invoking this skill from a context that does have it (see `feature-development`'s Phase 0, which exists specifically so this skill is always invoked from the orchestrator's own context, never from inside a subagent).
 
-### Confirmed mode (`--confirmed`, only with a number or name)
+`AskUserQuestion` only accepts 2–4 options per question — never enumerate the full unblocked list through it. If the backlog is large, only the recommendation plus its top few runners-up fit; anything beyond that must be a free-text answer.
 
-The user approved this feature once, as part of a list, so asking again per feature would defeat an unattended run. In this mode: resolve it with `--select`. If it is a real pending / in-progress row **and not blocked**, skip steps 3–6 — no question — and go straight to step 7. If it resolves to nothing, is already implemented, or is **blocked by a prerequisite that hasn't shipped**, stop with **no** `CHANGE_NAME:` line and say why, naming the prerequisite: a feature whose dependency is unbuilt must never be built, whoever approved the list. `--confirmed` without a number or name is ignored and the normal flow, including step 6, runs: it can never be used to *choose* a feature on the user's behalf.
+Use the **AskUserQuestion tool** with a single question:
 
-### 7. Return the name
+- **Question**: "Proceed with implementing `<name>`?" (if `in_progress` is `true`, phrase it as "Resume implementing `<name>`?" instead — it's already underway, not a fresh start)
+- **Options** (at most 4 total — the recommended feature plus up to 3 runners-up from step 5; if step 5 found fewer than 3 runners-up, that's fine, just use however many exist):
+  1. "Yes, proceed with `<name>`" (or "Yes, resume `<name>`" if `in_progress`) — confirm the recommended feature
+  2. "`<runner-up 1 name>`" — one-line reason from step 5
+  3. "`<runner-up 2 name>`" (if present)
+  4. "`<runner-up 3 name>`" (if present, and only if the total stays at or under 4)
+  - "Cancel" — stop here (use one of the slots above for this; drop the lowest-ranked runner-up if all 4 slots would otherwise be full)
 
-After confirmation, end with exactly:
+Do not add a separate "Choose a different feature" option that tries to show the rest of the list — the tool's built-in "Other" choice already lets the user type any number or name directly, including one that didn't make the shortlist. Resolve that free-text answer per "Resolving a feature by number or name" in the Guardrails below.
+
+When confirming, tell the user that the `Full brief:` file (not the one-line Summary) is what `feature-development` will hand to the spec step (`openspec-propose`) as the description of what to build, so an edit to the brief belongs in that file before confirming.
+
+If the user selects "Cancel", stop and return without a change name.
+
+### 7. Return the confirmed change name
+
+After the user confirms, output the confirmed feature's change name as the final line of the response in this exact format so the caller can extract it:
 
 ```
 CHANGE_NAME: <change-name>
 ```
 
+---
+
 ## Guardrails
 
-- Always read the full planned file (via the script) before recommending; never guess from memory.
-- This skill only recommends, confirms and returns a name. It starts no implementation, branch or other skill; the caller decides what's next.
-- Never recommend a feature that is already implemented, or one blocked by a prerequisite that isn't implemented — not as the top pick, not as a runner-up, and not in `--confirmed` mode either.
-- `--confirmed` skips the question only for a feature the caller says the user already approved, and only after it re-validates against the live backlog. Anything else — no identifier, one that no longer resolves, a blocked one — takes the normal path or stops.
-- An in-progress feature is always preferred over a merely pending one, whatever its priority. With several in progress, tiers 1–4 pick among just those.
-- If every pending feature is blocked, say which prerequisites must ship first and recommend those instead.
+- Always read the full `<backlog>/features-planned.md` before scoring — never guess which feature is next from memory.
+- Do not invoke `opsx:apply`, `opsx:propose`, `opsx:explore`, or any other skill. This skill's sole responsibility is recommendation, confirmation, and returning the change name (or, via step 0, surfacing an exploration off-ramp and stopping). The caller decides what to do next.
+- **Step 0's exploration off-ramp never returns a `CHANGE_NAME:` line.** If the user chooses to keep exploring, this skill stops with no recommendation; the caller must treat that identically to a step-6 "Cancel" and not proceed to implement anything. Step 0 is also purely additive — a skipped or unavailable step 0 (no `<explorations>/`, no open files, or no `AskUserQuestion`) must never block the normal recommendation flow.
+- **Resolving a feature by number or name**: whenever a specific feature number or name is available — whether it's the skill's initial input, or a free-text answer typed into the "Other" option of step 6's `AskUserQuestion` — look it up directly as the row in `<backlog>/features-planned.md` whose `#` or `Change name` column matches, rather than re-running the scoring pass. If it's the skill's initial input, skip steps 2–5 and go directly to step 6 with that feature pre-selected (but still confirm). If it's a step-6 "Other" answer, treat it as the user's final selection (re-confirming isn't necessary — they already answered the confirmation question) — but only once it resolves to a real row: if the typed value matches no row at all, or matches a row already showing `✅ Implemented` (which must never be recommended, per the guardrail below — a manually-typed answer doesn't get an exception), report the mismatch to the user and ask again rather than returning a `CHANGE_NAME:` for something that isn't actually a valid pending feature.
+- A feature already showing `✅ Implemented` in the Implementation column must never be recommended.
+- **A feature already showing `🔶 In Progress` is always preferred over any merely `⬜ Pending` feature, regardless of priority.** `feature-development` marks a feature `🔶 In Progress` as soon as it selects it and sets up its branch (see that skill's Step 1.6); if that run was interrupted before archiving, the row is left `🔶 In Progress` with real work already sitting on `feature/<change-name>`. Resuming that work is almost always better than starting a new feature and leaving the in-progress one to rot — hence Tier 0's dominant score. If more than one row happens to show `🔶 In Progress` at once (e.g. two interrupted runs), Tier 0 puts all of them ahead of every pending feature and the normal Tier 1–4 scoring (plus the usual tie-breaks) picks among just that set.
+- If ALL unblocked features have `artifacts_ready = false`, the recommendation will still be returned — the caller handles artifact creation.
+- If ALL pending features are blocked, inform the user which blocking prerequisites need to be implemented first, and surface those prerequisites as the recommendation instead.
+- **A feature with any hard dependency on a prerequisite that isn't `✅ Implemented` must never be recommended — not as the top pick, not as a runner-up.** Step 3's blocked set exists specifically to enforce this; a feature belongs in the blocked set (and out of scoring/step 4 entirely) whenever its prerequisite is `⬜ Pending` or `🔶 In Progress`, full stop, regardless of how attractive its priority/effort/order-list score would otherwise be. Recommending a feature whose backlog-declared dependency hasn't shipped — because a stale annotation was trusted over the live Implementation column, or because "In Progress" was mistaken for "not blocking" — has happened before and is exactly what this guardrail exists to prevent.
+- **Never substitute an autonomous-operation instruction (Auto Mode or similar) for step 6's user confirmation.** No matter how unambiguous the top-scored recommendation looks (e.g. a lone P0/P1 among otherwise P2/P3 candidates), this skill must still ask and wait for an actual answer before returning a `CHANGE_NAME:` line. The scoring in steps 3–4 exists to produce a good *recommendation*, not to make the confirmation optional.
 - **Never run `git commit`, `git push` or open a PR.**

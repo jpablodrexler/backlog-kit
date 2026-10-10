@@ -25,14 +25,14 @@ Run `bug-fix` in a loop over a list of bugs, all on one shared fix branch, never
 
 ## Outcome mapping (loop step 3)
 
-After `bug-fix <id> --skip-branch-setup --confirmed` returns:
+After `bug-fix <id> --skip-branch-setup` returns:
 
 | What `bug-fix` did | Report status |
 | ------------------ | ------------- |
 | Showed its "Bug Fix Complete" summary — the bug was closed through `bugs-archive` | `closed`, with a ≤2-sentence summary: the root cause and what the fix changed. Read the row `bugs-archive` just wrote to `bugs-fixed.md` and the Resolution line it appended to `bugs/<id>.md`. |
 | Couldn't reproduce it and the user chose "mark it Cannot reproduce" | `cannot-reproduce` with a short note |
 | Couldn't reproduce it and the user chose "keep it open" | `left-open` — the report entry reads "Left open", and the row stays `🔶 In Progress` for the user to add repro detail |
-| Refused at selection — `bugs-next --confirmed` returned no `BUG_ID:` line because the bug is no longer open (closed, Won't fix, Cannot reproduce) or no longer exists | `blocked`, with the reason; ask Retry now / Skip and continue / Stop (loop step 4) |
+| Refused at selection — `bugs-next` returned no `BUG_ID:` line (the user cancelled the confirmation, or the bug is no longer open (closed, Won't fix, Cannot reproduce) or no longer exists) | `blocked`, with the reason; ask Retry now / Skip and continue / Stop (loop step 4) |
 | Stopped on a `*_BLOCKED` reason | ask Retry now / Skip and continue / Stop (loop step 4) → `blocked` with the reason |
 
 ## Final report
@@ -42,6 +42,6 @@ When the run ends, show the counts from `batch_report.py finish` plus, for each 
 ## Guardrails (bug-specific; the rest are in `reference/batch-runner.md`)
 
 - **Never run `git commit`, `git push` or open a PR.** The branch step's `git switch` / `git switch -c` / `git merge --ff-only` are the only git writes, and every `bug-fix` call passes `--skip-branch-setup`.
-- Invoke `bug-fix <id> --skip-branch-setup --confirmed` through the Skill tool directly — never in a backgrounded Agent call. The list you confirmed in step 1 *is* the per-bug approval; `bug-fix` still raises the cannot-reproduce decision, the gate setup, a partial-gates result and blocker prompts, and each must reach the user live.
+- Invoke `bug-fix <id> --skip-branch-setup` through the Skill tool directly — never in a backgrounded Agent call. `bug-fix` still asks the user to confirm each bug, and raises the cannot-reproduce decision, the gate setup, a partial-gates result and blocker prompts; each must reach the user live.
 - Process bugs strictly one at a time, in order. A later bug's regression test and reviews will see earlier bugs' uncommitted files; that is expected.
 - A bug closed earlier in the same run is never re-run; a `🚫 Won't fix` / `❓ Cannot reproduce` bug is only offered "skip" or "stop", never silently dropped.

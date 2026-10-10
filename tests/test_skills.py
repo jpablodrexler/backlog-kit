@@ -64,7 +64,7 @@ class SkillLint(unittest.TestCase):
                 continue
             body = (d / "SKILL.md").read_text()
             for ln in [l for l in body.splitlines() if "`gitflow`" in l]:
-                self.assertRegex(ln, r"never invoke it", f"{d.name}: {ln[:80]}")
+                self.assertRegex(ln, r"never invoke it|[Dd]o not invoke", f"{d.name}: {ln[:80]}")
 
     def test_only_gitread_may_shell_out(self):
         # Scripts that can shell out could run git write commands and break the promise.
@@ -109,29 +109,17 @@ class SkillLint(unittest.TestCase):
         self.assertIn("never wave it through", text)
         self.assertIn("`npm ci`, not `npm install`", text)
 
-    def test_confirmed_mode_is_wired_through_and_bounded(self):
-        # the batch runner passes it, the work skills accept it, the selectors honour it only with an id
-        for name in ("bugs-batch-fix", "features-batch-development"):
-            runner = (KIT / "skills" / name / "reference" / "batch-runner.md").read_text()
-            self.assertIn("--skip-branch-setup --confirmed", runner)
-            self.assertIn("one approval of *what* gets worked on", runner)
+    def test_there_is_no_confirmed_mode_every_item_is_confirmed_by_the_user(self):
+        # decision D8: the source projects confirm every item, also inside a batch.
+        for path in list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "shared").glob("*.md")):
+            with self.subTest(file=str(path.relative_to(KIT))):
+                self.assertNotIn("--confirmed", path.read_text())
         for name in ("bug-fix", "feature-development"):
             text = (KIT / "skills" / name / "SKILL.md").read_text()
-            self.assertIn("--confirmed", text)
-            self.assertIn("removes only Phase 0's per-", text)      # it removes ONE prompt, not the others
-            self.assertIn("still goes to the user", text)
-        for name, tail in (("bugs-next", "BUG_ID"), ("features-next", "CHANGE_NAME")):
+            self.assertIn("goes to the user, also when this skill runs inside a batch", text)
+        for name in ("bugs-batch-fix", "features-batch-development"):
             text = (KIT / "skills" / name / "SKILL.md").read_text()
-            self.assertIn("### Confirmed mode", text)
-            self.assertIn("can never be used to *choose*", text)     # no id -> ignored, normal flow
-            self.assertIn("— mandatory", text)                       # the normal confirmation is still there
-            self.assertIn(f"**no** `{tail}:` line", text)            # a stale id stops instead of guessing
-        self.assertIn("**blocked by a prerequisite", (KIT / "skills/features-next/SKILL.md").read_text())
-        guard = (KIT / "shared/pipeline-guardrails.md").read_text()
-        self.assertIn("The one exception is `--confirmed`", guard)
-        self.assertIn("never lets anything be chosen on the user's behalf", guard)
-
-    def test_a_confirmed_mode_refusal_has_an_explicit_outcome(self):
+            self.assertIn("still asks the user to confirm each", text)
         runner = (KIT / "shared/batch-runner.md").read_text()
         self.assertIn("or refused the item at selection", runner)
         self.assertIn("a later resume of the same list retries it", runner)

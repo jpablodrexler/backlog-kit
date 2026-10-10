@@ -321,7 +321,7 @@ if __name__ == "__main__":
 
 
 class ConfirmedModeSafety(unittest.TestCase):
-    """features-next --confirmed resolves with --select: blocked and implemented features must not pass."""
+    """features-next resolves a typed name with --select: blocked and implemented features must not pass."""
 
     def test_select_flags_blocked_and_refuses_implemented_or_unknown(self):
         with tempfile.TemporaryDirectory() as d:

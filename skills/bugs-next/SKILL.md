@@ -1,89 +1,194 @@
 ---
 name: bugs-next
-description: Recommends which bug to fix next from bugs-open.md — in-progress work, severity, production-facing environment and the Recommended fix order — then asks the user to confirm. Returns the confirmed bug id on a final BUG_ID line; it does not start a branch or attempt a fix. TRIGGER when the user asks which bug to fix next, what to work on from the bug backlog, or for a next-bug recommendation.
+description: Recommends which bug to fix next based on the backlog's bugs-open.md severities, the Recommended fix order, and whether a fix is already in progress, then asks for user confirmation. Returns the confirmed Bug ID to the caller — does NOT start a branch or attempt a fix. TRIGGER when the user asks which bug to fix next, what to work on from the bug backlog, or for a next-bug recommendation. This is the bug-family counterpart to features-next.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Recommend the next bug to fix and return the confirmed id. Mirrors `features-next`: score, present, confirm, return an id line. `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise.
+Recommend the next bug to fix and return the confirmed Bug ID to the
+caller. Mirrors `features-next`: score, present, confirm via a mandatory
+`AskUserQuestion`, return an ID line.
 
-**Input**: optionally a bug id (`BUG-004`) to skip the recommendation and go straight to confirming it. With an id, optionally `--confirmed`: the caller (a batch runner) has **already obtained the user's approval of this exact id** as part of a list the user confirmed, so step 5's question is skipped (see "Confirmed mode" below).
+`<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`.
+
+**Input**: Optional Bug ID (e.g. `BUG-004`) to skip the recommendation
+step and jump straight to confirmation for that bug.
+
+---
 
 ## Script
 
-`scripts/rank_bugs.py` (run from this skill's base directory) collects open and in-progress rows and applies the scoring below. Use its output for steps 2–4:
+`scripts/rank_bugs.py` owns steps 2-3's mechanical work — collecting
+Open/In Progress rows and applying the fixed point-tier scoring
+(In Progress > Severity > deployed (not local-only) environment > fix-order position >
+no schema change) with its tie-breaks. Run it and use its output for
+steps 2-4 rather than re-deriving the ranking by hand (run it from this
+skill's base directory):
 
 ```
 python3 scripts/rank_bugs.py <repo-root>
 ```
 
-`--select <ID>` resolves one bug directly; `--json` gives raw data. It never asks anything or decides — step 5's confirmation is this skill's job.
+Pass `--select BUG-NNN` to resolve one specific bug directly instead of
+ranking (for the skill's own optional input, or a step-5 "Other"
+free-text answer). Add `--json` for the raw structured data. The script
+never calls `AskUserQuestion` and never returns a final decision —
+step 5's mandatory confirmation is still this skill's job.
 
 ## Steps
 
-### 1. Read the backlog
+### 1. Read bugs-open.md
 
-Read `<backlog>/bugs-open.md` (table rows only; per-bug details live in `bugs/<ID>.md`, read on demand). If it doesn't exist, tell the user to run `bug-report` first and stop.
+Read `<backlog>/bugs-open.md` in full. If it doesn't
+exist, there's no backlog to recommend from — tell the user to run
+`bug-report` first, and stop.
 
 ### 2. Collect actionable bugs
 
-Rows of `## Bug List` whose Status is `⬜ Open` or `🔶 In Progress`; skip `✅ Fixed`, `🚫 Won't fix` and `❓ Cannot reproduce`. Record id, severity, area, environment, in-progress flag and Summary. No actionable rows → say the backlog is clear and stop.
+From the `## Bug List` table, collect every row whose **Status** is
+`⬜ Open` or `🔶 In Progress`. Skip `✅ Fixed`, `🚫 Won't fix`, and
+`❓ Cannot reproduce`. For each collected row record:
 
-### 3. Score
+- `id` — the `Bug ID` column value (e.g. `BUG-004`; the cell is the link
+  `[BUG-004](bugs/BUG-004.md)` — take the link text)
+- `severity` — `S1` / `S2` / `S3` / `S4`
+- `area` — the `Area` column value
+- `environment` — the `Environment` column value (`local` is the only value that
+  means "not deployed"; the backlog's legend defines the others, e.g. `deployed` / `prod` / `both`)
+- `in_progress` — `true` if Status is `🔶 In Progress` (a `bug-fix` run
+  started this and was interrupted before archiving), else `false`
+- `schema` — `true` if the bug's details file
+  `<backlog>/bugs/BUG-NNN.md` has a `- **Schema change:** yes` line (the
+  fix needs a schema migration or equivalent change), else `false`
+  (default `false`; also `false` if the file is missing — surface that as
+  a warning pointing at `bugs-status`)
+- `summary` — the `Summary` column text
 
-Higher is more urgent:
+If the table has zero actionable rows, tell the user the bug backlog is
+clear and stop.
 
-| Tier | Rule | Points |
-| ---- | ---- | ------ |
-| 0 | In progress — a fix was started and interrupted | +1000 |
-| 1 | Severity by position in the configured list (most severe first): 4 tiers → 400/300/200/100 | n×100 … 100 (unknown: 50) |
-| 2 | Environment is production-facing (`prod`/`both` by default) — hurting real users now | +20 |
-| 3 | Listed in `## Recommended fix order` | +10 |
+### 3. Score and rank
 
-Ties break by earlier fix-order position (listed beats unlisted), then lower bug number. Tier 1 dominates tier 3, so the order list only sequences within a severity tier; tier 0 is the one thing that outranks severity.
+Apply in order (higher = more urgent):
 
-### 4. Present
+**Tier 0 — In Progress bonus.** Add +1000 if `in_progress` is `true`. This
+dominates every other tier, so an interrupted `bug-fix` run is always
+resumed before a new bug is started — real work is already sitting on a
+`fix/*` branch for it.
+
+**Tier 1 — Severity.**
+- S1 → 400
+- S2 → 300
+- S3 → 200
+- S4 → 100
+
+**Tier 2 — Environment bonus.** Add +20 if `environment` is anything other
+than `local` (`deployed`, `prod`, `both`, …) — a bug hitting the deployed
+stack is hurting users right now.
+
+**Tier 3 — Recommended fix order bonus.** Add +10 if the bug appears in
+the `## Recommended fix order` list, and record its position (1 = first)
+for the tie-break.
+
+**Tier 4 — No schema change bonus.** Add +5 if `schema` is `false` — no
+migration to write, sequence, and coordinate.
+
+Select the highest-scoring bug. Break ties, in order:
+1. Earlier position in `## Recommended fix order` wins (a bug with a
+   position beats one without).
+2. Otherwise the lower `BUG-NNN` number wins.
+
+Because Tier 1 (100–400) dominates Tier 3 (10), the fix-order list only
+breaks ties *within* a severity tier — it never overrides an explicit
+severity difference. Tier 0 (1000) is the one exception that outranks
+severity.
+
+### 4. Present the recommendation
 
 ```
 ## Recommended Next Bug
 
-**BUG-NNN**
-<Summary>
+**BUG-NNN — <title>**
+<summary>
 
-**Severity:** <s>  **Area:** <area>  **Environment:** <env>
+**Severity:** <S?>  **Area:** <area>  **Environment:** <env>  **Schema fix:** <yes/no>
 
 **Why this bug:**
-- <in progress: "🔶 Already in progress — resuming beats starting a new one", always first when true>
-- <severity reason, e.g. "S1 — blocker, reproduces on prod">
-- <fix-order position, if listed>
+- <if in_progress: "🔶 Already in progress — a bug-fix run started this; resuming beats starting a new one" as the first bullet, always>
+- <tier reason, e.g. "S1 — auth bypass, blocks release" or "S2, reproduces on the deployed stack">
+- <position in the recommended fix order, if listed>
 ```
 
-Then the top 3 runners-up with a one-line reason each.
+Also show the top 3 runners-up (by score) with a one-line reason each, if
+there are that many actionable bugs.
 
-### 5. Confirm — mandatory
+### 5. Ask for user confirmation
 
-Which bug gets fixed next commits a branch and possibly a long run: **always the user's call.** Ask with **AskUserQuestion** — "Fix `BUG-NNN` next?" (or "Resume fixing…" when in progress) — options: "Yes, fix `BUG-NNN`", up to two runners-up, "Cancel". "Other" lets the user type any id; resolve it with `--select` — it must be a real open/in-progress row, otherwise say so and ask again.
+**Mandatory and unconditional** — it must always reach the user, never be
+auto-answered, even under an "Auto Mode" or similar autonomous-operation
+instruction. Which bug gets fixed next commits a `fix/*` branch and
+potentially a long automated run — that is always the user's call.
 
-If `AskUserQuestion` is unavailable (e.g. inside a subagent), do **not** fall back to the top pick: end without a `BUG_ID:` line and say plainly that confirmation couldn't be obtained. An "auto mode" instruction never substitutes for it. On "Cancel", stop with no id.
+If `AskUserQuestion` is not available in the current context (e.g. this
+skill was invoked from inside a spawned/backgrounded subagent), do **not**
+fall back to the top-scored pick. Stop, end the response without a
+`BUG_ID:` line, and say plainly that confirmation could not be obtained
+because `AskUserQuestion` was unavailable. The caller must re-invoke from
+a context that has it (see `bug-fix`'s Phase 0).
 
-### Confirmed mode (`--confirmed`, only with an id)
+Use the **AskUserQuestion tool** with a single question:
 
-The user approved this id once, as part of a list, so asking again per bug would defeat an unattended run. In this mode: resolve the id with `--select`. If it is a real `⬜ Open` / `🔶 In Progress` row, **skip steps 3–5 — no question** — and go straight to step 6. If it resolves to nothing, or to a closed / Won't fix / Cannot reproduce row, stop with **no** `BUG_ID:` line and say why (a stale list is a reason to stop, not to guess). `--confirmed` without an id is ignored and the normal flow, including step 5, runs: it can never be used to *choose* a bug on the user's behalf.
+- **Question**: "Fix `BUG-NNN` next?" (or "Resume fixing `BUG-NNN`?" if
+  `in_progress`)
+- **Options** (≤4 total — the recommendation plus up to 3 runners-up from
+  step 4; use one slot for "Cancel", dropping the lowest runner-up if all
+  4 slots would otherwise be full):
+  1. "Yes, fix `BUG-NNN`" (or "Yes, resume `BUG-NNN`")
+  2. "`BUG-<runner-up 1>`" — one-line reason
+  3. "`BUG-<runner-up 2>`" (if present)
+  4. "Cancel" — stop here
 
-### 6. Return the id
+The tool's built-in "Other" choice already lets the user type any Bug ID
+directly, including one not shortlisted — don't add a "choose a different
+bug" option.
 
-After confirmation, end with exactly:
+If the user selects "Cancel", stop and return without a Bug ID.
+
+### 6. Return the confirmed Bug ID
+
+After the user confirms, output the confirmed bug's id as the final line
+in this exact format so the caller can extract it:
 
 ```
 BUG_ID: BUG-NNN
 ```
 
+---
+
 ## Guardrails
 
-- Always read the full open file (via the script); never guess from memory.
-- This skill only recommends, confirms and returns an id. It starts no fix, branch or other skill.
-- Never recommend a bug that is Fixed, Won't fix or Cannot reproduce.
-- `--confirmed` skips the question only for an id the caller says the user already approved, and only after the id re-validates against the live backlog. Anything else — no id, an id that no longer resolves — takes the normal path or stops.
-- An in-progress bug is always preferred over an open one, whatever its severity.
+- Always read the full `<backlog>/bugs-open.md` before
+  scoring — never guess which bug is next from memory.
+- Do not invoke `bug-fix`, `gitflow`, or any other skill. This skill only
+  recommends, confirms, and returns the ID. The caller decides what's
+  next.
+- **Resolving a bug by ID**: whenever a specific Bug ID is available —
+  the skill's input, or a free-text "Other" answer in step 5 — look it up
+  directly as the row in `bugs-open.md` whose `Bug ID` column matches,
+  rather than re-running the scoring pass. If it's the input, skip steps
+  2–4 and go straight to step 5 with that bug pre-selected (still
+  confirm). If it's a step-5 "Other" answer, treat it as the final
+  selection — but only once it resolves to a real `⬜ Open` / `🔶 In
+  Progress` row; if it matches nothing, or matches a `✅ Fixed` / `🚫` /
+  `❓` row, report the mismatch and ask again.
+- A bug already `✅ Fixed`, `🚫 Won't fix`, or `❓ Cannot reproduce` must
+  never be recommended.
+- **A `🔶 In Progress` bug is always preferred over any `⬜ Open` one**,
+  regardless of severity — hence Tier 0's dominant score. If more than one
+  is `🔶 In Progress`, Tier 0 puts all of them ahead of every open bug and
+  Tiers 1–4 pick among just that set.
+- Never substitute an autonomous-operation instruction for step 5's
+  confirmation — the scoring produces a *recommendation*, not a licence to
+  skip asking.
 - **Never run `git commit`, `git push` or open a PR.**

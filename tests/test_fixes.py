@@ -65,7 +65,7 @@ class SddArtifactsFromDisk(unittest.TestCase):
         for f in ("proposal.md", "tasks.md", "specs/shout/spec.md"):
             (ch / f).write_text("x\n")
         ranked = json.loads(run(S / "features-next/scripts/rank_features.py", root, "--json"))
-        self.assertTrue(ranked["top"]["artifacts_ready"])
+        self.assertFalse(ranked["top"]["artifacts_ready"])      # features-next trusts the cell, as the originals do
         text = run(S / "features-status/scripts/status_report.py", root)
         self.assertIn("1 of 1 pending features already have spec artifacts", text)
         self.assertIn("`SDD Artifacts` cell is not `✅ Created`", text)
@@ -218,13 +218,16 @@ class PreviouslyUnverifiedFindings(unittest.TestCase):
     def read(self, rel):
         return (KIT / rel).read_text()
 
-    def test_an_unknown_prerequisite_blocks_instead_of_silently_unblocking(self):
+    def test_an_unknown_prerequisite_is_reported_not_silently_accepted(self):
+        # decision D7: a prerequisite with no row anywhere counts as shipped (as in the source projects),
+        # but the script says so, so a mistyped number does not pass unnoticed.
         tmp, root = repo(deps="**Feature 4 → Feature 39** (still pending)\n\ntypo'd number")
         self.addCleanup(tmp.cleanup)
         proc = subprocess.run([sys.executable, str(S / "features-next/scripts/rank_features.py"), str(root), "--json"], capture_output=True, text=True)
         out = json.loads(proc.stdout)
-        self.assertIn("unknown", json.dumps(out))
-        self.assertNotIn("top", out)                     # the only pending feature is blocked
+        self.assertIn("top", out)
+        self.assertIn("neither features-planned.md nor features-implemented.md", out["warning"])
+        self.assertIn("Feature 4 → Feature 39", out["warning"])
 
     def test_emptied_hard_dependencies_section_gets_its_placeholder(self):
         tmp, root = repo(deps="")
