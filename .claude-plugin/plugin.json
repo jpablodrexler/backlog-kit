@@ -1,0 +1,8 @@
+{
+  "name": "backlog-kit",
+  "version": "0.1.0",
+  "description": "Your backlog is plain markdown in the repo, and Claude works it to done through quality gates. Nothing is committed without you.",
+  "author": { "name": "jpablodrexler" },
+  "license": "MIT",
+  "keywords": ["backlog", "skills", "workflow", "quality-gates", "markdown"]
+}

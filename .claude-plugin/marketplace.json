@@ -1,0 +1,16 @@
+{
+  "name": "backlog-kit",
+  "owner": {
+    "name": "jpablodrexler"
+  },
+  "metadata": {
+    "description": "Claude Code skills that work a markdown backlog to done through quality gates, without ever committing."
+  },
+  "plugins": [
+    {
+      "name": "backlog-kit",
+      "source": "./",
+      "description": "Markdown backlog + Claude Code skills that work features and bugs to done through quality gates. Never commits."
+    }
+  ]
+}
