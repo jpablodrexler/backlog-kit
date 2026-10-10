@@ -1,18 +1,49 @@
 ---
 name: bug-report
-description: Adds a bug to the markdown bug backlog — drafts the row (Severity, Area, Environment, Status, Summary), assigns the next bug id, writes the details file bugs/<ID>.md (steps to reproduce, expected, actual), inserts it into the Recommended fix order, and confirms with the user before writing. Creates the backlog files on first use. TRIGGER proactively whenever the user reports a bug, asks to file or log one, describes something broken or giving a wrong result (a symptom, stack trace or console error), or hands over testing-session notes — even mid-task. It only records the bug; it never fixes it.
+description: >-
+  Adds a bug to the backlog's bugs-open.md: drafts the row (Severity, Area,
+  Environment, Status, Summary), assigns the next BUG-NNN id, writes the
+  details file bugs/BUG-NNN.md (repro / expected / actual),
+  inserts it into the Recommended fix order, and confirms with the user before
+  writing. Creates the backlog files on first use — a missing backlog is a
+  reason to run this skill, never to skip it. TRIGGER proactively whenever the
+  user reports a bug, asks to file/log one, describes something broken or
+  producing a wrong result (symptom, stack trace, console error), or hands
+  over testing-session notes, even mid-task. When fresh bugs should also be
+  fixed now ("plan and fix these bugs"), run this once per bug FIRST, THEN
+  hand off to bug-fix (one) or bugs-batch-fix (several). Bug-family
+  counterpart to feature-plan.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Add a bug row to `<backlog>/bugs-open.md` and create its details file `<backlog>/bugs/<ID>.md`, drafted from the user's report and confirmed before writing. `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise; `<ID>` is `BUG-NNN` (the prefix is configurable).
+Add a new bug row to `<backlog>/bugs-open.md` and create its details
+file `<backlog>/bugs/BUG-NNN.md`, drafted from the user's report and
+confirmed before writing. This is the bug family's analogue of
+`feature-plan` — same shape (draft, confirm, insert, order), different
+backlog file and column vocabulary.
 
-**Layout.** The two table files (`bugs-open.md`, `bugs-fixed.md`) hold only tables, the Column legend and the Recommended fix order. Every bug's write-up lives in its own file `bugs/<ID>.md` — a stable path that never moves, even when the bug is closed. Severity, Area, Environment and Status live **only** in the table row (single source of truth), never in the file. A row's first cell links to its file: `[BUG-007](bugs/BUG-007.md)`.
+`<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`.
 
-**Input**: a description of the bug — a one-liner, a paragraph, or raw notes from a testing session — optionally with explicit Severity / Area / Environment and repro details (use those as given; draft only the rest). If the user pastes **several** bugs, process them one at a time: draft, confirm, write, then the next. Never batch unconfirmed rows into one write.
+**Layout**: the two backlog files (`bugs-open.md`, `bugs-fixed.md`) hold
+only tables (plus the Column legend and Recommended fix order). Every
+bug's write-up lives in its own file `<backlog>/bugs/BUG-NNN.md` — a
+stable path that never moves, even when the bug is closed. Severity, Area,
+Environment, and Status live **only** in the table row (single source of
+truth), never in the per-bug file. Each table row's first cell links to
+the file: `[BUG-NNN](bugs/BUG-NNN.md)`.
 
-**Scripts**: run from this skill's base directory, passing the repository root. Configuration is the optional `<repo-root>/.backlog-kit.toml`; with no file, defaults apply.
+**Input**: A description of the bug — as much or as little as the user
+gives (a one-liner, a paragraph, or raw notes from a manual testing
+session). May optionally include explicit values for Severity /
+Area / Environment, and explicit repro steps / expected / actual — use
+whatever is given directly and only draft the rest.
+
+If the user pasted **several** distinct bugs at once (common straight out
+of a testing session), process them one at a time: draft the first, run
+the confirmation, write it, then move to the next. Do not batch several
+unconfirmed rows into a single write.
 
 ---
 
@@ -20,37 +51,119 @@ Add a bug row to `<backlog>/bugs-open.md` and create its details file `<backlog>
 
 ### 1. Make sure there's enough to draft from
 
-A useful bug needs what the user did, what they expected, and what actually happened. For a bare symptom ("the report page is broken") ask **one** question — the screen or action, and observed vs. expected behaviour. If the report is enough to reproduce mentally, don't ask.
+A useful bug row needs, at minimum: what the user did, what they expected,
+and what actually happened. If the report is just a symptom with no
+context ("the page is broken"), ask one clarifying question — the
+route/action, and the observed vs expected behaviour — before drafting.
+If the user already gave enough to reproduce it mentally, proceed without
+asking.
 
-### 2. Create the backlog files if they don't exist
+### 2. Read both backlog files, creating them if they don't exist yet
 
+Read:
+- `<backlog>/bugs-open.md`
+- `<backlog>/bugs-fixed.md`
+
+**If `<backlog>/bugs-open.md` doesn't exist yet** (the normal case the
+first time this skill runs), create it with this skeleton before
+continuing — don't silently invent a different structure:
+
+```markdown
+# Open Bugs
+
+## Bug List
+
+| Bug ID | Severity | Area | Environment | Status | Fix | Summary |
+| ------ | -------- | ---- | ----------- | ------ | --- | ------- |
+
+_No open bugs._
+
+## Column legend
+
+- **Severity**: `S1` (blocker — app unusable, data loss, security hole) · `S2` (major — a feature is broken with no workaround) · `S3` (minor — a feature is impaired but has a workaround) · `S4` (trivial — cosmetic, copy, layout polish)
+- **Area**: the affected route, component, or backend area — e.g. `/settings`, `auth`, `nav`, `backend`, `db`. Use the route where the user hit it; use `db` for a migration/schema/query bug with no single owning route, `backend` for a controller/service bug.
+- **Environment**: `local` (reproduces on a local dev run only) · `deployed` (reproduces on the deployed stack only) · `both`
+- **Status**: `⬜ Open` · `🔶 In Progress` (a `bug-fix` / `bugs-batch-fix` run has started it) · `✅ Fixed` (transient — `bugs-archive` moves the row to `bugs-fixed.md` in the same pass it sets this) · `🚫 Won't fix` · `❓ Cannot reproduce`
+- **Fix**: PR link or commit hash once closed; blank while open.
+
+## Details
+
+<!-- Per-bug details live in bugs/BUG-NNN.md (stable path), one file per bug, linked from its row here. `bugs-archive` moves only the table row to bugs-fixed.md and appends the Resolution line to that file. -->
+
+Details for every bug live in `bugs/BUG-NNN.md`, linked from its row.
+
+## Recommended fix order
+
+Severity tier first (S1 before S2 before S3 before S4), then blast radius / how often it bites, then quick-win effort, then bug number. Not a schedule — a reasoning aid for `bugs-next` and for whoever picks up the next fix by hand. Re-derive whenever the bug set or severities change. A plain bullet list — list position (not a printed number) is what encodes order, so inserting an entry never touches any other line.
+
+_No open bugs to order._
 ```
-python3 scripts/scaffold.py <repo-root>
+
+**If `<backlog>/bugs-fixed.md` doesn't exist yet either**, create it
+with the matching archive skeleton so `bugs-archive` has somewhere to
+write later:
+
+```markdown
+# Fixed Bugs
+
+## Bug List
+
+| Bug ID | Severity | Area | Environment | Fixed | Fix | Summary |
+| ------ | -------- | ---- | ----------- | ----- | --- | ------- |
+
+## Details
+
+<!-- Per-bug details live in bugs/BUG-NNN.md (stable path). `bugs-archive` moves only the table row between bugs-open.md and bugs-fixed.md and appends the Resolution line to that file. -->
+
+Details for every bug live in `bugs/BUG-NNN.md`, linked from its row.
 ```
 
-Idempotent: creates `bugs-open.md` and `bugs-fixed.md` (tables, Column legend, Recommended fix order — generated from the config) only where missing. A missing backlog is a reason to run this skill, never to skip it. Then read both files.
+**If the `<backlog>/bugs/` folder doesn't exist yet**, create it (the
+first per-bug file in step 7 does this implicitly).
 
-### 3. Derive the bug id
+All of these are needed to pick a non-colliding id (step 3) even when
+freshly created and empty.
 
-```
-python3 scripts/next_id.py <repo-root>
-```
+### 3. Derive the Bug ID
 
-Returns `next_id` (max+1 across both tables and the `bugs/` filenames, zero-padded to 3 digits; one global sequence, never reused — not even for a Won't fix or Cannot reproduce entry) and the configured `vocab` (`severities`, `environments`).
+Bug ids are `BUG-NNN` with a zero-padded 3-digit sequence
+(`BUG-001`, `BUG-002`, …). Run
+`python3 scripts/next_id.py <repo-root>` (from this skill's base directory) — it
+scans both table files and the filenames in `<backlog>/bugs/` for every
+`BUG-NNN`, takes the highest `NNN` found, and returns `BUG-<max+1>`
+zero-padded (or `BUG-001` for a fresh backlog), printed as JSON:
+`{"next_id": "BUG-NNN"}`. Numbers are one global
+sequence across both tables and the folder and are never reused, even for
+a `🚫 Won't fix` or `❓ Cannot reproduce` entry.
 
 ### 4. Draft the attribute columns
 
-Use `vocab` (also in the Column legend of `bugs-open.md`) as the only valid values; a user-supplied value is used as-is after checking it's valid.
+Using the **Column legend** in `bugs-open.md` as the source of truth for
+the value vocabulary (read it fresh each run — don't hardcode a copy here,
+so this skill can't drift out of sync with the legend):
 
-- **Severity** — infer if not given: anything involving security, data loss, or "the app can't be used" takes the top tier; a feature broken with no workaround the next; impaired-with-workaround next; cosmetic last (order of `vocab.severities`, most severe first).
-- **Area** — free text: the screen, route, module or component where it was hit.
-- **Environment** — one of `vocab.environments`. Default to the non-production one if the user was testing locally and didn't say; use the "both" value only if they confirmed it in production too.
+- **Severity** (`S1`–`S4`) — if the user gave one, use it (sanity-check
+  it's valid). Otherwise infer: anything touching auth, a schema
+  migration, data loss, or "can't use the app" is `S1`; a broken feature with no workaround is
+  `S2`; an annoyance with a workaround is `S3`; cosmetic is `S4`.
+- **Area** — the route/module where it was hit.
+- **Environment** — `local` / `deployed` / `both`. Default to `local` if
+  the user was running a local dev stack and didn't say; use `both` only
+  if they confirmed it on the deployed stack too.
+- **Schema change** (details file only, not a table column) — `yes` if the
+  fix needs a schema migration or an equivalent change (a new or altered
+  table, column, index or access policy), otherwise `no`; infer it from
+  the report and the code path involved. `bugs-next` reads this line.
 
-### 5. Draft the Summary and the details file
+### 5. Draft the one-line Summary and the per-bug file content
 
-**Summary** — one sentence naming the concrete symptom (the component and what visibly goes wrong), not a restatement of the title.
+**Summary** (the table cell): one sentence naming the concrete
+symptom — the component/route and what visibly goes wrong — not a vague
+restatement of the title.
 
-**Details file** — first line an H1, a blank line, then these bullets:
+**Per-bug file** (`<backlog>/bugs/BUG-NNN.md`), in this exact shape —
+first line an H1 `# BUG-NNN — <short title>`, one blank line, then the
+bullets:
 
 ```markdown
 # BUG-NNN — <short title>
@@ -59,68 +172,126 @@ Use `vocab` (also in the Column legend of `bugs-open.md`) as the only valid valu
   1. <step>
   2. <step>
 - **Expected:** <what should happen>
-- **Actual:** <what happens instead, with any short console/error text verbatim>
-- **Environment:** <environment> — <browser / OS / account notes if relevant>
-- **Notes:** <suspected cause, related code path, screenshot filenames — omit the line if empty>
+- **Actual:** <what happens instead, including any console error text verbatim if short>
+- **Environment:** <local / deployed / both> — <browser / viewport / account notes if relevant>
+- **Schema change:** <yes / no> — <if yes, the migration or schema change the fix needs>
+- **Notes:** <suspected cause, related code path, screenshots referenced by filename — omit the line if there's nothing>
 ```
 
-Never put Severity, Area or Status in the file. Fill from what the user gave; if a step is genuinely unknown, write `<unknown — needs repro>` rather than inventing it.
+Do not put Severity, Area, or Status in the file — they live only in the
+table row. Fill repro/expected/actual from what the user gave; if a step
+is genuinely unknown, write `<unknown — needs repro>` rather than
+inventing it.
 
-### 6. Confirm before writing
+### 6. Confirm with the user before writing
 
-Show the draft:
+Display the fully drafted row and file content:
 
 ```
 ## Draft Bug
 
 **BUG-NNN — <title>**
 
-**Severity:** <s>  **Area:** <area>  **Environment:** <env>  **Status:** ⬜ Open
+**Severity:** <S?>  **Area:** <area>  **Environment:** <env>  **Status:** ⬜ Open
 
-<details file content>
+<per-bug file content as above>
 ```
 
-Ask one question with **AskUserQuestion** — "Add this bug to the backlog?" — "Yes, add it as drafted" / "Let me edit something first" (apply edits, re-display, ask again) / "Cancel". Write nothing under `<backlog>` (beyond step 2's scaffolding) until the user says yes.
+Use the **AskUserQuestion tool** with a single question — "Add this bug to
+the backlog?" — options: "Yes, add it as drafted", "Let me edit something
+first" (resolve free-text edits against the draft and re-display before
+writing), "Cancel". Do not write anything under `<backlog>/` (other
+than the step-2 scaffolding) until the user confirms.
 
-### 7. Create the file, insert the row, add the order entry
+### 7. Insert the row, create the file, and add the order entry
 
-1. Create `<backlog>/bugs/<ID>.md` (create the folder if needed). The filename is exactly the id and never changes.
-2. In **one edit** to `bugs-open.md`, append the row to `## Bug List`:
-   `| [BUG-NNN](bugs/BUG-NNN.md) | <s> | <area> | <env> | ⬜ Open | | <summary> |`
-   Rows must follow the header separator row **with no blank line between them**. The scaffold leaves a blank line and a `_No open bugs._` placeholder after the table: when it's present, remove **both** the placeholder and that blank line — a stray blank line detaches the row from the table, so it renders as plain text (the status script tolerates one blank line, but markdown renderers do not).
-3. In the same edit, insert the bug into `## Recommended fix order` (step 8). Not optional.
+Once confirmed:
 
-Don't append anything to `## Details` (it holds only a pointer sentence) and don't touch `bugs-fixed.md`.
+1. Create `<backlog>/bugs/BUG-NNN.md` with the step-5 content (create
+   the `bugs/` folder if needed). The file name is exactly the Bug ID —
+   it never changes afterwards.
+2. In a single edit to `bugs-open.md`: append the row to the `## Bug List`
+   table, preserving the pipe formatting, with the first cell as the link —
+   `| [BUG-NNN](bugs/BUG-NNN.md) | <S?> | <area> | <env> | ⬜ Open | | <summary> |`.
+   The rows must follow the header separator row (`| ------ | …`) **with no
+   blank line between them**: in the skeleton, a blank line and then the
+   `_No open bugs._` placeholder come after the separator row, so when the
+   placeholder is present remove **both the placeholder and that blank line**
+   — leaving the blank line detaches the row from the table, so it renders as
+   plain text and `bugs-status` counts zero bugs.
+3. In the same edit, insert the bug into `## Recommended fix order` (see
+   step 8). This is **not** optional — a backlog with rows missing from
+   the order is worse than one with a slightly-uncertain placement.
 
-### 8. Insert into the Recommended fix order
+Do not append anything to the `## Details` section — it holds only the
+pointer sentence. Do not touch `bugs-fixed.md` beyond the one-time
+skeleton creation in step 2.
 
-A bullet list of `` BUG-NNN — <title> `` entries; list position encodes order — severity tier first, then blast radius, then quick-win effort, then bug number.
+### 8. Update the recommended fix order
 
-1. Place the bug after the last entry of the same or higher severity and before the first of strictly lower severity (same-severity entries keep their relative order; the new one goes after them — unless the description makes its blast radius obviously larger than a same-tier peer, then place it ahead and say why in the entry).
-2. If the list reads `_No open bugs to order._`, that placeholder is replaced by the new entry.
-3. Every other bullet stays exactly as it was.
+The `## Recommended fix order` section is a bullet list of
+`` BUG-NNN — <title> `` entries — list position, not a printed number,
+encodes order — ordered severity tier first (S1 before S2 before S3
+before S4), then blast radius, then quick-win effort, then bug number.
 
-Write the entry like its neighbours: severity, a one-phrase reason for the placement, environment where relevant.
+1. Find the tier boundary: the last existing entry whose Severity is the
+   same or higher than the new bug's, and the first whose Severity is
+   strictly lower. The new bug goes between them (same-severity entries
+   keep their existing relative order; the new one lands after all of
+   them, unless the user's description makes it obviously higher blast
+   radius than a same-tier peer — then place it ahead of that peer and say
+   why in the entry line).
+2. If the list still reads `_No open bugs to order._`, replace that
+   placeholder: the new bug becomes the list's only entry.
+3. Every other bullet stays exactly as it was — inserting a bullet never
+   requires touching any line but the new one.
 
-### 9. Verify, then report
+Write the entry line in the same style as its neighbours — severity, the
+one-phrase reason for its placement (blast radius / quick win / blocks
+testing of X), and environment where relevant.
 
-Run the sibling skill's script (`../bugs-status/scripts/status_report.py <repo-root>`) and check that the open count includes the new bug and that no `⚠` line appears. A missing bug means it fell out of the table — fix the formatting before reporting success.
+### 9. Verify the table, then display confirmation
+
+Before reporting success, run
+`python3 ../bugs-status/scripts/status_report.py <repo-root>` (from this skill's base directory) and
+check that the open count now includes the new bug and that no `⚠` integrity
+line appears (a row missing from the count means it fell out of the table —
+fix the formatting before continuing).
+
 
 ```
 ## Bug Added
 
-**BUG-NNN — <title>** added to bugs-open.md (Severity <s>, Area <area>, <env>), details in <backlog>/bugs/BUG-NNN.md, inserted into the recommended fix order <right after `<preceding-entry>` | as the first entry>.
+**BUG-NNN — <title>** added to bugs-open.md (Severity <S?>, Area <area>, <env>), details in <backlog>/bugs/BUG-NNN.md, inserted into the recommended fix order <right after `<preceding-entry>` | as the first entry>.
 ```
 
 ---
 
 ## Guardrails
 
-- **Never run `git commit`, `git push` or open a PR.** This skill edits markdown backlog files only.
-- Never write a row or a details file before the user confirms in step 6. The confirmation is mandatory even under "auto mode" or other autonomous-operation instructions, and inside a subagent without `AskUserQuestion` (stop and say so).
-- Never edit `bugs-fixed.md` beyond the initial scaffold — closing a bug is `bugs-archive`'s job. Never put a details block in either table file.
-- Never reuse a bug id; the sequence spans both tables and the `bugs/` folder.
-- Use the vocabulary from `next_id.py` / the Column legend, never a remembered copy.
-- Preserve exact table formatting, including the `[ID](bugs/ID.md)` link and row contiguity.
-- If several bugs were pasted, confirm each individually.
-- This skill only records a bug — it never starts a branch, writes a test or attempts a fix.
+- Never write a bug row or a `bugs/BUG-NNN.md` file before the user
+  confirms the draft in step 6 — steps 2–5 are draft-only in memory
+  (except the one-time skeleton creation in step 2, which is scaffolding,
+  not a bug).
+- Never edit `bugs-fixed.md` beyond creating its initial skeleton — this
+  skill only adds to `bugs-open.md` and creates the new per-bug file.
+  Closing a bug is `bugs-archive`'s job.
+- Never append a details block to `bugs-open.md` / `bugs-fixed.md` — the
+  details live only in `bugs/BUG-NNN.md`.
+- Never reuse a `BUG-NNN` id — the sequence spans both tables and the
+  `bugs/` folder and is monotonic, including for `🚫 Won't fix` /
+  `❓ Cannot reproduce` entries.
+- Read the Column legend fresh each run rather than relying on a
+  remembered copy of the value vocabulary.
+- Preserve the exact Markdown table formatting (pipe characters) of the
+  Bug List table, including the `[BUG-NNN](bugs/BUG-NNN.md)` link in the
+  first cell, with every row contiguous with the header separator row (no
+  blank line between them).
+- Step 6's confirmation is mandatory, even under an "Auto Mode" or similar
+  autonomous-operation instruction that biases toward proceeding without
+  asking — that bias never applies to writing a new row into the backlog.
+- If the user pasted several bugs at once, still confirm each one
+  individually — do not write a batch of unconfirmed rows in one pass.
+- This skill only records a bug. It never starts a branch, writes a test,
+  or attempts a fix — that's `bug-fix`.
+- **Never run `git commit`, `git push` or open a PR.**

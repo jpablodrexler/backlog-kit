@@ -21,6 +21,7 @@ configurable, was removed, or was changed on purpose is recorded here with the o
 | D13 | "Deployment (migration) dependencies" table | **A fixed part of the backlog files**, as in the originals: skeletons create it, `features-archive` moves rows, `feature-plan` never adds rows at planning time. No `[[features.tables]]`. | 2026-10-10 |
 | D14 | `feature-plan` step 9 (insert the new feature into the Recommended implementation order) | **Included** (from the first project); `features-next` then gives the order bonus. | 2026-10-10 |
 | D15 | Kit-only helper scripts (`dep_scan.py`, `spec_link.py`, `clean_order_notes.py`, `scaffold.py`): keep any? | **None kept** (no selection given, so the recommendation applies): the originals do these things with prose, and the skeletons are inline in `feature-plan`. Each goes away as the skill that used it is converted; `scaffold.py` and `dep_scan.py` from `feature-plan` are gone. Reversible from git history. | 2026-10-10 |
+| D16 | `features-status`: the two projects' checks differ (stale-note detection: the first requires both ends of a dependency to be implemented and only reads the heading form; the second flags any referenced feature that is implemented and also reads the prose forms) | **The second project's** (newer and stricter); not a configuration choice. | 2026-10-10 |
 
 Not asked (not configurable, taken from the more complete original): order lists accept numbered and
 link forms (J's `bugs-next`); `features-next` reads `SDD Artifacts` from the cell only (no disk check).

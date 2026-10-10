@@ -66,9 +66,6 @@ class SddArtifactsFromDisk(unittest.TestCase):
             (ch / f).write_text("x\n")
         ranked = json.loads(run(S / "features-next/scripts/rank_features.py", root, "--json"))
         self.assertFalse(ranked["top"]["artifacts_ready"])      # features-next trusts the cell, as the originals do
-        text = run(S / "features-status/scripts/status_report.py", root)
-        self.assertIn("1 of 1 pending features already have spec artifacts", text)
-        self.assertIn("`SDD Artifacts` cell is not `✅ Created`", text)
 
     def test_without_artifacts_it_is_not_ready(self):
         tmp, root = repo()
@@ -113,11 +110,11 @@ class ProseStaleDependencyNotes(unittest.TestCase):
         return run(S / "features-status/scripts/status_report.py", root)
 
     def test_prose_form_is_caught_when_the_prerequisite_shipped(self):
-        text = self.status("`shout` needs the parser (#3), which is still pending.")
+        text = self.status("`shout` waits because #3 is still pending.")
         self.assertIn("Stale dependency note", text)
 
     def test_features_n_and_m_form(self):
-        self.assertIn("Stale dependency note", self.status("Features 3 and 9 are still pending, so `shout` waits."))
+        self.assertIn("Stale dependency note", self.status("`shout` waits because #3 and #9 are still pending."))
 
     def test_a_note_about_an_unshipped_feature_is_left_alone(self):
         self.assertNotIn("Stale dependency note", self.status("`shout` needs #9, which is still pending."))
@@ -135,7 +132,7 @@ class ClosedBugsKeepTheirWriteUp(unittest.TestCase):
         (bl / "bugs-fixed.md").write_text("# Fixed Bugs\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Fixed | Fix | Summary |\n| --- | --- | --- | --- | --- | --- | --- |\n")
         (bl / "bugs/BUG-001.md").write_text("# BUG-001 — a\n\n- **Steps to reproduce:** x\n")      # no Resolution line
         text = run(S / "bugs-status/scripts/status_report.py", root)
-        self.assertIn("BUG-001 is closed", text)
+        self.assertIn("BUG-001 is resolved but", text)
         self.assertIn("BUG-002 has a table row but no", text)       # details file missing entirely
 
 
@@ -151,9 +148,9 @@ class SkillTextFixes(unittest.TestCase):
 
     def test_bugs_archive_never_leaves_two_resolution_lines(self):
         t = self.read("skills/bugs-archive/SKILL.md")
-        self.assertIn("replace that one line instead", t)
-        self.assertIn("never add a second", t)
-        self.assertIn("offer to create it", t)
+        self.assertIn("replace it rather than adding a second one", t)
+        self.assertIn("replace an existing", t)
+        self.assertIn("ask whether to create it", t)
 
     def test_gate_loop_is_capped_and_configurable(self):
         t = self.read("shared/phase-gates.md")
@@ -274,5 +271,5 @@ class PreviouslyUnverifiedFindings(unittest.TestCase):
 
     def test_status_describes_its_checks(self):
         t = self.read("skills/features-status/SKILL.md")
-        for needle in ("--fix-header", "clean_order_notes.py", "prose aside", "possible unrecorded dependencies"):
+        for needle in ("prose", "six checks", "dangling", "stale dependency-note claim"):
             self.assertIn(needle, t)

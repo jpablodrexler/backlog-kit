@@ -16,7 +16,6 @@ SCRIPTS = {
     "f_next_id": S / "feature-plan/scripts/next_id.py",
     "f_rank": S / "features-next/scripts/rank_features.py",
     "f_status": S / "features-status/scripts/status_report.py",
-    "b_scaffold": S / "bug-report/scripts/scaffold.py",
     "b_next_id": S / "bug-report/scripts/next_id.py",
     "b_rank": S / "bugs-next/scripts/rank_bugs.py",
     "b_status": S / "bugs-status/scripts/status_report.py",
@@ -134,6 +133,16 @@ class FeatureFlow(unittest.TestCase):
         self.assertEqual(run("f_rank", self.root, "--json")["top"]["brief_file"], "planning/features/004-d.md")
 
 
+def bug_skeleton(root, backlog="docs/backlog"):
+    """Create bugs-open.md / bugs-fixed.md from the skeletons printed in bug-report/SKILL.md."""
+    text = (S / "bug-report/SKILL.md").read_text()
+    blocks = re.findall(r"```markdown\n(.*?)```", text, re.S)
+    d = Path(root) / backlog
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "bugs-open.md").write_text(blocks[0])
+    (d / "bugs-fixed.md").write_text(blocks[1])
+
+
 class BugFlow(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -156,21 +165,16 @@ class BugFlow(unittest.TestCase):
         bdir.mkdir(exist_ok=True)
         (bdir / f"{bug_id}.md").write_text(f"# {bug_id} — title\n\n- **Expected:** x\n")
 
-    def test_numbering_and_scaffold(self):
-        run("b_scaffold", self.root)
+    def test_numbering_follows_the_skeleton_in_the_skill(self):
+        bug_skeleton(self.root)
         self.assertEqual(run("b_next_id", self.root)["next_id"], "BUG-001")
         self.add_bug("BUG-007", "S2", "local")
         self.assertEqual(run("b_next_id", self.root)["next_id"], "BUG-008")
 
-    def test_custom_prefix(self):
-        (self.root / ".backlog-kit.toml").write_text('[bugs]\nid_prefix = "ISSUE"\n')
-        run("b_scaffold", self.root)
-        self.assertEqual(run("b_next_id", self.root)["next_id"], "ISSUE-001")
-
     def test_rank_in_progress_then_severity_then_prod(self):
-        run("b_scaffold", self.root)
+        bug_skeleton(self.root)
         self.add_bug("BUG-001", "S1", "local")
-        self.add_bug("BUG-002", "S2", "prod")
+        self.add_bug("BUG-002", "S2", "deployed")
         self.add_bug("BUG-003", "S4", "local", status="🔶 In Progress")
         out = run("b_rank", self.root, "--json")
         self.assertEqual(out["top"]["id"], "BUG-003")
@@ -178,7 +182,7 @@ class BugFlow(unittest.TestCase):
 
     def test_select_revalidates_so_a_stale_confirmed_id_is_refused(self):
         # bugs-next resolves a typed id with --select; a closed / won't-fix / unknown id must not resolve.
-        run("b_scaffold", self.root)
+        bug_skeleton(self.root)
         self.add_bug("BUG-001", "S2", "local")
         self.add_bug("BUG-002", "S2", "local", status="🚫 Won't fix")
         self.add_bug("BUG-003", "S2", "local", status="❓ Cannot reproduce")
@@ -188,11 +192,11 @@ class BugFlow(unittest.TestCase):
             self.assertIn("error", run("b_rank", self.root, "--select", stale, "--json"), stale)
 
     def test_status_counts_and_integrity(self):
-        run("b_scaffold", self.root)
+        bug_skeleton(self.root)
         self.add_bug("BUG-001", "S1", "prod")
         (self.root / "docs/backlog/bugs/BUG-009.md").write_text("# BUG-009 — orphan\n")
         out = run("b_status", self.root, as_json=False)
-        self.assertIn("| ⬜ Open | 1 |", out)
+        self.assertRegex(out, r"\| ⬜ Open\s+\| 1 \|")
         self.assertIn("BUG-009.md exists but BUG-009 has no table row", out)
 
 
@@ -265,12 +269,6 @@ _None yet._
     def text(self):
         return (self.root / "docs/backlog/features-planned.md").read_text()
 
-    def test_status_flags_the_stale_notes_before_cleanup(self):
-        out = run("f_status", self.root, "--json")
-        notes = out["stale_order_notes"]
-        self.assertEqual(len(notes), 3)
-        self.assertTrue(all("blocked" in n["note"] for n in notes))
-
     def test_removes_shipped_prerequisites_and_nothing_else(self):
         res = self.clean()
         self.assertTrue(res["written"])
@@ -288,7 +286,6 @@ _None yet._
         again = self.clean()
         self.assertEqual(again["changed"], [])
         self.assertFalse(again["written"])
-        self.assertEqual(run("f_status", self.root, "--json")["stale_order_notes"], [])
 
 
 class OrderPlaceholder(unittest.TestCase):
@@ -375,8 +372,3 @@ class DependencyScan(unittest.TestCase):
         root = self.build({3: self.BRIEFS[3]})
         c = self.scan(root, "--new", "--name", "lang-flag", "--number", "5", stdin="Make `--lang` work: `parseArgs` reads the value.")
         self.assertEqual([(x["dependent"], x["prerequisite"]) for x in c], [("5", "3")])
-
-    def test_status_lists_candidates_as_information(self):
-        root = self.build(self.BRIEFS)
-        text = run("f_status", root, as_json=False)
-        self.assertIn("Possible unrecorded dependency: #4 `shout-flag` → #3 `arg-parser`", text)

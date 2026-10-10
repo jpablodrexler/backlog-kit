@@ -1,19 +1,23 @@
 ---
 name: bugs-archive
-description: Closes bugs — moves a fixed bug's row from bugs-open.md to bugs-fixed.md, or marks it Won't fix / Cannot reproduce in place, and appends a Resolution line to its details file bugs/<ID>.md (which never moves). Writes the destination before touching the source so an interruption never loses a row. TRIGGER when a bug has been fixed (by hand or by a fix workflow) and needs closing, or when the user decides not to fix one.
+description: Marks bugs resolved in the backlog's bugs-open.md and moves them to bugs-fixed.md (or records them as 🚫 Won't fix / ❓ Cannot reproduce). Appends a Resolution line to the bug's details file bugs/BUG-NNN.md — the file itself never moves. TRIGGER when a bug has been fixed (by bug-fix, bugs-batch-fix, or by hand) and needs closing, or when the user decides not to fix one. This is the bug-family counterpart to features-archive.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Close one or more bugs. `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise.
+Close one or more bugs: move the table row from
+`<backlog>/bugs-open.md` to
+`<backlog>/bugs-fixed.md` (for a real fix), or update
+the row's Status in place to `🚫 Won't fix` / `❓ Cannot reproduce` (for a
+resolution without a code change). In every case the bug's details file
+`<backlog>/bugs/BUG-NNN.md` stays where it is — only
+a `- **Resolution:**` bullet is appended to it.
 
-- **fixed** (default): move the row from `bugs-open.md` to `bugs-fixed.md`.
-- **wont-fix** / **cannot-repro**: the row **stays** in `bugs-open.md`; only its Status changes (so a Cannot-reproduce bug that resurfaces is easy to reopen; `bugs-next` ignores these states).
-
-In every case, append a `- **Resolution:** …` line to `<backlog>/bugs/<ID>.md`. The details file never moves, and the row's first-cell link (`[BUG-007](bugs/BUG-007.md)`) is kept as-is.
-
-**Input**: one or more bug ids (`BUG-004 BUG-007`), optionally a disposition and a one-line resolution note or fix reference (PR link or commit). With no ids, auto-detect (step 1).
+**Input**: One or more Bug IDs (e.g. `BUG-004 BUG-007`), plus optionally a
+disposition (`fixed` — the default — or `wont-fix` / `cannot-repro`) and a
+one-line resolution note / fix reference (PR link or commit). If the Bug
+IDs are omitted, auto-detect (see step 1).
 
 ---
 
@@ -21,56 +25,130 @@ In every case, append a `- **Resolution:** …` line to `<backlog>/bugs/<ID>.md`
 
 ### 1. Resolve which bugs to close
 
-Given ids → use them. Otherwise read `bugs-open.md` and list every row showing `🔶 In Progress` (a fix that got as far as being started) plus any showing `✅ Fixed` (an interrupted archive). For ≤4 use **AskUserQuestion** with `multiSelect: true`; for more, print the numbered list and ask "Close all listed" / "Close specific ones (I'll list the ids)" / "Cancel".
+**If the user provided Bug IDs**, use them directly — skip to step 2.
+
+**Otherwise, auto-detect**: read `bugs-open.md` and list every row showing
+`🔶 In Progress` (a `bug-fix` run that got as far as marking it in progress
+but not archived), plus any showing `✅ Fixed` (an interrupted archive).
+Present them:
+- **4 or fewer**: `AskUserQuestion` with `multiSelect: true`, one option
+  per candidate.
+- **More than 4**: print the numbered list as plain text, then
+  `AskUserQuestion` with "Close all listed" / "Close specific ones (I'll
+  list the IDs)" / "Cancel", resolving "specific ones" from the free-text
+  follow-up.
 
 ### 2. Read both files
 
-If either is missing there's nothing to archive — say so and stop.
+Read `<backlog>/bugs-open.md` (source) and
+`<backlog>/bugs-fixed.md` (destination). If either
+doesn't exist, there's nothing to archive — report and stop.
 
-**Ordering is a data-safety rule:** extract read-only first, then write the details file's Resolution line and the **destination** row, and only after those saves succeed edit the **source**, once. An interruption leaves a duplicated row or an existing Resolution line, never a lost row.
+The write ordering below is deliberate and must not be reordered:
+everything is **extracted read-only first**, then written to the
+**destination**, and only after that save succeeds is the **source**
+mutated in a single edit. If the skill is interrupted mid-run, the worst
+case is content duplicated across both files, never lost.
 
-### 3. Validate each id
+### 3. For each selected Bug ID — validate
 
-Find the row in `## Bug List` by its id (the link text of the first cell). Not there (already archived, or never existed) → warn and skip it. Check `bugs/<ID>.md` exists; if not, warn the user that there is no file to hold the Resolution and offer to create it (step 5.3) or skip, then continue with the row move.
+Find the row in `bugs-open.md`'s `## Bug List` table whose `Bug ID`
+matches (the first cell is the link `[BUG-NNN](bugs/BUG-NNN.md)`). If it's
+not there (already archived, or never existed), warn and skip that ID.
+Check that `<backlog>/bugs/BUG-NNN.md` exists; if it
+doesn't, warn (the Resolution line can't be recorded — suggest running
+`bugs-status`) and ask whether to create it with just the H1
+`# BUG-NNN — <title from the row's Summary>` or skip that ID.
 
-### 4. Won't fix / Cannot reproduce
+### 4. Handle by disposition
 
-In one edit to `bugs-open.md`: set the row's Status to `🚫 Won't fix` or `❓ Cannot reproduce`, and remove it from `## Recommended fix order` if listed. Write the `- **Resolution:** <note>` line into the details file (step 5.3's rules: replace an existing one, never add a second). Skip steps 5.1–5.2 and 6.
+**Disposition `wont-fix` or `cannot-repro`** — the bug stays in
+`bugs-open.md`; it is *not* moved. In a single edit to `bugs-open.md`:
+1. Change the row's **Status** to `🚫 Won't fix` or `❓ Cannot reproduce`.
+2. Remove it from `## Recommended fix order` if listed.
 
-### 5. Fixed — write the Resolution line and `bugs-fixed.md` first
+Also append a `- **Resolution:** <note>` bullet to the end of
+`bugs/BUG-NNN.md` (a separate file from `bugs-open.md`; if the file
+already has a `**Resolution:**` bullet — an interrupted earlier run —
+replace it rather than adding a second one).
 
-1. Copy the row, keeping the first-cell link. **In the copy**, drop `Status`, set `Fixed` to today's date (`YYYY-MM-DD`) and `Fix` to the supplied PR/commit (blank if none). The destination columns are `Bug ID | Severity | Area | Environment | Fixed | Fix | Summary`.
-2. Append the reshaped row to the end of `bugs-fixed.md`'s `## Bug List`.
-3. Write `- **Resolution:** <what the fix changed, and the PR/commit reference>` into `bugs/<ID>.md`: append it to the end of the file, **unless the file already has a `**Resolution:**` bullet** (an earlier run was interrupted after this step) — then replace that one line instead, so the file never ends up with two. Touch nothing else in the file. If it holds several `# <ID> — …` sections, use the last. If the file does not exist, tell the user plainly that the Resolution could not be recorded and ask whether to create it with just the `# <ID> — <title>` heading and the Resolution line, or to skip it.
+(These states are still visible to `bugs-status` and deliberately kept in
+the open file so a `❓ Cannot reproduce` bug that resurfaces is easy to
+reopen. They're excluded from `bugs-next`'s candidate set.) Skip steps 5–6.
 
-Save both and **confirm the saves succeeded** before step 6.
+**Disposition `fixed`** (default) — proceed to step 5.
 
-### 6. Edit `bugs-open.md` — one edit, one save
+### 5. Write to bugs-fixed.md first
 
-1. Delete each fixed bug's row.
-2. Remove it from `## Recommended fix order` if listed (a plain bullet list — no renumbering).
-3. If the table is now empty, restore the `_No open bugs._` placeholder **after a blank line** following the header separator (a placeholder directly under the separator reads as a table row); if the order list is empty, restore `_No open bugs to order._`.
+1. Copy the full table row for each fixed bug. **In the copy**, drop the
+   `Status` column and set the `Fixed` column to today's date
+   (`YYYY-MM-DD`) and the `Fix` column to the supplied PR link / commit
+   (or leave `Fix` blank if none was given). The destination table's
+   columns are `Bug ID | Severity | Area | Environment | Fixed | Fix |
+   Summary` — reshape the row to match.
+   The first cell keeps its link (`[BUG-NNN](bugs/BUG-NNN.md)`) — the
+   file never moves, so the link stays valid.
+2. Append each reshaped row directly under the last row of
+   `bugs-fixed.md`'s `## Bug List` table (no blank line inside the
+   table).
+3. Append a `- **Resolution:** <note — what the fix changed, and the
+   PR/commit reference>` bullet to the end of each bug's
+   `<backlog>/bugs/BUG-NNN.md` (replace an existing
+   `**Resolution:**` bullet instead of duplicating it, in case a previous
+   run was interrupted). The file stays in `bugs/`; nothing is copied or
+   moved.
 
-Don't touch `## Details`.
+Save `bugs-fixed.md` and the bug file(s). **Confirm the saves succeeded
+before step 6.**
 
-### 7. Report
+### 6. Now mutate bugs-open.md — a single edit, a single save
+
+1. Delete each fixed bug's row from the `## Bug List` table.
+2. Remove each fixed bug from `## Recommended fix order` if listed — it's
+   a plain bullet list, so removing an entry needs no renumbering.
+3. If the `## Bug List` table is now empty, restore the `_No open bugs._`
+   placeholder line **after a blank line** following the header separator row
+   (the skeleton's shape — `bug-report` removes both when it adds a row; a
+   placeholder directly under the separator row would be read as a table
+   row); if `## Recommended fix order` is now empty, restore
+   `_No open bugs to order._`.
+
+Save `bugs-open.md`.
+
+### 7. Display summary
 
 ```
 ## Bugs Closed
 
 - BUG-NNN `<title>` — <fixed → moved to bugs-fixed.md | 🚫 Won't fix | ❓ Cannot reproduce>
+- …
 
-Resolution lines appended: <count>
+Resolution lines appended to bugs/BUG-NNN.md: <count>
 ```
 
 ---
 
 ## Guardrails
 
-- **Destination before source, always.** `bugs-open.md` is not edited until the `bugs-fixed.md` write is saved. (Won't fix / Cannot reproduce touch only `bugs-open.md` and the details file.)
-- The details file never moves, is never renamed or deleted, and its H1 and existing bullets are never edited. Never record Status, Severity or Area in it.
-- Reshape the row to the destination's columns (it has a `Fixed` date and no `Status`); preserve exact table formatting in both files.
-- An id that isn't in `bugs-open.md` is reported and skipped; continue with the rest.
-- Keep both files' section headers and structure intact: only add or remove table rows (no blank line inside a table) and the Resolution line. Never touch `## Details`.
-- Auto-detection is a convenience — the user decides which bugs to close and with what disposition.
-- **Never run `git commit`, `git push` or open a PR.** This skill never writes code or runs tests; it records an outcome a fix (or a decision) already produced.
+- **Destination before source, always.** Never edit or save
+  `bugs-open.md` until the corresponding write to `bugs-fixed.md` and the
+  bug file in step 5 has been made and confirmed saved (for the `fixed`
+  disposition). The `wont-fix` / `cannot-repro` dispositions skip step 5
+  (they edit `bugs-open.md` and the bug file only).
+- **The per-bug file never moves and never loses content** — only a
+  `**Resolution:**` bullet is appended. Severity, Area, and Status are
+  never written into it.
+- Preserve the exact Markdown table formatting (pipe characters) in both
+  files, and reshape the row to the destination table's column set — the
+  destination has a `Fixed` date column and no `Status` column.
+- If a selected Bug ID doesn't exist in `bugs-open.md`, report it and
+  continue with the rest.
+- Keep both files' section headers and structure intact — only add/remove
+  table rows, never rewrite whole sections, and never append a details
+  block to either table file (their `## Details` section holds only its
+  pointer sentence).
+- The auto-detection in step 1 is a convenience — the user always has the
+  final say on which bugs to close and with what disposition.
+- This skill never writes code, runs tests, or touches git. It records an
+  outcome that a fix (or a decision) already produced.
+- **Never run `git commit`, `git push` or open a PR.**

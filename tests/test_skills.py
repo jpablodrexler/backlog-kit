@@ -18,7 +18,23 @@ FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 def frontmatter(text):
     m = FRONTMATTER.match(text)
     assert m, "missing frontmatter"
-    return dict(re.findall(r"^(\w+):\s*(.+)$", m.group(1), re.M))
+    out = {}
+    lines = m.group(1).splitlines()
+    i = 0
+    while i < len(lines):
+        k = re.match(r"^(\w+):\s*(.*)$", lines[i])
+        i += 1
+        if not k:
+            continue
+        key, val = k.group(1), k.group(2).strip()
+        if val in (">", ">-", "|", "|-"):          # a folded / literal block scalar: the indented lines that follow
+            block = []
+            while i < len(lines) and (lines[i].startswith(" ") or not lines[i].strip()):
+                block.append(lines[i].strip())
+                i += 1
+            val = " ".join(x for x in block if x)
+        out[key] = val
+    return out
 
 
 class SkillLint(unittest.TestCase):

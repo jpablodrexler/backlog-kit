@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """
-Bug-tracker status report: counts, severity/area/environment breakdown, the
-open-bug list, and data-integrity checks (duplicate ids, rows without a
-bugs/<ID>.md details file, files without a row, a bad file H1, fixed rows whose
-file lacks a Resolution line, a leftover "✅ Fixed" row in bugs-open.md).
+Compute the bug-tracker status report: counts, the
+severity/area/environment breakdown, the open-bug list, and the
+data-integrity checks (duplicate Bug IDs, rows without a bugs/BUG-NNN.md
+file, files without a row, files with a wrong H1, fixed bugs whose file
+lacks a Resolution line, stale "still shows Fixed" rows).
 
-Pure table-counting over bugs-open.md / bugs-fixed.md. The Bug ID cell may be
-plain or a link: `[BUG-001](bugs/BUG-001.md)`.
+Pure table-counting and text-pattern arithmetic over
+<backlog>/bugs-open.md and
+<backlog>/bugs-fixed.md — see
+bugs-status/SKILL.md for the full rules this implements (steps 1-6).
 
 Usage:
     python3 status_report.py <repo-root> [--json]
 """
-import argparse
-import json
-import re
 import sys
+import re
+import json
+import argparse
 from pathlib import Path
 
 _here = Path(__file__).resolve()
@@ -24,140 +27,64 @@ for _cand in (_here.parent, _here.parents[3] / "lib"):
         break
 import backlog_kit as bk
 
-
-def compute(root):
-    cfg = bk.load_config(root)
-    p = bk.Paths(root, cfg)
-    b = cfg["bugs"]
-    prefix = re.escape(b["id_prefix"])
-
-    open_ok, open_rows = bk.table_rows(p.bugs_open, "## Bug List", "Bug ID")
-    fixed_ok, fixed_rows = bk.table_rows(p.bugs_fixed, "## Bug List", "Bug ID")
-
-    r = {
-        "open_available": open_ok, "fixed_available": fixed_ok,
-        "open_strict": 0, "in_progress": 0, "wont_fix": 0, "cannot_repro": 0,
-        "fixed_here": [], "fixed": len(fixed_rows), "total": None, "percent": None,
-        "severity_breakdown": {k: 0 for k in b["severities"] + ["none"]},
-        "severity_labels": b["severity_labels"],
-        "area_breakdown": {}, "env_breakdown": {k: 0 for k in b["environments"]},
-        "active_rows": [], "duplicate_ids": [], "rows_missing_file": [], "files_without_row": [],
-        "files_bad_h1": [], "fixed_missing_resolution": [], "id_prefix": b["id_prefix"],
-    }
-    fixed_ids = {x.get("Bug ID", "").strip() for x in fixed_rows if x.get("Bug ID", "").strip()}
-
-    open_ids, active, resolved_in_open = [], [], []
-    for row in open_rows:
-        bug_id = row.get("Bug ID", "").strip()
-        open_ids.append(bug_id)
-        status = row.get("Status", "")
-        if "In Progress" in status:
-            r["in_progress"] += 1
-            active.append(row)
-        elif "Won't fix" in status or "Won’t fix" in status:
-            r["wont_fix"] += 1
-            resolved_in_open.append(bug_id)
-        elif "Cannot reproduce" in status:
-            r["cannot_repro"] += 1
-            resolved_in_open.append(bug_id)
-        elif "Fixed" in status:
-            r["fixed_here"].append(bug_id)
-        elif "Open" in status:
-            r["open_strict"] += 1
-            active.append(row)
-
-    if open_ok and fixed_ok:
-        resolved = r["wont_fix"] + r["cannot_repro"] + r["fixed"]
-        total = r["open_strict"] + r["in_progress"] + resolved
-        r["total"] = total
-        r["percent"] = "0% — no bugs tracked yet" if total == 0 else f"{round(100 * resolved / total, 1)}% resolved"
-
-    for row in active:
-        sev = row.get("Severity", "").strip()
-        r["severity_breakdown"][sev if sev in b["severities"] else "none"] += 1
-        area = row.get("Area", "").strip() or "(blank)"
-        r["area_breakdown"][area] = r["area_breakdown"].get(area, 0) + 1
-        env = row.get("Environment", "").strip() or "(blank)"
-        r["env_breakdown"][env] = r["env_breakdown"].get(env, 0) + 1
-        r["active_rows"].append({
-            "id": row.get("Bug ID", "").strip(), "severity": sev,
-            "environment": row.get("Environment", "").strip(),
-            "summary": row.get("Summary", "").strip(),
-            "in_progress": "In Progress" in row.get("Status", ""),
-        })
-
-    counts = {}
-    for i in open_ids + list(fixed_ids):
-        if i:
-            counts[i] = counts.get(i, 0) + 1
-    r["duplicate_ids"] = sorted(i for i, c in counts.items() if c > 1)
-
-    active_open_ids = {x.get("Bug ID", "").strip() for x in open_rows
-                       if "Open" in x.get("Status", "") or "In Progress" in x.get("Status", "")}
-    all_row_ids = {i for i in open_ids if i} | fixed_ids
-    file_ids = set()
-    if p.bugs_dir.is_dir():
-        for f in p.bugs_dir.glob("*.md"):
-            m = re.match(rf"^({prefix}-\d+)\.md$", f.name)
-            if m:
-                file_ids.add(m.group(1))
-    # Every row needs its details file, whatever its status (a Won't fix / Cannot reproduce bug keeps its write-up).
-    r["rows_missing_file"] = sorted(i for i in (active_open_ids | fixed_ids | set(resolved_in_open)) if i and i not in file_ids)
-    r["files_without_row"] = sorted(file_ids - all_row_ids)
-    for bid in sorted(file_ids):
-        text = (p.bugs_dir / f"{bid}.md").read_text(encoding="utf-8")
-        first = text.lstrip("﻿").splitlines()[0] if text.strip() else ""
-        if not re.match(rf"^# {re.escape(bid)}(\s|$)", first):
-            r["files_bad_h1"].append(bid)
-        if (bid in fixed_ids or bid in resolved_in_open) and not re.search(r"^\s*-\s*\*\*Resolution:\*\*", text, re.M):
-            r["fixed_missing_resolution"].append(bid)
-    return r
+BACKLOG = "docs/backlog"  # replaced in main() by [paths] backlog_dir
 
 
-def render(r, rel_backlog):
-    L = ["## Bug Tracker Status", ""]
-    if r["total"] is None:
-        missing = [f"{rel_backlog}/{n}" for ok, n in
-                   ((r["open_available"], "bugs-open.md"), (r["fixed_available"], "bugs-fixed.md")) if not ok]
-        L += [f"**Total/Progress unavailable** — missing or table-less: {', '.join(missing)}", ""]
-    else:
-        L += ["| Metric | Count |", "| ------ | ----- |",
-              f"| Total bugs | {r['total']} |", f"| ✅ Fixed | {r['fixed']} |",
-              f"| 🚫 Won't fix | {r['wont_fix']} |", f"| ❓ Cannot reproduce | {r['cannot_repro']} |",
-              f"| ⬜ Open | {r['open_strict']} |", f"| 🔶 In Progress | {r['in_progress']} |",
-              f"| **Progress** | **{r['percent']}** |", ""]
+def split_row(line):
+    parts = re.split(r'(?<!\\)\|', line)
+    if parts and parts[0].strip() == "":
+        parts = parts[1:]
+    if parts and parts[-1].strip() == "":
+        parts = parts[:-1]
+    return [p.strip().replace('\\|', '|') for p in parts]
 
-    L += ["### Open bugs by severity", "", "| Severity | Count |", "| -------- | ----- |"]
-    for k, v in r["severity_breakdown"].items():
-        label = "No explicit severity" if k == "none" else f"{k} — {r['severity_labels'].get(k, '')}".rstrip(" —")
-        L.append(f"| {label} | {v} |")
-    L += ["", "### Open bugs by area", "", "| Area | Count |", "| ---- | ----- |"]
-    if r["area_breakdown"]:
-        L += [f"| {a} | {c} |" for a, c in sorted(r["area_breakdown"].items(), key=lambda kv: (-kv[1], kv[0]))]
-    else:
-        L.append("| _None_ | 0 |")
-    L += ["", "### Open bugs by environment", "", "| Environment | Count |", "| ----------- | ----- |"]
-    L += [f"| {e} | {c} |" for e, c in r["env_breakdown"].items()]
-    L += ["", "### Open bugs", ""]
-    if r["active_rows"]:
-        for row in r["active_rows"]:
-            suffix = " — 🔶 In Progress" if row["in_progress"] else ""
-            L.append(f"- {row['id']} `{row['severity'] or '?'}` ({row['environment'] or '?'}) — {row['summary']}{suffix}")
-    else:
-        L.append("_None._")
-    L.append("")
 
-    bd = f"{rel_backlog}/bugs"
-    issues = []
-    issues += [f"- ⚠ Duplicate Bug ID {i}." for i in r["duplicate_ids"]]
-    issues += [f"- ⚠ {i} has a table row but no {bd}/{i}.md file." for i in r["rows_missing_file"]]
-    issues += [f"- ⚠ {bd}/{i}.md exists but {i} has no table row in either file." for i in r["files_without_row"]]
-    issues += [f"- ⚠ {bd}/{i}.md does not start with a `# {i}` heading." for i in r["files_bad_h1"]]
-    issues += [f"- ⚠ {i} is closed (bugs-fixed.md, Won't fix or Cannot reproduce) but {bd}/{i}.md has no **Resolution:** line." for i in r["fixed_missing_resolution"]]
-    issues += [f"- ⚠ {i} still shows ✅ Fixed in bugs-open.md — run `bugs-archive {i}` to finish the move." for i in r["fixed_here"]]
-    if issues:
-        L += ["### Data integrity", ""] + issues
-    print("\n".join(L))
+def find_table(lines, heading):
+    start = None
+    for i, line in enumerate(lines):
+        if line.strip() == heading:
+            start = i
+            break
+    if start is None:
+        return None
+    i = start + 1
+    while i < len(lines) and not lines[i].lstrip().startswith("|"):
+        if lines[i].startswith("## "):
+            return None
+        i += 1
+    if i >= len(lines):
+        return None
+    header = split_row(lines[i])
+    i += 1
+    if i < len(lines) and re.match(r'^\|?[\s:-]+\|', lines[i]):
+        i += 1
+    rows = []
+    while i < len(lines) and lines[i].lstrip().startswith("|"):
+        rows.append(split_row(lines[i]))
+        i += 1
+    return header, rows
+
+
+def read_lines(path):
+    if not path.exists():
+        return None
+    return path.read_text(encoding="utf-8").splitlines()
+
+
+def row_dict(header, row):
+    d = {h: (row[idx] if idx < len(row) else "") for idx, h in enumerate(header)}
+    if "Bug ID" in d:
+        m = re.match(r'^\[([^\]]+)\]\([^)]*\)$', d["Bug ID"].strip())
+        if m:
+            d["Bug ID"] = m.group(1)
+    return d
+
+
+def read_bug_file(bugs_dir, bug_id):
+    p = bugs_dir / f"{bug_id}.md"
+    if not p.is_file():
+        return None
+    return p.read_text(encoding="utf-8")
 
 
 def main():
@@ -165,11 +92,225 @@ def main():
     ap.add_argument("repo_root")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
-    r = compute(args.repo_root)
+
+    root = Path(args.repo_root)
+    global BACKLOG
+    BACKLOG = bk.load_config(root)["paths"]["backlog_dir"].strip("/")
+    open_path = root / BACKLOG / "bugs-open.md"
+    fixed_path = root / BACKLOG / "bugs-fixed.md"
+
+    result = {
+        "open_available": False,
+        "fixed_available": False,
+        "open_strict": 0,
+        "in_progress": 0,
+        "wont_fix": 0,
+        "cannot_repro": 0,
+        "fixed_here": [],
+        "fixed": 0,
+        "total": None,
+        "percent": None,
+        "severity_breakdown": {"S1": 0, "S2": 0, "S3": 0, "S4": 0, "none": 0},
+        "area_breakdown": {},
+        "env_breakdown": {"local": 0},
+        "active_rows": [],
+        "duplicate_ids": [],
+        "rows_missing_file": [],
+        "files_without_row": [],
+        "files_bad_h1": [],
+        "fixed_missing_resolution": [],
+    }
+
+    open_lines = read_lines(open_path)
+    fixed_lines = read_lines(fixed_path)
+
+    open_rows = []
+    if open_lines is not None:
+        table = find_table(open_lines, "## Bug List")
+        if table:
+            header, rows = table
+            result["open_available"] = True
+            open_rows = [row_dict(header, r) for r in rows]
+
+    fixed_rows = []
+    if fixed_lines is not None:
+        table = find_table(fixed_lines, "## Bug List")
+        if table:
+            header, rows = table
+            result["fixed_available"] = True
+            fixed_rows = [row_dict(header, r) for r in rows]
+
+    result["fixed"] = len(fixed_rows)
+    fixed_ids = {r.get("Bug ID", "").strip() for r in fixed_rows if r.get("Bug ID", "").strip()}
+
+    open_ids = []
+    active_rows = []
+    for r in open_rows:
+        bug_id = r.get("Bug ID", "").strip()
+        open_ids.append(bug_id)
+        status = r.get("Status", "")
+        if "In Progress" in status:
+            result["in_progress"] += 1
+            active_rows.append(r)
+        elif "Won't fix" in status or "Won" in status and "fix" in status:
+            result["wont_fix"] += 1
+        elif "Cannot reproduce" in status:
+            result["cannot_repro"] += 1
+        elif "Fixed" in status:
+            result["fixed_here"].append(bug_id)
+        elif "Open" in status:
+            result["open_strict"] += 1
+            active_rows.append(r)
+
+    active = result["open_strict"] + result["in_progress"]
+
+    if result["open_available"] and result["fixed_available"]:
+        total = active + result["wont_fix"] + result["cannot_repro"] + result["fixed"]
+        resolved = result["wont_fix"] + result["cannot_repro"] + result["fixed"]
+        result["total"] = total
+        if total == 0:
+            result["percent"] = "0% — no bugs tracked yet"
+        else:
+            pct = round(100 * resolved / total, 1)
+            result["percent"] = f"{pct}% resolved"
+
+    for r in active_rows:
+        sev = r.get("Severity", "").strip()
+        skey = sev if sev in ("S1", "S2", "S3", "S4") else "none"
+        result["severity_breakdown"][skey] += 1
+
+        area = r.get("Area", "").strip() or "(blank)"
+        result["area_breakdown"][area] = result["area_breakdown"].get(area, 0) + 1
+
+        env = r.get("Environment", "").strip()
+        ekey = env or "(blank)"
+        result["env_breakdown"][ekey] = result["env_breakdown"].get(ekey, 0) + 1
+
+        result["active_rows"].append({
+            "id": r.get("Bug ID", "").strip(),
+            "severity": sev,
+            "environment": env,
+            "summary": r.get("Summary", "").strip(),
+            "in_progress": "In Progress" in r.get("Status", ""),
+        })
+
+    seen = {}
+    for bug_id in (open_ids + list(fixed_ids)):
+        if bug_id:
+            seen[bug_id] = seen.get(bug_id, 0) + 1
+    result["duplicate_ids"] = sorted([b for b, c in seen.items() if c > 1])
+
+    bugs_dir = root / BACKLOG / "bugs"
+    all_row_ids = {i for i in open_ids if i} | fixed_ids
+    closed_open_ids = {r.get("Bug ID", "").strip() for r in open_rows
+                       if "Won" in r.get("Status", "") or "Cannot reproduce" in r.get("Status", "")}
+    file_ids = set()
+    if bugs_dir.is_dir():
+        for f in bugs_dir.glob("BUG-*.md"):
+            m = re.match(r'^(BUG-\d+)\.md$', f.name)
+            if m:
+                file_ids.add(m.group(1))
+    result["rows_missing_file"] = sorted(i for i in all_row_ids if i not in file_ids)
+    result["files_without_row"] = sorted(file_ids - all_row_ids)
+    for bid in sorted(file_ids):
+        text = read_bug_file(bugs_dir, bid)
+        first = text.lstrip("﻿").splitlines()[0] if text and text.strip() else ""
+        if not re.match(rf'^# {bid}(\s|$)', first):
+            result["files_bad_h1"].append(bid)
+        # A resolved bug (fixed, won't fix, cannot reproduce) always carries a Resolution line.
+        if (bid in fixed_ids or bid in closed_open_ids) and not re.search(r'^\s*-\s*\*\*Resolution:\*\*', text or "", re.M):
+            result["fixed_missing_resolution"].append(bid)
+
     if args.json:
-        print(json.dumps(r, indent=2))
+        print(json.dumps(result, indent=2))
+        return
+
+    render_markdown(result)
+
+
+def render_markdown(r):
+    lines = []
+    lines.append("## Bug Tracker Status")
+    lines.append("")
+    if r["total"] is None:
+        missing = []
+        if not r["open_available"]:
+            missing.append(f"{BACKLOG}/bugs-open.md")
+        if not r["fixed_available"]:
+            missing.append(f"{BACKLOG}/bugs-fixed.md")
+        lines.append(f"**Total/Progress unavailable** — missing or table-less: {', '.join(missing)}")
+        lines.append("")
     else:
-        render(r, bk.load_config(args.repo_root)["paths"]["backlog_dir"].strip("/"))
+        lines.append("| Metric           | Count |")
+        lines.append("| ---------------- | ----- |")
+        lines.append(f"| Total bugs        | {r['total']} |")
+        lines.append(f"| ✅ Fixed           | {r['fixed']} |")
+        lines.append(f"| 🚫 Won't fix       | {r['wont_fix']} |")
+        lines.append(f"| ❓ Cannot reproduce | {r['cannot_repro']} |")
+        lines.append(f"| ⬜ Open            | {r['open_strict']} |")
+        lines.append(f"| 🔶 In Progress     | {r['in_progress']} |")
+        lines.append(f"| **Progress**       | **{r['percent']}** |")
+        lines.append("")
+
+    lines.append("### Open bugs by severity")
+    lines.append("")
+    lines.append("| Severity | Count |")
+    lines.append("| -------- | ----- |")
+    lines.append(f"| S1 — blocker  | {r['severity_breakdown']['S1']} |")
+    lines.append(f"| S2 — major    | {r['severity_breakdown']['S2']} |")
+    lines.append(f"| S3 — minor    | {r['severity_breakdown']['S3']} |")
+    lines.append(f"| S4 — trivial  | {r['severity_breakdown']['S4']} |")
+    lines.append(f"| No explicit severity | {r['severity_breakdown']['none']} |")
+    lines.append("")
+
+    lines.append("### Open bugs by area")
+    lines.append("")
+    lines.append("| Area | Count |")
+    lines.append("| ---- | ----- |")
+    if r["area_breakdown"]:
+        for area, count in sorted(r["area_breakdown"].items(), key=lambda kv: (-kv[1], kv[0])):
+            lines.append(f"| {area} | {count} |")
+    else:
+        lines.append("| _None_ | 0 |")
+    lines.append("")
+
+    lines.append("### Open bugs by environment")
+    lines.append("")
+    lines.append("| Environment | Count |")
+    lines.append("| ----------- | ----- |")
+    for env_name, env_count in r["env_breakdown"].items():
+        lines.append(f"| {env_name} | {env_count} |")
+    lines.append("")
+
+    lines.append("### Open bugs")
+    lines.append("")
+    if r["active_rows"]:
+        for row in r["active_rows"]:
+            suffix = " — 🔶 In Progress" if row["in_progress"] else ""
+            lines.append(f"- {row['id']} `{row['severity'] or '?'}` ({row['environment'] or '?'}) — {row['summary']}{suffix}")
+    else:
+        lines.append("_None._")
+    lines.append("")
+
+    integrity = []
+    for bug_id in r["duplicate_ids"]:
+        integrity.append(f"- ⚠ Duplicate Bug ID {bug_id}.")
+    for bug_id in r["rows_missing_file"]:
+        integrity.append(f"- ⚠ {bug_id} has a table row but no {BACKLOG}/bugs/{bug_id}.md file.")
+    for bug_id in r["files_without_row"]:
+        integrity.append(f"- ⚠ {BACKLOG}/bugs/{bug_id}.md exists but {bug_id} has no table row in either file.")
+    for bug_id in r["files_bad_h1"]:
+        integrity.append(f"- ⚠ {BACKLOG}/bugs/{bug_id}.md does not start with a `# {bug_id}` heading.")
+    for bug_id in r["fixed_missing_resolution"]:
+        integrity.append(f"- ⚠ {bug_id} is resolved but {BACKLOG}/bugs/{bug_id}.md has no **Resolution:** line.")
+    for bug_id in r["fixed_here"]:
+        integrity.append(f"- ⚠ {bug_id} still shows ✅ Fixed in bugs-open.md — run `bugs-archive {bug_id}` to finish the move.")
+    if integrity:
+        lines.append("### Data integrity")
+        lines.append("")
+        lines.extend(integrity)
+
+    print("\n".join(lines))
 
 
 if __name__ == "__main__":

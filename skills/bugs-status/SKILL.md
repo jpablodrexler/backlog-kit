@@ -1,31 +1,66 @@
 ---
 name: bugs-status
-description: Reports bug-backlog progress by counting rows in bugs-open.md and bugs-fixed.md — total, fixed, open, in-progress, won't-fix and cannot-reproduce counts, percent resolved, severity/area/environment breakdowns of open bugs, the open list, and data-integrity issues (duplicate ids, rows without a details file or files without a row, missing Resolution lines, stale statuses). Read-only. TRIGGER when the user asks for a bug status report, how many bugs are open or fixed, or a bug backlog summary.
+description: Reports bug-backlog progress by counting rows in the backlog's bugs-open.md and bugs-fixed.md. Returns total, fixed, open, in-progress, and percent-closed counts, plus a severity, area, and environment breakdown of open bugs, the open bug list itself, and any data-integrity issues (duplicate Bug IDs, rows without a bugs/BUG-NNN.md file, bug files without a row, wrong H1s, resolved bugs without a Resolution line, stale statuses). TRIGGER when the user asks for a bug status report, how many bugs are open/fixed, a bug backlog summary, or similar. This is the bug-family counterpart to features-status.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Report bug-tracking progress by counting the rows of `<backlog>/bugs-open.md` and `<backlog>/bugs-fixed.md`. `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise.
+Report bug-tracking progress by counting rows in
+`<backlog>/bugs-open.md` (open) and
+`<backlog>/bugs-fixed.md` (fixed). Read-only — this
+skill never edits either file.
 
-**Input**: none.
+`<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`.
 
-## How
+**Input**: None required.
 
-`scripts/status_report.py` (run from this skill's base directory) owns all counting and every integrity check; this skill presents its output as-is:
+---
+
+## Script
+
+`scripts/status_report.py` owns every part of this skill that is pure
+table-counting and text-pattern arithmetic — reading both backlog
+files' `## Bug List` tables (from `<backlog>/bugs-open.md`
+and `<backlog>/bugs-fixed.md`), computing the
+counts/percent/breakdowns (severity/area/environment, over the active —
+`⬜ Open` + `🔶 In Progress` — rows), and finding the data-integrity
+issues (duplicate Bug IDs across both files; four folder-based checks
+against `<backlog>/bugs/` — a table row with no
+`bugs/BUG-N.md` file, a `bugs/*.md` file with no row in either table, a
+file whose first line doesn't start with `# BUG-N`, and a resolved bug
+(fixed, won't fix, cannot reproduce) whose file lacks a `**Resolution:**`
+line; a leftover `✅ Fixed` row in `bugs-open.md` from an interrupted
+`bugs-archive` run). Table `Bug ID` cells are read through their
+`[BUG-N](bugs/BUG-N.md)` link text. Run it (from this skill's base directory) and
+display its output directly rather than re-deriving any of this by hand:
 
 ```
 python3 scripts/status_report.py <repo-root>
 ```
 
-It prints the `## Bug Tracker Status` report: summary table, severity / area / environment breakdowns of open bugs, the open list, and a **Data integrity** section only if it finds something. `--json` gives raw data.
+Prints the finished `## Bug Tracker Status` report (summary table,
+per-category breakdowns — including the environment split
+(`local` and whatever other values the backlog uses) — the open-bug list, and a **Data integrity** section
+only when it found something) straight to stdout — display it as-is.
+Add `--json` for the raw structured data instead of the rendered
+markdown. If either backlog file is missing or has no `## Bug List`
+table, the script itself reports the `Total`/`Progress` rows as
+unavailable and names which file caused it — don't fall back to reading
+either file by hand. See the script's own docstring/comments for exactly
+what it checks; it's the source of truth for this skill's behavior now,
+not this file.
 
-Integrity checks: duplicate ids across both files; a table row with no `bugs/<ID>.md` file, and a file with no row; a details file whose first line isn't `# <ID>`; a row in `bugs-fixed.md` whose file has no `**Resolution:**` line; a leftover `✅ Fixed` row in `bugs-open.md` (an interrupted `bugs-archive`).
-
-If either file is missing or has no `## Bug List` table, the script reports Total/Progress as unavailable and names the file. Don't fall back to reading the files by hand.
+---
 
 ## Guardrails
 
-- **Read-only.** Never modify the backlog files or anything under `bugs/`, including to fix a reported issue.
+- Read-only skill — never modify `bugs-open.md` or `bugs-fixed.md`,
+  including the data-integrity issues the script finds. This skill only
+  reports them.
+- Always re-run the script against the current file contents; never
+  reuse remembered counts from a prior run.
+- If either file is missing or has no `## Bug List` table, the script
+  reports that file as unavailable rather than guessing a count — don't
+  override that by reading the file by hand instead.
 - **Never run `git commit`, `git push` or open a PR.**
-- Always re-run the script against the current files; never reuse remembered counts.

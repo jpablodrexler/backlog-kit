@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-Next free bug id (`<PREFIX>-NNN`, prefix from .backlog-kit.toml, default BUG)
-plus the configured vocabulary. Scans both table files and the filenames in
-the bugs/ folder, takes max+1, zero-padded to 3 digits. One global sequence,
-never reused — not even for a Won't fix / Cannot reproduce entry.
+Scan <backlog>/bugs-open.md, bugs-fixed.md (their `Bug ID` cells,
+plain or linked as `[BUG-NNN](bugs/BUG-NNN.md)`) and the filenames in
+<backlog>/bugs/ for the next free BUG-NNN id — bug-report/SKILL.md
+step 3's mechanical numbering rule (take max+1, zero-padded to 3 digits;
+one global sequence, never reused).
 
 Usage:
     python3 next_id.py <repo-root>
 """
 import re
 import sys
+import json
+import argparse
 from pathlib import Path
 
 _here = Path(__file__).resolve()
@@ -20,27 +23,38 @@ for _cand in (_here.parent, _here.parents[3] / "lib"):
 import backlog_kit as bk
 
 
+def collect_numbers(path):
+    p = Path(path)
+    if not p.exists():
+        return []
+    text = p.read_text(encoding="utf-8")
+    return [int(m) for m in re.findall(r'BUG-(\d+)', text)]
+
+
+def collect_filenames(folder):
+    d = Path(folder)
+    if not d.is_dir():
+        return []
+    out = []
+    for f in d.glob("BUG-*.md"):
+        m = re.match(r'BUG-(\d+)\.md$', f.name)
+        if m:
+            out.append(int(m.group(1)))
+    return out
+
+
 def main():
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    root = sys.argv[1]
-    cfg = bk.load_config(root)
-    p = bk.Paths(root, cfg)
-    prefix = re.escape(cfg["bugs"]["id_prefix"])
-    nums = []
-    for path in (p.bugs_open, p.bugs_fixed):
-        if path.is_file():
-            nums += [int(m) for m in re.findall(rf"{prefix}-(\d+)", path.read_text(encoding="utf-8"))]
-    if p.bugs_dir.is_dir():
-        for f in p.bugs_dir.glob(f"{cfg['bugs']['id_prefix']}-*.md"):
-            m = re.match(rf"^{prefix}-(\d+)\.md$", f.name)
-            if m:
-                nums.append(int(m.group(1)))
-    n = (max(nums) + 1) if nums else 1
-    bk.emit({
-        "next_id": f"{cfg['bugs']['id_prefix']}-{n:03d}",
-        "vocab": {k: cfg["bugs"][k] for k in ("severities", "environments")},
-    })
+    ap = argparse.ArgumentParser()
+    ap.add_argument("repo_root")
+    args = ap.parse_args()
+
+    root = Path(args.repo_root)
+    backlog = root / bk.load_config(root)["paths"]["backlog_dir"].strip("/")
+    nums = (collect_numbers(backlog / "bugs-open.md")
+            + collect_numbers(backlog / "bugs-fixed.md")
+            + collect_filenames(backlog / "bugs"))
+    next_n = (max(nums) + 1) if nums else 1
+    print(json.dumps({"next_id": f"BUG-{next_n:03d}"}))
 
 
 if __name__ == "__main__":
