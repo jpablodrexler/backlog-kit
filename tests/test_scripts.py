@@ -3,6 +3,7 @@
 Run: python3 -m unittest discover -s tests -v   (from the backlog-kit root)
 """
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -12,7 +13,6 @@ from pathlib import Path
 KIT = Path(__file__).resolve().parents[1]
 S = KIT / "skills"
 SCRIPTS = {
-    "f_scaffold": S / "feature-plan/scripts/scaffold.py",
     "f_next_id": S / "feature-plan/scripts/next_id.py",
     "f_rank": S / "features-next/scripts/rank_features.py",
     "f_status": S / "features-status/scripts/status_report.py",
@@ -30,6 +30,21 @@ def run(key, root, *extra, as_json=True):
     return json.loads(out) if as_json else out
 
 
+def skeleton(root, backlog="docs/backlog"):
+    """Create the two backlog files from the skeletons printed in feature-plan/SKILL.md (what the skill tells the model to write)."""
+    text = (S / "feature-plan/SKILL.md").read_text()
+    blocks = re.findall(r"```markdown\n(.*?)```", text, re.S)
+    d = Path(root) / backlog
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "features-planned.md").write_text(blocks[0])
+    (d / "features-implemented.md").write_text(blocks[1])
+
+
+def frow(n, name, prio="P2", schema="No", effort="M", area="Backend", sdd="⬜ Pending", impl="⬜ Pending", summary=None):
+    return (f"| {n} | `{name}` | {prio} | {schema} | {effort} | {area} | {sdd} | {impl} | "
+            f"{summary if summary is not None else 'Does ' + name} | [brief](features/{int(n):03d}-{name}.md) |")
+
+
 def add_feature_row(root, rel, row):
     """Append a table row to a features file, right after the header separator's last row."""
     p = Path(root) / rel
@@ -41,6 +56,8 @@ def add_feature_row(root, rel, row):
 
 
 class FeatureFlow(unittest.TestCase):
+    REL = "docs/backlog/features-planned.md"
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
@@ -48,23 +65,17 @@ class FeatureFlow(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def test_scaffold_is_idempotent_and_numbering_starts_at_one(self):
-        first = run("f_scaffold", self.root)
-        self.assertEqual(len(first["created"]), 2)
-        again = run("f_scaffold", self.root)
-        self.assertEqual(again["created"], [])
+    def test_the_skeleton_in_the_skill_is_what_the_scripts_read_and_numbering_starts_at_one(self):
+        skeleton(self.root)
         self.assertEqual(run("f_next_id", self.root)["next_number"], 1)
+        header = (self.root / self.REL).read_text().splitlines()
+        self.assertIn("| # | Change name | Priority | Schema Change | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |", header)
+        self.assertIn("## Deployment (migration) dependencies (applied)", (self.root / "docs/backlog/features-implemented.md").read_text())
 
     def test_rank_blocks_on_live_prerequisite_and_prefers_in_progress(self):
-        run("f_scaffold", self.root)
-        rel = "docs/backlog/features-planned.md"
-        rows = [
-            "| 1 | `alpha` | P1 | M | Backend | ⬜ Pending | Does alpha | [brief](features/001-alpha.md) |",
-            "| 2 | `beta` | P0 | S | Backend | ⬜ Pending | Does beta | [brief](features/002-beta.md) |",
-            "| 3 | `gamma` | P3 | L | Frontend | 🔶 In Progress | Does gamma | [brief](features/003-gamma.md) |",
-        ]
-        for r in rows:
-            add_feature_row(self.root, rel, r)
+        skeleton(self.root)
+        for r in (frow(1, "alpha", "P1"), frow(2, "beta", "P0", effort="S"), frow(3, "gamma", "P3", effort="L", area="Frontend", impl="🔶 In Progress")):
+            add_feature_row(self.root, self.REL, r)
         fdir = self.root / "docs/backlog/features"
         fdir.mkdir()
         for n, name in ((1, "alpha"), (2, "beta"), (3, "gamma")):
@@ -74,7 +85,7 @@ class FeatureFlow(unittest.TestCase):
         self.assertEqual(out["top"]["name"], "gamma", "an in-progress feature outranks a higher-priority pending one")
 
         # beta (P0) hard-depends on alpha, which is still pending -> beta is blocked
-        p = self.root / rel
+        p = self.root / self.REL
         p.write_text(p.read_text().replace(
             "### Hard implementation dependencies\n\n_None yet._",
             "### Hard implementation dependencies\n\n**Feature 2 → Feature 1** (still pending)\n\n`beta` needs `alpha`."))
@@ -87,30 +98,27 @@ class FeatureFlow(unittest.TestCase):
         self.assertEqual(sel["blocked_on"], "1")
 
     def test_priority_scoring_is_the_fixed_scale_of_the_source_projects(self):
-        run("f_scaffold", self.root)
-        rel = "docs/backlog/features-planned.md"
-        add_feature_row(self.root, rel, "| 1 | `a` | P2 | S | X | ⬜ Pending | a | [brief](features/001-a.md) |")
-        add_feature_row(self.root, rel, "| 2 | `b` | P0 | L | X | ⬜ Pending | b | [brief](features/002-b.md) |")
-        add_feature_row(self.root, rel, "| 3 | `c` | none | L | X | ⬜ Pending | c | [brief](features/003-c.md) |")
+        skeleton(self.root)
+        add_feature_row(self.root, self.REL, frow(1, "a", "P2", schema="Yes"))
+        add_feature_row(self.root, self.REL, frow(2, "b", "P0", schema="Yes"))
+        add_feature_row(self.root, self.REL, frow(3, "c", "none", schema="Yes"))
         out = run("f_rank", self.root, "--json")
         self.assertEqual(out["top"]["name"], "b")
         self.assertEqual(out["top"]["score"], 400)                                    # P0
         self.assertEqual([(r["name"], r["score"]) for r in out["runners_up"]], [("a", 200), ("c", 50)])
 
-    def test_openspec_workflow_adds_column_and_ready_bonus(self):
-        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "openspec"\n')
-        run("f_scaffold", self.root)
-        self.assertIn("SDD Artifacts", run("f_next_id", self.root)["planned_header"])
-        rel = "docs/backlog/features-planned.md"
-        add_feature_row(self.root, rel, "| 1 | `a` | P1 | M | X | ⬜ Pending | ⬜ Pending | a | [brief](features/001-a.md) |")
-        add_feature_row(self.root, rel, "| 2 | `b` | P1 | M | X | ✅ Created | ⬜ Pending | b | [brief](features/002-b.md) |")
+    def test_no_schema_change_and_ready_artifacts_earn_their_bonuses(self):
+        skeleton(self.root)
+        add_feature_row(self.root, self.REL, frow(1, "a", "P1", schema="Yes"))
+        add_feature_row(self.root, self.REL, frow(2, "b", "P1", schema="No"))
+        add_feature_row(self.root, self.REL, frow(3, "c", "P1", schema="Yes", sdd="✅ Created"))
         out = run("f_rank", self.root, "--json")
-        self.assertEqual(out["top"]["name"], "b")
+        self.assertEqual([out["top"]["name"]] + [r["name"] for r in out["runners_up"]], ["c", "b", "a"])
+        self.assertEqual([out["top"]["score"]] + [r["score"] for r in out["runners_up"]], [320, 305, 300])
 
     def test_status_reports_integrity_issues(self):
-        run("f_scaffold", self.root)
-        add_feature_row(self.root, "docs/backlog/features-planned.md",
-                        "| 1 | `a` | P1 | M | X | ⬜ Pending | " + "x" * 300 + " | [brief](features/001-a.md) |")
+        skeleton(self.root)
+        add_feature_row(self.root, self.REL, frow(1, "a", "P1", summary="x" * 300))
         out = run("f_status", self.root, as_json=False)
         self.assertIn("Total features", out)
         self.assertIn("bad Summary", out)
@@ -118,9 +126,12 @@ class FeatureFlow(unittest.TestCase):
 
     def test_custom_backlog_dir(self):
         (self.root / ".backlog-kit.toml").write_text('[paths]\nbacklog_dir = "planning"\n')
-        run("f_scaffold", self.root)
-        self.assertTrue((self.root / "planning/features-planned.md").is_file())
-        self.assertFalse((self.root / "docs").exists())
+        skeleton(self.root, "planning")
+        add_feature_row(self.root, "planning/features-planned.md", frow(4, "d", "P1"))
+        (self.root / "planning/features").mkdir()
+        (self.root / "planning/features/004-d.md").write_text("# Feature 4 — d\n\nbrief\n")
+        self.assertEqual(run("f_next_id", self.root)["next_number"], 5)
+        self.assertEqual(run("f_rank", self.root, "--json")["top"]["brief_file"], "planning/features/004-d.md")
 
 
 class BugFlow(unittest.TestCase):
@@ -297,73 +308,6 @@ class OrderPlaceholder(unittest.TestCase):
             self.assertTrue(text.rstrip().endswith("Not a schedule.\n\n_None yet._"), text)
             second = json.loads(subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout)
             self.assertFalse(second["placeholder_restored"] or second["written"])
-
-
-class SpecWorkflowHeaderMismatch(unittest.TestCase):
-    """Found reviewing a real test repo: openspec configured, planned table created without `SDD Artifacts`."""
-
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)
-        bl = self.root / "docs/backlog"
-        (bl / "features").mkdir(parents=True)
-        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "openspec"\n')
-        (bl / "features-planned.md").write_text(
-            "# Planned Features\n\n## Feature List\n\n"
-            "| # | Change name | Priority | Effort | Area | Implementation | Summary | Brief |\n"
-            "| --- | --- | --- | --- | --- | --- | --- | --- |\n"
-            "| 5 | `old-one` | P3 | S | Backend | ⬜ Pending | does a thing | [brief](features/005-old-one.md) |\n\n"
-            "## Dependencies\n")
-        (bl / "features/005-old-one.md").write_text("# Feature 5 — old-one\n\nx\n")
-        (bl / "features-implemented.md").write_text(
-            "# Implemented Features\n\n## Feature List\n\n| # | Change name | Priority | Effort | Area | Details |\n| --- | --- | --- | --- | --- | --- |\n"
-            "| 1 | `done` | P3 | S | Backend | [brief](features/001-done.md) |\n")
-        (bl / "features/001-done.md").write_text("# Feature 1 — done\n\nx\n")
-        self.scaffold = KIT / "skills/feature-plan/scripts/scaffold.py"
-
-    def tearDown(self):
-        self.tmp.cleanup()
-
-    def scaf(self, *extra):
-        return json.loads(subprocess.run([sys.executable, str(self.scaffold), str(self.root), *extra],
-                                         capture_output=True, text=True, check=True).stdout)
-
-    def test_scaffold_reports_the_mismatch_without_touching_the_file(self):
-        before = (self.root / "docs/backlog/features-planned.md").read_text()
-        out = self.scaf()
-        self.assertEqual(out["planned_header_mismatch"]["found"].count("SDD Artifacts"), 0)
-        self.assertIn("SDD Artifacts", out["planned_header_mismatch"]["expected"])
-        self.assertEqual((self.root / "docs/backlog/features-planned.md").read_text(), before)
-
-    def test_status_names_the_mismatch_and_the_missing_spec_links(self):
-        text = run("f_status", self.root, as_json=False)
-        self.assertIn("does not match `spec.workflow`", text)
-        self.assertIn("--fix-header", text)
-        self.assertIn("#1 done", text)                      # implemented without a [spec] link
-        self.assertIn("openspec", text)                     # no openspec/ folder
-
-    def test_fix_header_is_lossless_and_idempotent(self):
-        out = self.scaf("--fix-header")
-        self.assertEqual(out["header_fixed"]["rows"], 1)
-        text = (self.root / "docs/backlog/features-planned.md").read_text()
-        self.assertIn("| # | Change name | Priority | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |", text)
-        self.assertIn("| 5 | `old-one` | P3 | S | Backend | ⬜ Pending | ⬜ Pending | does a thing | [brief](features/005-old-one.md) |", text)
-        self.assertNotIn("planned_header_mismatch", self.scaf())
-        self.assertEqual(run("f_status", self.root, "--json")["header_mismatch"], None)
-        ranked = run("f_rank", self.root, "--json")
-        self.assertEqual(ranked["top"]["brief_file"], "docs/backlog/features/005-old-one.md")
-
-    def test_fix_header_also_drops_the_column_when_workflow_is_none(self):
-        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "none"\n')
-        self.scaf("--fix-header")                            # nothing to do: header has no SDD column and none wanted
-        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "openspec"\n')
-        self.scaf("--fix-header")
-        (self.root / ".backlog-kit.toml").write_text('[spec]\nworkflow = "none"\n')
-        self.assertIn("planned_header_mismatch", self.scaf())
-        self.scaf("--fix-header")
-        text = (self.root / "docs/backlog/features-planned.md").read_text()
-        self.assertNotIn("SDD Artifacts", text)
-        self.assertIn("| 5 | `old-one` | P3 | S | Backend | ⬜ Pending | does a thing | [brief](features/005-old-one.md) |", text)
 
 
 class DependencyScan(unittest.TestCase):

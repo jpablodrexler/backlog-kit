@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-Next free feature number + change-name collision check, plus the configured
-vocabulary — feature-plan step 3/4's mechanical work. Scans both backlog
-files' `#` columns and the `features/NNN-<name>.md` filenames (one global
-sequence, never reused) and takes max+1.
+Scan <backlog>/features-planned.md and features-implemented.md for the
+next free feature number and check a candidate change-name for a
+collision — feature-plan/SKILL.md step 3's mechanical numbering rule
+(scan both files' `#` columns and the <backlog>/features/NNN-<name>.md
+filenames, take max+1; numbers are one global sequence, never reused).
 
 Usage:
     python3 next_id.py <repo-root> [--check-name <kebab-case-name>]
 """
-import argparse
 import re
 import sys
+import json
+import argparse
 from pathlib import Path
 
 _here = Path(__file__).resolve()
@@ -21,26 +23,49 @@ for _cand in (_here.parent, _here.parents[3] / "lib"):
 import backlog_kit as bk
 
 
-def table_numbers_and_names(path):
-    _, rows = bk.table_rows(path, "## Feature List")
-    nums, names = [], []
-    for r in rows:
-        n = r.get("#", "").strip()
-        if n.isdigit():
-            nums.append(int(n))
-            names.append(bk.strip_backticks(r.get("Change name", "")))
-    return nums, names
+def split_row(line):
+    parts = re.split(r'(?<!\\)\|', line)
+    if parts and parts[0].strip() == "":
+        parts = parts[1:]
+    if parts and parts[-1].strip() == "":
+        parts = parts[:-1]
+    return [p.strip().replace('\\|', '|') for p in parts]
 
 
-def file_numbers_and_names(features_dir):
-    nums, names = [], []
-    if features_dir.is_dir():
-        for f in features_dir.glob("*.md"):
-            m = re.match(r"^(\d+)-(.+)\.md$", f.name)
-            if m:
-                nums.append(int(m.group(1)))
-                names.append(m.group(2))
-    return nums, names
+def collect_numbers_and_names(path):
+    p = Path(path)
+    if not p.exists():
+        return [], []
+    lines = p.read_text(encoding="utf-8").splitlines()
+    numbers, names = [], []
+    in_table = False
+    for line in lines:
+        if line.strip() == "## Feature List":
+            in_table = True
+            continue
+        if in_table and line.startswith("## "):
+            break
+        if in_table and line.lstrip().startswith("|"):
+            cells = split_row(line)
+            if cells and cells[0].strip().isdigit():
+                numbers.append(int(cells[0].strip()))
+                if len(cells) > 1:
+                    names.append(cells[1].strip().strip("`"))
+    return numbers, names
+
+
+def collect_file_numbers_and_names(features_dir):
+    """Numbers/names from <backlog>/features/NNN-<change-name>.md filenames."""
+    numbers, names = [], []
+    d = Path(features_dir)
+    if not d.is_dir():
+        return numbers, names
+    for f in d.glob("*.md"):
+        m = re.match(r'^(\d+)-(.+)\.md$', f.name)
+        if m:
+            numbers.append(int(m.group(1)))
+            names.append(m.group(2))
+    return numbers, names
 
 
 def main():
@@ -49,26 +74,26 @@ def main():
     ap.add_argument("--check-name")
     args = ap.parse_args()
 
-    cfg = bk.load_config(args.repo_root)
-    p = bk.Paths(args.repo_root, cfg)
-    np_, nm_p = table_numbers_and_names(p.features_planned)
-    ni, nm_i = table_numbers_and_names(p.features_implemented)
-    nf, nm_f = file_numbers_and_names(p.features_dir)
+    root = Path(args.repo_root)
+    backlog = root / bk.load_config(root)["paths"]["backlog_dir"].strip("/")
+    planned = backlog / "features-planned.md"
+    implemented = backlog / "features-implemented.md"
 
-    allnums = np_ + ni + nf
-    result = {
-        "next_number": (max(allnums) + 1) if allnums else 1,
-        "vocab": {
-            "priorities": cfg["features"]["priorities"],
-            "efforts": cfg["features"]["efforts"],
-            "areas": cfg["features"]["areas"],
-            "spec_workflow": cfg["spec"]["workflow"],
-        },
-        "planned_header": bk.planned_header(cfg),
-    }
+    nums_p, names_p = collect_numbers_and_names(planned)
+    nums_i, names_i = collect_numbers_and_names(implemented)
+
+    nums_f, names_f = collect_file_numbers_and_names(backlog / "features")
+
+    all_numbers = nums_p + nums_i + nums_f
+    next_number = (max(all_numbers) + 1) if all_numbers else 1
+
+    result = {"next_number": next_number}
+
     if args.check_name:
-        result["name_collision"] = args.check_name in set(nm_p) | set(nm_i) | set(nm_f)
-    bk.emit(result)
+        existing = set(names_p) | set(names_i) | set(names_f)
+        result["name_collision"] = args.check_name in existing
+
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":

@@ -16,6 +16,11 @@ configurable, was removed, or was changed on purpose is recorded here with the o
 | D8 | `--confirmed` batch mode (skips the per-item question) | **Removed.** Every item is confirmed by the user, also inside a batch, as in the source projects. | 2026-10-10 |
 | D9 | Where the snapshots of the originals live | **In the kit while it is private**; revisit before publishing (the text of the projects' skills must not be published without the owner's say). | 2026-10-10 |
 | D10 | Explore command named in `features-next` (`/opsx:explore` in one project, `/openspec-explore` in the other) | Both are named; the skill says "whichever your OpenSpec install generated". Wording only, no config key. | 2026-10-10 |
+| D11 | OpenSpec optional (`[spec] workflow`) or mandatory? | **Mandatory**, as in both projects. The kit depends on OpenSpec (never bundles it). The `[spec] workflow` key and every "without OpenSpec" branch go away as each skill is converted. | 2026-10-10 |
+| D12 | Column order of a freshly scaffolded planned table | **The order of the first project**: `... Area \| SDD Artifacts \| Implementation \| Summary \| Brief`. Scripts read columns by name, so existing backlogs of either order keep working. | 2026-10-10 |
+| D13 | "Deployment (migration) dependencies" table | **A fixed part of the backlog files**, as in the originals: skeletons create it, `features-archive` moves rows, `feature-plan` never adds rows at planning time. No `[[features.tables]]`. | 2026-10-10 |
+| D14 | `feature-plan` step 9 (insert the new feature into the Recommended implementation order) | **Included** (from the first project); `features-next` then gives the order bonus. | 2026-10-10 |
+| D15 | Kit-only helper scripts (`dep_scan.py`, `spec_link.py`, `clean_order_notes.py`, `scaffold.py`): keep any? | **None kept** (no selection given, so the recommendation applies): the originals do these things with prose, and the skeletons are inline in `feature-plan`. Each goes away as the skill that used it is converted; `scaffold.py` and `dep_scan.py` from `feature-plan` are gone. Reversible from git history. | 2026-10-10 |
 
 Not asked (not configurable, taken from the more complete original): order lists accept numbered and
 link forms (J's `bugs-next`); `features-next` reads `SDD Artifacts` from the cell only (no disk check).

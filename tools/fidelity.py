@@ -171,7 +171,7 @@ def analyse(skill):
     base_units = list(base)
     added = []
     for k in kit_units:
-        grown = [b for b in base_units if b in k and len(k) - len(b) >= 12]
+        grown = [b for b in base_units if len(b) >= 40 and b in k and len(k) - len(b) >= 12]
         if grown:
             # Text added inside or around an otherwise verbatim unit would be invisible; show it.
             added.append("(extends an original unit) " + k.replace(max(grown, key=len), "", 1).strip())

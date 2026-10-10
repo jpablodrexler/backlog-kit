@@ -1,16 +1,16 @@
 ---
 name: feature-plan
-description: Adds a new feature to the markdown backlog — drafts the table row (Priority, Effort, Area, Summary), writes the feature's full brief to features/NNN-<name>.md, assigns the next feature number, inserts it into the Recommended implementation order, and confirms with the user before writing. Creates the backlog files on first use. TRIGGER when the user asks to plan a new feature, add a feature to the backlog, or file a feature idea or request.
+description: Adds a new feature to the backlog's features-planned.md — drafts the row (Priority, Schema Change, Effort, Area, Summary), writes the feature's full brief to features/NNN-<name>.md, assigns the next feature number, inserts it into the Recommended implementation order, and confirms with the user before writing. Creates the backlog file (with header, legend, and empty table) on first use if it doesn't exist yet. TRIGGER when the user asks to plan a new feature, add a feature to the backlog, or file a feature idea/request.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Add a new feature to the backlog — a brief file `<backlog>/features/NNN-<change-name>.md` plus a row in `<backlog>/features-planned.md` — drafted from the user's description and confirmed before anything is written. `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise.
+Add a new feature to the backlog — its full brief file `<backlog>/features/NNN-<change-name>.md` plus a row in `<backlog>/features-planned.md` — drafted from the user's description and confirmed before writing.
 
-**Input**: A description of the feature, as detailed as the user likes. It may include an explicit change name and/or explicit Priority / Effort / Area values — use those as given and draft only the rest.
+`<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`.
 
-**Scripts**: run every script below from this skill's base directory (`scripts/…`), passing the repository root as its first argument. Configuration lives in the optional `<repo-root>/.backlog-kit.toml`; with no file, the defaults apply — don't ask the user about it.
+**Input**: A description of the feature (as much or as little detail as the user gives). May optionally include an explicit change name and/or explicit values for Priority/Schema Change/Effort/Area — use whatever is given directly and only draft the rest.
 
 ---
 
@@ -18,92 +18,131 @@ Add a new feature to the backlog — a brief file `<backlog>/features/NNN-<chang
 
 ### 1. Make sure there's enough to draft from
 
-If the request is too vague to say what the feature does (a one- or two-word title with no hint at the mechanism), ask **one** clarifying question first. A good row names the concrete mechanism — modules, endpoints, data, components — not a restatement of the title. If there's enough to work with, don't ask.
+If the user's request is too vague to describe what the feature actually does (e.g. just a one- or two-word title with no hint at the mechanism), ask one clarifying question before drafting — a good row needs the same level of technical specificity as existing rows (endpoints, tables/columns, components, libraries), not a vague restatement of the title. If the user already gave enough to work with, proceed without asking.
 
-### 2. Create the backlog files if they don't exist
+### 2. Read both backlog files, creating them if they don't exist yet
 
-```
-python3 scripts/scaffold.py <repo-root>
-```
+Read:
+- `<backlog>/features-planned.md`
+- `<backlog>/features-implemented.md`
 
-Idempotent: it creates `features-planned.md` and `features-implemented.md` (with the table headers and a Column legend generated from the config) only where missing and reports what it created. Never invent a different structure by hand.
+**If `<backlog>/features-planned.md` doesn't exist yet** (the normal case the first time this skill runs in this repo), create it with this skeleton before continuing — don't silently invent a different structure:
 
-If the output has `planned_header_mismatch`, the existing `features-planned.md` was created under a different `spec.workflow` than the one now configured (the `SDD Artifacts` column is missing or extra), and a row drafted for the configured header would land in the wrong columns. Say so in one line, run `python3 scripts/scaffold.py <repo-root> --fix-header` (lossless: it adds a `⬜ Pending` cell per existing row, or drops the column), and carry on. Mention the repair in the final report.
+```markdown
+# Planned Features
 
-Then read both files. They're needed to pick a non-colliding number and name and to draft values consistent with existing rows.
+## Feature List
 
-### 3. Derive the change name and the next number
+| # | Change name | Priority | Schema Change | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |
+| - | ------------ | -------- | -------------- | ------ | ---- | -------------- | ---------------- | ------- | ----- |
 
-**Change name**: validate a user-supplied name is kebab-case (lowercase letters, digits, hyphens) and convert it if not. If none was given, derive a short descriptive slug (`task-search`, not `implement-the-task-search-feature`).
+## Column legend
 
-```
-python3 scripts/next_id.py <repo-root> --check-name <derived-name>
-```
+- **Priority**: `P0` (production-safety/security/data-loss gap) · `P1` (high-impact) · `P2` (scalability) · `P3` (operational convenience)
+- **Schema Change**: `Yes` if the feature adds or alters a database migration, a schema definition or an access policy; `No` otherwise
+- **Effort**: `S` / `M` / `L`
+- **Area**: `Backend` · `Frontend` · `Full-stack` (touches both) · `Infra` (deployment/provisioning-only, no application code)
+- **SDD Artifacts**: `⬜ Pending` until `openspec-propose` has generated proposal/specs/tasks for the change; `✅ Created` once it has
+- **Implementation**: `⬜ Pending` until work starts; `🔶 In Progress` once `feature-development` has selected the feature and set up its branch, until shipped; `✅ Implemented` once `features-archive` has moved the row to `features-implemented.md`
+- **Summary**: a short hand-written one- or two-sentence summary of the brief (at most 250 characters, no pipes) for humans and for `features-next`'s display only — never spec input
+- **Brief**: link to the feature's full brief, `features/NNN-<change-name>.md` (`NNN` = zero-padded feature number) — the verbatim text `feature-development` hands to `openspec-propose`; the file never moves, and planned vs. implemented is decided only by which table holds the row
 
-It returns `next_number` (max+1 across both tables and the brief filenames; one global sequence, never reused, even for a cancelled feature), `name_collision`, the configured `vocab` (`priorities`, `efforts`, `areas`, `spec_workflow`) and the exact `planned_header` column order. If `name_collision` is true, tell the user and ask for a different name — never silently rename or proceed with a duplicate.
+## Dependencies
 
-### 4. Draft Priority, Effort and Area
+### Hard implementation dependencies
 
-Use the `vocab` from step 3 (also printed in the Column legend of `features-planned.md`) as the only valid values. A value the user gave is used as-is after checking it's valid. Otherwise infer:
+_None yet._
 
-- **Priority** — a security, data-loss or production-safety gap takes the top tier; user-visible high-impact work the next; scalability/quality and convenience follow. Rank by the order of `vocab.priorities` (first = highest).
-- **Effort** — in the order of `vocab.efforts` (first = smallest).
-- **Area** — whichever `vocab.areas` value best matches what the feature touches.
+### Recommended implementation order
 
-`Implementation` is always `⬜ Pending` for a new row. When `spec_workflow` is `openspec`, the `SDD Artifacts` column is also `⬜ Pending`: this skill only plans — it never creates spec artifacts or implements anything.
+Priority tier first (P1 before P2 before P3), then hard dependencies, then feature number. Not a schedule — a reasoning aid for `features-next` and for whoever is picking up the next feature by hand. Re-derive this whenever priorities, dependencies, or the feature set change; don't let it silently drift. A plain bullet list — list position (not a printed number) is what encodes order, so inserting an entry never touches any other line.
 
-### 5. Draft the brief and the Summary
-
-**Brief** — one dense paragraph naming the concrete mechanism. Reuse every technical detail the user gave; fill gaps with reasonable choices consistent with the project's documented conventions (look at `CLAUDE.md`, the README and any decision records) rather than inventing an unrelated approach. This is the text a later implementation or spec step will receive as "what to build", so give it the specificity that step needs.
-
-**Summary** — a plain-text one- or two-sentence summary of the brief: at most 250 characters (aim for ~160), no pipe characters, no Markdown links. For humans skimming the table and for `features-next`'s display only; it may drop detail the brief keeps.
-
-### 6. Confirm before writing
-
-First look for dependencies the brief implies but nobody has recorded. Pipe the drafted brief to the scanner (nothing is written; it only reads the repo and the backlog):
-
-```
-python3 scripts/dep_scan.py <repo-root> --new --name <change-name> --number <number> <<'BRIEF'
-<the drafted brief>
-BRIEF
+_None yet._
 ```
 
-Each entry in `candidates` is a pending feature this one appears to need (`evidence` says why: it names that feature, or it uses a symbol or file that exists nowhere in the repo and is introduced by that feature's brief). They are evidence, not verdicts. Show them in the draft under **Possible dependencies** and let the user decide; with no candidates, omit that part.
+**If `<backlog>/features-implemented.md` doesn't exist yet either**, create it with the matching skeleton (the implemented-table header shown, no legend needed since it's just an archive target, plus a `## Dependencies (Historical)` → `### Implementation notes` section and a `## Deployment (migration) dependencies (applied)` table) so `features-archive` has somewhere to write to later:
 
-Show the draft:
+```markdown
+# Implemented Features
+
+## Feature List
+
+| # | Change name | Priority | Schema Change | Effort | Area | Details |
+| - | ------------ | -------- | -------------- | ------ | ---- | -------------------- |
+
+## Dependencies (Historical)
+
+### Implementation notes
+
+_None yet._
+
+## Deployment (migration) dependencies (applied)
+
+| Migration | Feature |
+| ---------- | --------- |
+```
+
+Both files are needed to pick a non-colliding number and name (step 3) and to draft consistent attribute values (step 4), even when both are freshly created and empty.
+
+### 3. Derive the change name and the next feature number
+
+**Change name**: if the user gave an explicit one, validate it's kebab-case (lowercase letters, digits, hyphens only, e.g. `task-due-dates`); if it isn't, convert it. If the user didn't give one, derive a concise kebab-case slug from the feature description — short, descriptive, no filler words (e.g. `task-search`, `task-completion-toggle`).
+
+Run (from this skill's base directory) `python3 scripts/next_id.py <repo-root> --check-name <derived-name>` — it scans both files' `## Feature List` tables plus the filenames under `<backlog>/features/` and returns the next free `#` (`max + 1` across both, or `1` for a fresh backlog; numbers are a single global sequence, never reused even for a cancelled/reverted feature) plus whether the derived name already collides with an existing row. If `name_collision` is `true`, tell the user and ask for a different name or confirm they mean something else (do not silently rename or silently proceed with a duplicate). Use the returned `next_number` as the feature number.
+
+### 4. Draft the four attribute columns
+
+Using the **Column legend** immediately below the Feature List table in `features-planned.md` as the source of truth for the value vocabulary (don't hardcode a copy of the definitions here — read them fresh each run so this skill can't drift out of sync with the legend):
+
+- **Priority** (`P0`–`P3`)
+- **Schema Change** (`Yes`/`No`)
+- **Effort** (`S`/`M`/`L`)
+- **Area** (one of the values the legend defines)
+
+If the user explicitly gave a value for any of these, use it as-is (still sanity-check it's one of the valid values from the legend). Otherwise infer it from the feature description — e.g. a security/data-loss gap is `P0`; a feature naming a new table/column/policy is `Schema Change: Yes`; a change touching both backend and frontend code is `Full-stack`.
+
+Both `SDD Artifacts` and `Implementation` are always `⬜ Pending` for a brand-new row — this skill only plans a feature, it never creates SDD artifacts (that's `openspec-propose`, invoked later by `feature-development`) or implements it.
+
+### 5. Draft the full brief and the Summary
+
+**Full brief.** Write one dense paragraph in the same style as existing rows (once there are any — for the very first rows in a fresh backlog, match the level of specificity shown in the Column legend's own guidance): name the concrete mechanism (new endpoint(s), table/column names, component names, libraries), not a vague restatement of the feature title. Reuse whatever technical detail the user already gave; fill gaps with reasonable, clearly-inferable implementation choices consistent with the project's documented conventions (`CLAUDE.md`, the README, decision records) rather than inventing an unrelated approach. This brief is the exact text `feature-development` later hands to `openspec-propose` as the description of what to build, so give it all the specificity the spec step will need; it goes in the feature's own file (step 7), not in the table.
+
+**Summary.** Also hand-write a plain-text summary of that brief — at most 250 characters (target about 160), one or two sentences, no pipe characters, no Markdown links. It is only for humans skimming the table and for `features-next`'s display; it is never spec input, so it may drop detail the brief keeps.
+
+### 6. Confirm with the user before writing
+
+Display the fully drafted row:
 
 ```
 ## Draft Feature
 
 **#<number> `<change-name>`**
 
-**Priority:** <p>  **Effort:** <e>  **Area:** <a>
+**Priority:** <priority>  **Schema Change:** <schema_change>  **Effort:** <effort>  **Area:** <area>
 
 **Summary:** <summary>
 
-**Possible dependencies:** <`#<n> <name>` — <evidence>, one per line — or omit>
+**Full brief** (saved to `<backlog>/features/<NNN>-<change-name>.md`):
 
-**Full brief** (will be saved to `<backlog>/features/<NNN>-<change-name>.md`):
+<full brief>
 
-<brief>
+**SDD Artifacts:** ⬜ Pending   **Implementation:** ⬜ Pending
 ```
 
-Ask one question with **AskUserQuestion** — "Add this feature to the backlog?" — options "Yes, add it as drafted", with candidates also "Yes, and record the dependency on #<n>" (one option per candidate, up to the 4-option limit — otherwise say "name the ones to record" in free text), "Let me edit something first" (apply the edits, re-display, ask again), "Cancel". Write nothing under `<backlog>` until the user says yes.
+Use the **AskUserQuestion tool** with a single question — "Add this feature to the backlog?" — options: "Yes, add it as drafted", "Let me edit something first" (resolve free-text edits against the draft and re-display for confirmation before writing), "Cancel". Do not write anything to `features-planned.md` or `<backlog>/features/` until the user confirms.
 
-### 7. Write the brief file, then the row
+### 7. Write the brief file, then insert the row
 
-Do these in order — file first, so an interrupted run leaves an orphan file (which `features-status` reports) rather than a row pointing at nothing:
+Do these in order, file first, so a half-finished run leaves an orphan file (which `features-status` reports) rather than a row pointing at nothing:
 
-1. Create `<backlog>/features/<NNN>-<change-name>.md` (`NNN` = number zero-padded to three digits; create the folder if needed). Content: the H1 `# Feature <number> — <change-name>` (an em dash; write "Feature 54", never "#54", because GitHub auto-links `#N`), a blank line, then the brief as one paragraph. The file never moves or gets renamed afterwards.
-2. Append the row to the end of the `## Feature List` table, contiguous with the existing rows (no blank line inside the table), with cells in `planned_header` order. Default shape:
-   `| <n> | \`<name>\` | <priority> | <effort> | <area> | ⬜ Pending | <summary> | [brief](features/<NNN>-<name>.md) |`
-   (with `openspec`, a `⬜ Pending` cell for `SDD Artifacts` goes before `Implementation`).
+1. Create `<backlog>/features/<NNN>-<change-name>.md` (create the `features/` folder if it doesn't exist; `NNN` = the feature number zero-padded to three digits, e.g. `054`). Content: the H1 `# Feature <number> — <change-name>` (an em dash; write "Feature 54", never "#54", since GitHub auto-links `#N`), one blank line, then the full brief from step 5 as a single paragraph. The file is never moved or renamed afterwards, whether the feature is planned or implemented.
+2. Append the confirmed row to the end of the `## Feature List` table in `features-planned.md`, contiguous with the existing rows (no blank line inside the table), preserving the pipe-delimited formatting and the ten columns in header order: `| <number> | `<change-name>` | <priority> | <schema_change> | <effort> | <area> | ⬜ Pending | ⬜ Pending | <summary> | [brief](features/<NNN>-<change-name>.md) |`.
 
-Don't touch `features-implemented.md`.
+Do not touch `features-implemented.md` — this skill only ever adds to the planned/backlog file.
 
-### 8. Record a hard dependency (only if the user named or confirmed one)
+### 8. Optional: record a hard dependency
 
-If — and only if — the description names another feature this one depends on, or the user accepted a candidate from step 6, add an entry under `### Hard implementation dependencies`:
+If — and only if — the user's description names another feature this one depends on (by number or name, in either file), add an entry under `### Hard implementation dependencies` in `## Dependencies`, following the existing format:
 
 ```
 **Feature <new#> → Feature <dep#>** (prerequisite already implemented | still pending)
@@ -111,36 +150,45 @@ If — and only if — the description names another feature this one depends on
 `<new-name>` <one-sentence reason it depends on `<dep-name>`>.
 ```
 
-Check whether the prerequisite is implemented (it has a row in `features-implemented.md`) or still pending. Never record a dependency the user neither stated nor confirmed; the scanner's candidates are proposals only.
+Mark whether the prerequisite is already implemented (check `features-implemented.md`) or still pending. If the user didn't mention a dependency, skip this step entirely — do not go hunting for implicit dependencies the user didn't state.
 
-### 9. Insert into the Recommended implementation order
+### 9. Update the recommended implementation order
 
-This step is **not** optional: a backlog with rows missing from the order is worse than one with a slightly uncertain placement. The `### Recommended implementation order` list is a bullet list of `` `change-name` (#number) `` entries; list position encodes order — priority tier first, then hard dependencies, then feature number.
+Read the `### Recommended implementation order` subsection of `## Dependencies` (immediately below `### Hard implementation dependencies`). It's a bullet list of `` `change-name` (#number) `` entries — list position, not a printed number, encodes order — ordered priority tier first (P1 before P2 before P3 before untiered), then hard dependencies, then feature number — see that section's own intro line for the exact rule.
 
-1. Find the tier boundary: after the last entry whose priority is the same or higher than the new feature's, before the first entry with strictly lower priority. Same-priority entries keep their relative order; the new one lands after all of them. If the list isn't strictly tier-sorted, apply the rule literally and never reorder existing bullets.
-2. If step 8 recorded a dependency, make sure the new entry sits after its prerequisite, whatever tier placement alone would say.
-3. If the list reads `_None yet._`, the new entry replaces that placeholder. If the `### Recommended implementation order` heading is missing altogether (an older or hand-made backlog), add it under `## Dependencies` first, with its one-paragraph description, then the entry.
-4. Every other bullet stays exactly as it was.
+Insert the newly-added feature into that list, don't just append it:
 
-Write the entry in the style of its neighbours (priority; unblocked or blocked on what; independent/small where relevant). When placement among peers is genuinely ambiguous, put it last within its tier — don't invent a rationale.
+1. Find the tier boundary: the last existing entry whose Priority is the same or higher than the new feature's, and the first existing entry whose Priority is strictly lower. The new feature goes between them (same-priority entries keep their existing relative order; the new feature lands after all of them).
+2. If step 8 recorded a hard dependency for this feature, make sure it's positioned after its dependency regardless of what tier placement alone would suggest — move it later in the list if needed.
+3. If the list still reads `_None yet._` (a fresh backlog with no order yet), the new feature becomes the list's only entry.
+4. Every other bullet stays exactly as it was — inserting a bullet never requires touching any line but the new one.
 
-### 10. Report
+Write one line for the new entry in the same style as its neighbors — priority, unblocked-or-blocked-on-what, and independent/small/etc. where relevant — mirroring the phrasing of adjacent entries rather than inventing a new format.
+
+The existing list is not guaranteed to be strictly tier-sorted (a P1 may sit after P2/P3 entries); apply the rule literally — land after the last entry that has the same or higher priority, which may be the final bullet — and never reorder the existing bullets to fix that.
+
+If genuinely ambiguous where a same-priority feature should land relative to its peers (no dependency, no clear reason to prefer earlier or later), place it last within its tier — don't guess at a rationale that isn't there.
+
+### 10. Display confirmation
 
 ```
 ## Feature Added
 
-**#<number> `<change-name>`** added to features-planned.md, brief written to `<backlog>/features/<NNN>-<change-name>.md` (Priority <p>, Effort <e>, Area <a>), inserted into the recommended implementation order <right after `<preceding-entry>` (#N) | as the first entry>.
+**#<number> `<change-name>`** added to features-planned.md, brief written to `<backlog>/features/<NNN>-<change-name>.md` (Priority <priority>, Effort <effort>, Area <area>), inserted into the recommended implementation order <right after `<preceding-entry>` (#N) | as the first entry>.
 ```
 
 ---
 
 ## Guardrails
 
-- **Never run `git commit`, `git push` or open a PR.** This skill only edits the backlog's markdown files; committing them is the user's call.
-- Never write anything under `<backlog>` before the user confirms in step 6 (the step 2 scaffolding is the one exception — it creates empty structure, not a feature). The confirmation is mandatory even under an "auto mode" or other autonomous-operation instruction, and in a subagent that lacks `AskUserQuestion`: stop and say so instead of proceeding.
-- Never assign a number or name that already exists in either file or in the `features/` folder.
-- Only add to `features-planned.md` and the new brief file; never edit `features-implemented.md` beyond what `scaffold.py` creates.
-- The Summary is at most 250 characters with no pipes; the `Brief` cell always links the file written in step 7; never put the full brief in the table.
-- Use the vocabulary from `next_id.py`'s `vocab` / the file's Column legend; never a remembered copy.
-- Preserve the exact Markdown table formatting (pipes, contiguous rows, header order).
-- Step 8 is opt-in on what the user actually said; step 9 is not.
+- Never edit `features-implemented.md` beyond creating its initial skeleton (step 2) if it doesn't exist — this skill only adds rows to `features-planned.md` (plus the new feature's brief file under `<backlog>/features/`).
+- The row's `Summary` is at most 250 characters with no pipes, and its `Brief` cell always links the file written in step 7; never put the full brief in the table.
+- Never write to `features-planned.md` or `<backlog>/features/` before the user has confirmed the drafted row in step 6 — all of steps 2–5 are draft-only, in memory (except the one-time skeleton creation in step 2, which is scaffolding, not a feature row).
+- Never assign a feature number or change name that already exists in either file or in a `features/` filename (checked across all of them, not just the planned file).
+- Do not add a row to the **Deployment (migration) dependencies** table even when `Schema Change` is `Yes` — migration *numbers* (i.e. which migration implements it) are deliberately not tracked at planning time since pending features are frequently reordered; that table only gets a new row once a feature is actually being implemented.
+- Preserve the exact Markdown table formatting (pipe characters) of the Feature List table.
+- Read the Column legend fresh each run rather than relying on a remembered copy of the value vocabulary — if the legend changes, this skill should follow without needing its own update.
+- Step 8 (hard dependencies) is opt-in based on what the user actually said — never infer a dependency the user didn't mention.
+- Step 9 (recommended implementation order) is **not** opt-in — unlike step 8, always insert the new feature into that list; a backlog with rows missing from the order is worse than one with a slightly-uncertain placement. If the list doesn't exist yet under `## Dependencies` (an older backlog file predating this section), add it with the intro line shown in step 9 before inserting the new feature.
+- Step 6's confirmation is mandatory, even under an "Auto Mode" or similar autonomous-operation instruction that biases toward proceeding without stopping to ask — that bias never applies to writing a new row into the backlog. Never invoke this skill from inside a spawned/backgrounded subagent that lacks reliable `AskUserQuestion` access as a way to skip it.
+- **Never run `git commit`, `git push` or open a PR.**

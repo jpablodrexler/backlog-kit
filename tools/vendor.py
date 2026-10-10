@@ -34,7 +34,7 @@ LIB_FOR = {
     "clean_order_notes.py": ["features-archive"],
     "flow_plan.py": ["gitflow"],
     "spec_link.py": ["features-archive"],
-    "dep_scan.py": ["feature-plan", "features-status", "feature-development"],
+    "dep_scan.py": ["features-status", "feature-development"],
     "task_state.py": ["feature-development", "spec-compliance-check"],
 }
 
