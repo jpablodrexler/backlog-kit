@@ -187,3 +187,11 @@ class PackagingTest(unittest.TestCase):
             self.assertTrue((Path(d) / ".claude/skills/bug-fix/SKILL.md").is_file())
             self.assertNotEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
             self.assertEqual(subprocess.run(cmd + ["--force", "--only", "bug-fix"], capture_output=True).returncode, 0)
+
+
+class SpecComplianceProseTest(unittest.TestCase):
+    def test_close_phase_checks_requirement_prose_not_only_scenarios(self):
+        text = (Path(__file__).resolve().parents[1] / "skills/feature-development/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("prose conflict", text)
+        self.assertIn("never edit a scenario's expected behaviour to match the code", text.replace("Never edit", "never edit"))
+        self.assertIn("Never archive a change with a known prose conflict", text)

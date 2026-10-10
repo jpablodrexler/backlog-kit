@@ -156,3 +156,11 @@ Reviewing `backlog-kit-test` (a repo where the plugin was installed and two feat
 - **Empty order list lost its placeholder.** Archiving the last planned feature left the Recommended implementation order with no `_None yet._`, unlike the bug side. `clean_order_notes.py` restores it.
 
 What worked: the bug-fix cycle (report, regression test, fix, review report, archive, Resolution line) left a consistent backlog, and the review reports were written under `docs/reports/review/`.
+
+## First OpenSpec run on a real install (0.1.5)
+
+`backlog-kit-test` feature #3 (`arg-parser`) went through the full OpenSpec path: change proposed, applied, reviewed (two rounds), gates PARTIAL accepted by the user, spec-compliance Verified, change archived with its `[spec]` link, dependency notes marked resolved, and the stale "blocked on #3" order-list notes removed by `clean_order_notes.py`. The orchestrator spot-checked the archive itself and flagged what it could not settle.
+
+Found: the spec-compliance step classified scenarios only. The brief said both "no behaviour change" and "ignore unknown flags", which changes `--whatever Juan`; the review reported it as a suggestion, the proposal was corrected, but the requirement "Greeting output is unchanged" was archived and synced into `openspec/specs/` next to a scenario that contradicts it. The close phase now also checks requirement prose: a declared intentional change gets the requirement reworded, an undeclared one blocks the close, and a change is never archived with a known prose conflict.
+
+Also learned: `FAILED (environment)` gates can be remembered as known failures, but a gate that cannot run (`NOT RUN`) cannot, so run 2 of the guide is expected to re-ask per feature (to be measured).
