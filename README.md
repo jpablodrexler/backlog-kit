@@ -56,6 +56,10 @@ Each work run ends by saying plainly that nothing was committed, what to review,
 - **Mechanics are code, judgment is Claude.** Ranking, ordering, ids, dependency detection, table checks, branch decisions and PR facts come from small, tested, read-only Python scripts; Claude is asked only for what needs judgment.
 - **OpenSpec is required and never bundled.** `feature-development` expects the `openspec` CLI and `openspec/changes`; install it separately.
 
+## Migrating an existing project
+
+If your repository already has its own copies of these skills, [MIGRATING.md](MIGRATING.md) lists what to delete, which `.backlog-kit/` files to copy from `examples/`, and what behaves differently; `tools/migrate_check.py <repo>` reports it for your repository without changing anything.
+
 ## Configuration
 
 There is one setting, `[paths] backlog_dir` (default `docs/backlog`; the decisions, explorations and reports folders sit next to it), and the whole `.backlog-kit.toml` is optional — see [`backlog-kit.example.toml`](backlog-kit.example.toml). Everything else about your project is markdown in `.backlog-kit/`:

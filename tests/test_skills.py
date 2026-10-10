@@ -277,3 +277,33 @@ class ReviewerFrames(unittest.TestCase):
                 lines = f.read_text().splitlines()
                 self.assertTrue(lines[0].startswith("#"), "first line is the title")
                 self.assertTrue(any(l.startswith("Read when:") for l in lines[:4]), "a Read when: line near the top")
+
+
+class MigrateCheck(unittest.TestCase):
+    def test_reports_replaced_skills_references_backlog_and_missing_folders(self):
+        import subprocess, sys, tempfile
+        script = KIT / "tools/migrate_check.py"
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            def g(*a):
+                subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", *a], check=True, capture_output=True)
+            g("init", "-q", "-b", "main")
+            (root / ".claude/skills/bug-fix").mkdir(parents=True)
+            (root / ".claude/skills/bug-fix/SKILL.md").write_text("x")
+            (root / ".claude/skills/web-docs-sync").mkdir(parents=True)
+            (root / ".claude/skills/web-docs-sync/SKILL.md").write_text("x")
+            (root / ".claude/skills/stack-helper").mkdir(parents=True)
+            (root / ".claude/skills/stack-helper/SKILL.md").write_text("see `web-docs-sync` and bug-fix")
+            (root / "sub/docs/backlog").mkdir(parents=True)
+            (root / "sub/docs/backlog/bugs-open.md").write_text("# Bugs\n")
+            (root / ".backlog-kit/feature").mkdir(parents=True)
+            (root / ".backlog-kit/feature/03-tests.md").write_text("# Tests\n")
+            g("add", "-A")
+            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
+            self.assertIn("- bug-fix", out)
+            self.assertIn("web-docs-sync  (the kit calls it `docs-sync`)", out)
+            self.assertNotIn("- stack-helper", out.split("## 2.")[0])
+            self.assertIn(".claude/skills/stack-helper/SKILL.md", out)
+            self.assertIn('backlog_dir = "sub/docs/backlog"', out)
+            self.assertIn("feature/: 1 file(s)", out)
+            self.assertIn("bug/: 0 file(s)", out)

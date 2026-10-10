@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.17
+- `MIGRATING.md`: how to replace a project's workflow skills with the kit (what to delete, which project files to copy from `examples/`, the one config line jp-photo-manager needs, which references to fix, what behaves differently per project, how to verify and roll back). `tools/migrate_check.py <repo>` is the read-only companion: it lists the project skills the kit replaces, the other files that still mention them, the backlog location, and which `.backlog-kit/` folders are still empty.
+
 ## 0.2.16
 - `spec-compliance-check`, `docs-sync` and `dependency-upgrade` rebuilt from the projects' own skills (the first project's text; the second's variants are in the ledgers). Each keeps the generic frame and names no stack; the project's own knowledge is read from markdown files, found by their `Read when:` line, in `.backlog-kit/spec-compliance/`, `.backlog-kit/docs/` and `.backlog-kit/dependency-upgrade/` (D32). `examples/` has both projects' files, moved from their originals without changes.
 - Configuration is down to `[paths] backlog_dir`. Removed `[[gates]]`, `[[reviews]]`, `[work]`, `[guidance]`, `[docs]` / `[[docs.map]]` and `[spec]` (OpenSpec lives at `openspec/changes`, fixed as in the originals), together with `work_scope.py`, `task_state.py`, `shared/spec-compliance.md`, the helper scripts of `spec-compliance-check`, `examples/angular-supabase.toml` and the tests that guarded them.
