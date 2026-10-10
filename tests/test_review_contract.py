@@ -50,13 +50,6 @@ class ReviewerContract(unittest.TestCase):
         t = (KIT / "skills/code-reviewer/SKILL.md").read_text()
         self.assertIn("If the caller gave a file list, it is the non-interactive mode", t)
 
-    def test_phase_passes_the_whole_contract_and_marks_skill_reviews_self_reviewed(self):
-        t = (KIT / "shared/phase-reviews.md").read_text()
-        for needle in ("`self_review: yes`", "`deleted_files` and `bulk_files`", "that review's own `matched_files`",
-                       "<file>[:<line>]", "a defect on a line this change did not touch is not a finding"):
-            self.assertIn(needle, t)
-        for skill in ("feature-development", "bug-fix"):
-            self.assertIn("every review run through a configured `skill` counts", (KIT / "skills" / skill / "SKILL.md").read_text())
 
 
 if __name__ == "__main__":

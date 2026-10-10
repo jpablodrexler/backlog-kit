@@ -88,10 +88,6 @@ class SkillTextFixes(unittest.TestCase):
         self.assertIn("-- <the same paths>", t)
         self.assertIn("remote_has_unmerged_commits", t)
 
-    def test_bug_fix_separates_archive_blocked_from_close_blocked(self):
-        t = (KIT / "skills/bug-fix/SKILL.md").read_text()
-        self.assertIn("`ARCHIVE_BLOCKED — bugs-archive could not be run", t)
-        self.assertIn("On `ARCHIVE_BLOCKED`", t)
 
 
 if __name__ == "__main__":

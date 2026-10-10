@@ -73,10 +73,6 @@ class SddArtifactsFromDisk(unittest.TestCase):
         ranked = json.loads(run(S / "features-next/scripts/rank_features.py", root, "--json"))
         self.assertFalse(ranked["top"]["artifacts_ready"])
 
-    def test_close_phase_prose_sets_the_cell(self):
-        text = (S / "feature-development/SKILL.md").read_text()
-        self.assertIn("`✅ Created`", text)
-        self.assertIn("applyRequires", text)
 
 
 class ProseStaleDependencyNotes(unittest.TestCase):
@@ -122,17 +118,7 @@ class SkillTextFixes(unittest.TestCase):
         self.assertIn("replace an existing", t)
         self.assertIn("ask whether to create it", t)
 
-    def test_gate_loop_is_capped_and_configurable(self):
-        t = self.read("shared/phase-gates.md")
-        self.assertIn("`gate_max_rounds`", t)
-        self.assertIn("still failing after <N> fix rounds", t)
-        sys.path.insert(0, str(KIT / "lib"))
-        import backlog_kit
-        self.assertEqual(backlog_kit.load_config(KIT)["work"]["gate_max_rounds"], 3)
 
-    def test_openspec_skills_are_preflighted(self):
-        t = self.read("skills/feature-development/SKILL.md")
-        self.assertIn("`openspec-propose`, `openspec-apply-change` and `openspec-archive-change` are among your available skills", t)
 
     def test_gitflow_cleanup_never_uses_force_delete(self):
         t = self.read("skills/gitflow/SKILL.md")
@@ -157,20 +143,7 @@ class SpecComplianceRigor(unittest.TestCase):
                        "TASKS_INCOMPLETE", "SPEC_COMPLIANCE_<change-name>_<YYYY-MM-DD>.md", "prose conflict", "NO_ACCEPTANCE_CRITERIA"):
             self.assertIn(needle, t)
 
-    def test_both_consumers_carry_the_same_procedure(self):
-        a = (S / "feature-development/reference/spec-compliance.md").read_text()
-        b = (S / "spec-compliance-check/reference/spec-compliance.md").read_text()
-        self.assertEqual(a, b)
 
-    def test_close_phase_uses_it_in_both_modes_and_honours_a_configured_skill(self):
-        t = (S / "feature-development/SKILL.md").read_text()
-        self.assertIn("reference/spec-compliance.md", t)
-        self.assertIn("`[spec] compliance_skill`", t)
-        self.assertIn("TASKS_INCOMPLETE", t)
-        self.assertIn("without it, the acceptance statements in `<brief-path>`", t)
-        sys.path.insert(0, str(KIT / "lib"))
-        import backlog_kit
-        self.assertEqual(backlog_kit.load_config(KIT)["spec"]["compliance_skill"], "")
 
     def test_standalone_skill_is_read_only_and_can_find_the_gates(self):
         t = (S / "spec-compliance-check/SKILL.md").read_text()
@@ -196,29 +169,7 @@ class PreviouslyUnverifiedFindings(unittest.TestCase):
         self.assertIn("neither features-planned.md nor features-implemented.md", out["warning"])
         self.assertIn("Feature 4 → Feature 39", out["warning"])
 
-    def test_hand_backs_are_defined_and_consumed(self):
-        fd, bf = self.read("skills/feature-development/SKILL.md"), self.read("skills/bug-fix/SKILL.md")
-        for t in (fd, bf):
-            self.assertIn("REVIEWS:", t)
-            self.assertIn("(self-reviewed)", t)
-        self.assertIn("DEPS_DISMISSED", fd)
-        self.assertIn("**Dependencies:**", fd)
-        self.assertIn("`BUG_ID:` echo equals `<id>`", bf)
-        self.assertIn("run `<repro-command>` yourself", bf)
-        self.assertIn("ORIGINAL SCENARIO", bf)
-        self.assertIn("fall back to the row's Summary", bf)
-        self.assertIn("Never edit a file that records history already applied elsewhere", fd)
 
-    def test_shared_rules_cover_backgrounding_archive_blocking_and_re_review(self):
-        g = self.read("shared/pipeline-guardrails.md")
-        self.assertIn("never ends its turn on a backgrounded command", g)
-        self.assertIn("`ARCHIVE_BLOCKED` is not `CLOSE_BLOCKED`", g)
-        r = self.read("shared/phase-reviews.md")
-        self.assertIn("## Re-review of specific files", r)
-        self.assertIn("never describe the scope in prose", r)
-        self.assertIn("Self-reviewed: yes", r)
-        self.assertIn("Re-review of specific files", self.read("shared/phase-gates.md"))
-        self.assertIn("Leave `when` OFF a smoke or build gate", self.read("backlog-kit.example.toml"))
 
     def test_archive_handles_leftover_rows_and_multi_feature_headings(self):
         t = self.read("skills/features-archive/SKILL.md")

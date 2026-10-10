@@ -25,6 +25,13 @@ configurable, was removed, or was changed on purpose is recorded here with the o
 | D17 | Annotation `features-archive` writes when a dependency's prerequisite has shipped (`(resolved)` in one project, `(prerequisite already implemented)` in the other) | **`(prerequisite already implemented)`**. No config key. | 2026-10-10 |
 | D18 | Bug id prefix (`[bugs] id_prefix`) | **Fixed `BUG`**, as in both projects. The key goes away as the batch runners are converted. | 2026-10-10 |
 | D19 | Auxiliary folders (`decisions_dir`, `explorations_dir`, `reports_dir`) | **One setting, `backlog_dir`**; the others sit next to it: `<docs>/decisions`, `<docs>/explorations`, `<docs>/reports`, where `<docs>` is the folder that contains the backlog folder. | 2026-10-10 |
+| D20 | Pipelines (`feature-development`, `bug-fix`): how are the project-specific phases (tests, E2E, build/deploy) expressed? | **Project-owned phase files.** The kit keeps the generic phases (select, propose, implement, archive) verbatim from the originals; the project's own phases live as files in its repo and the pipeline runs them. | 2026-10-10 |
+| D21 | Where those phase files live | **Folder convention, no config key:** `.backlog-kit/feature/NN-name.md` and `.backlog-kit/bug/NN-name.md`, run in filename order. | 2026-10-10 |
+| D22 | Where the review/fix loops live | **Inside the project's phase files** (no `[[reviews]]` config, no `phase-reviews.md`). | 2026-10-10 |
+| D23 | Branches in the pipelines (`feature/<name>`, `fix/<slug>`, base `develop`, via `gitflow`) | **Fixed, as in the originals.** `[git] base_branch/feature_prefix/fix_prefix/finish_skill` go away from these skills; `gitflow` is converted separately. | 2026-10-10 |
+| D24 | Code review vs conditional reviews | **Code review (with its 3-round loop and `CHANGED_FILES`) stays in the kit's Phase 2**, verbatim; database/security/viewport reviews live in the project's phase files. | 2026-10-10 |
+| D25 | Phase-file format | **`## Orchestrator` (optional, main context) + `## Subagent` (prompt, placeholders substituted) ending in `PHASE: PASS\|SKIPPED\|BLOCKED — reason` and optional `SUMMARY: …`.** Final summary prints one line per phase file. | 2026-10-10 |
+| D26 | Regression-test layer (bug-fix Phase 1) and no phase files | **Generic text** (pick the layer where the bug lives, following the project's test conventions); with no phase files the pipeline warns and continues. | 2026-10-10 |
 
 Not asked (not configurable, taken from the more complete original): order lists accept numbered and
 link forms (J's `bugs-next`); `features-next` reads `SDD Artifacts` from the cell only (no disk check).

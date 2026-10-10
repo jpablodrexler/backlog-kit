@@ -262,58 +262,6 @@ class BranchState(unittest.TestCase):
         self.assertEqual(self.state(r)["start_point"], "trunkish")
 
 
-class DetectGates(unittest.TestCase):
-    def test_node_in_subfolder_and_python_at_root(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            (root / "frontend").mkdir()
-            (root / "frontend/package.json").write_text(json.dumps({"scripts": {"test": "x", "build": "y", "start": "z"}}))
-            (root / "pytest.ini").write_text("[pytest]\n")
-            out = run("detect_gates.py", d)
-            runs = {(g["run"], g["cwd"]) for g in out["gates"]}
-            self.assertIn(("npm test", "frontend"), runs)
-            self.assertIn(("npm run build", "frontend"), runs)
-            self.assertIn(("pytest", "."), runs)
-            self.assertNotIn("start", json.dumps(out["gates"]))
-            self.assertIn("[[gates]]", out["toml"])
-
-    def test_finds_modules_two_levels_deep(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            (root / "Product/backend").mkdir(parents=True)
-            (root / "Product/backend/pom.xml").write_text("<project/>")
-            (root / "Product/frontend").mkdir(parents=True)
-            (root / "Product/frontend/package.json").write_text(json.dumps({"scripts": {"test": "x", "build": "y"}}))
-            runs = {(g["run"], g["cwd"]) for g in run("detect_gates.py", d)["gates"]}
-            self.assertIn(("mvn -q test", "Product/backend"), runs)
-            self.assertIn(("npm test", "Product/frontend"), runs)
-
-    def test_nested_module_covered_by_ancestor_is_skipped(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            (root / "pom.xml").write_text("<project><modules/></project>")
-            (root / "core").mkdir()
-            (root / "core/pom.xml").write_text("<project/>")
-            gates = run("detect_gates.py", d)["gates"]
-            self.assertEqual([(g["run"], g["cwd"]) for g in gates], [("mvn -q test", ".")])
-
-    def test_depth_is_bounded(self):
-        with tempfile.TemporaryDirectory() as d:
-            deep = Path(d) / "a/b/c/d"
-            deep.mkdir(parents=True)
-            (deep / "pom.xml").write_text("<project/>")
-            self.assertEqual(run("detect_gates.py", d)["gates"], [])
-
-    def test_nothing_detected(self):
-        with tempfile.TemporaryDirectory() as d:
-            self.assertEqual(run("detect_gates.py", d)["gates"], [])
-
-    def test_skips_node_modules(self):
-        with tempfile.TemporaryDirectory() as d:
-            nm = Path(d) / "node_modules/pkg"
-            nm.mkdir(parents=True)
-            (nm / "package.json").write_text(json.dumps({"scripts": {"test": "x"}}))
-            self.assertEqual(run("detect_gates.py", d)["gates"], [])
 
 
 if __name__ == "__main__":

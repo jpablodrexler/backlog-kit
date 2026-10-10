@@ -1,157 +1,334 @@
 ---
 name: feature-development
-description: Orchestrates the full lifecycle of one backlog feature — selects it (features-next), sets up a feature branch, plans it (and, with OpenSpec, proposes the spec), implements it with tests, runs the configured reviews and verification gates until they pass, then archives it (features-archive; plus OpenSpec archive and a spec-compliance check when spec.workflow = "openspec"). Never commits — leaves the work uncommitted on its branch for the human to review and open as a PR. TRIGGER when the user asks to develop a feature or to build the next feature from the backlog.
+description: >
+  Orchestrates the full feature lifecycle end-to-end: selects the next
+  feature, proposes SDD artifacts if missing, implements all change tasks,
+  runs the code review (findings fixed before continuing), runs the
+  project's own phases from `.backlog-kit/feature/` (tests, database or
+  security reviews, E2E checks, build — whatever the project defines) until
+  each passes, syncs the project's documentation against what actually
+  shipped, verifies the implementation actually satisfies the change's spec
+  scenarios (not just that tasks are checked off) before archiving, then
+  archives the SDD change and marks the feature as implemented. Use when you
+  want a fully automated feature development cycle with minimal manual
+  steps. TRIGGER when the user asks to develop a feature.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Orchestrate one feature from selection to archive, one subagent per phase. `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise. Everything project-specific — verification commands, reviews, branch prefixes, whether OpenSpec is used — comes from that file, never from this skill.
+Orchestrate the full feature lifecycle from selection to archive using
+dedicated subagents for each phase.
 
-**Input**: an optional feature name or number, optionally followed by `--skip-branch-setup`. The name/number is passed to `features-next` to skip the recommendation and go straight to confirmation. `--skip-branch-setup` is for orchestrators (a batch runner) that already checked out one shared branch and run several features on it without committing between them. A batch runner passes it; omit it for normal single-feature use.
+**Input**: Optional feature name or number, optionally followed by
+`--skip-branch-setup` (e.g. `task-postpone --skip-branch-setup`). The
+feature name/number, if provided, is passed to `features-next` to skip the
+recommendation step and jump straight to confirmation for that feature.
+`--skip-branch-setup` is for orchestrators — e.g. the `features-batch-development`
+skill — that have already checked out a shared branch and are running
+multiple features on it without committing between them; see Phase 1 Step
+1.5's batch-mode branch below. Omit it for normal single-feature use —
+default behavior (create/resume `feature/<change-name>` from `develop`) is
+unchanged.
 
-**Before starting**, read `reference/pipeline-guardrails.md` — the rules that hold across every phase (no commits, confirmations reach the user, one branch, no weakening tests, no secrets).
+`<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`; `<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default).
 
-## Phases
-
-| Phase | Who | What |
-| ----- | --- | ---- |
-| 0 — Select & confirm | orchestrator's own context | `features-next` (recommend + mandatory `AskUserQuestion`) |
-| 1 — Branch | subagent | `reference/phase-branch.md`: create/resume `feature/<change-name>`, flip the row to `🔶 In Progress` |
-| 2 — Plan | subagent | read the brief; with OpenSpec, `openspec-propose` if artifacts are missing; check for a newly discovered hard dependency |
-| 3 — Implement & review | subagent | build it with tests; with OpenSpec, `openspec-apply-change`; then the configured reviews (`reference/phase-reviews.md`) |
-| 4 — Gates | orchestrator pre-step + subagent | `reference/phase-gates.md`: the project's own verification commands, to a pass |
-| 5 — Close | subagent + orchestrator check | a spec / acceptance check (tests actually run, dated report) that closes every gap; optional docs sync; archive the change; `features-archive` (orchestrator runs the archive itself if the subagent can't) |
-
----
-
-## Phase 0 — Select & confirm (orchestrator's own context — never a subagent)
-
-Selecting what gets built next is the user's decision, always — a spawned subagent can't reliably surface `AskUserQuestion`, and "auto mode" never changes that.
-
-1. **OpenSpec only** (`spec.workflow = "openspec"`): run `openspec --version` yourself. If it fails or the CLI isn't found, tell the user `PLAN_BLOCKED — openspec CLI not found` and stop; don't select a feature with a broken toolchain. (backlog-kit depends on OpenSpec but never bundles it — it must be installed separately.) Check too that `openspec-propose`, `openspec-apply-change` and `openspec-archive-change` are among your available skills (`openspec init` generates them; the CLI alone is not enough): if one is missing, tell the user `PLAN_BLOCKED — the OpenSpec skills are not installed in this project (run `openspec init`)` and stop. Then check that the project itself is initialized: the folder that holds `[spec] changes_dir` (default `openspec/`) must exist, with its `config.yaml`. If not, tell the user `PLAN_BLOCKED — OpenSpec is not initialized in this repo (run `openspec init`)` and stop: building a feature under `workflow = "openspec"` with no OpenSpec project would archive it with no spec at all. If `features-status` reports a planned table whose `SDD Artifacts` column disagrees with the config, stop and say so: `feature-plan` repairs it (its scaffold step runs `--fix-header`), and until then the rows' columns can't be trusted.
-2. Invoke `features-next` with the Skill tool directly (not in an Agent call), passing the name/number if one was given Let it present and ask in this context, every time.
-3. No `CHANGE_NAME:` line back (cancelled, or confirmation couldn't be obtained) → stop and tell the user. Never go on without a confirmed name. A feature that has no backlog row cannot be selected: plan it first with `feature-plan`.
-4. Otherwise `<change-name>` is the confirmed name. Find its brief file `<backlog>/features/NNN-<change-name>.md` from the row's `Brief` link — `<brief-path>`.
-
-**Branch**: `<branch>` = the `[git] feature_prefix` (default `feature/`) + `<change-name>`.
-
-Before spawning any subagent, substitute `<change-name>`, `<branch>`, `<brief-path>`, `<scripts>` (this skill's `scripts/` folder, absolute), `<repo-root>`, `<changes-dir>` (`[spec] changes_dir`) and `<docs-skill>` (the `[docs] sync_skill` value, possibly empty) in its prompt.
-
-**Begin every subagent prompt with:** "Work in `<repo-root>` (cd there first). Never run `git commit`, `git push`, `git add`, `git stash`, `git reset` or any other git write. Never install system packages or change anything outside the repository."
-
-## Phase 1 — Branch
-
-Follow `reference/phase-branch.md` with `<id>` = `<change-name>` and `<backlog-row>` = "Open `<backlog>/features-planned.md`, find the row whose Change name is `<change-name>`, and if its Implementation is `⬜ Pending` change it to `🔶 In Progress`."
-
-## Phase 2 — Plan (subagent, foreground)
-
-> The feature `<change-name>` was selected and confirmed; do not re-select. Prepare it for implementation.
->
-> **Step 1 — Read the brief** at `<brief-path>`. It — not the one-line Summary in the backlog table — is the description of what to build. If it is missing or empty and no spec artifacts exist for the change, end with `PLAN_BLOCKED — brief file missing or empty`.
->
-> **Step 2 — Spec artifacts (OpenSpec only).** If `<changes-dir>/<change-name>/` is missing artifacts the change needs before it can be applied (proposal, specs, design, tasks), invoke `openspec-propose` for `<change-name>`, giving it the brief verbatim as the description. Confirm everything required before applying is done: run `openspec status --change <change-name> --json` and check that every artifact in the required set — `applyRequires` plus everything reachable from it through the `requires` edges — exists (`status` is file existence only, so follow the `requires` edges rather than trusting a single `done`). Once they are, set this row's `SDD Artifacts` cell in `<backlog>/features-planned.md` to `✅ Created` (skip silently if the table has no such column) — `features-next` and `features-status` read it. If it can't produce them, end with `PLAN_BLOCKED — <reason>`. Skip this step when OpenSpec isn't in use.
->
-> **Step 3 — Check for a newly discovered hard dependency.** Start with the mechanical part: run `python3 <scripts>/dep_scan.py <repo-root> --feature <change-name>`. Each entry in `candidates` is a pending feature this one appears to need, with its evidence (the brief names it, or uses a symbol or file that exists nowhere in the repo and is introduced by that feature's brief). **Resolve every candidate explicitly**: confirm it as a genuine dependency (below), or dismiss it with a one-line reason that goes in your hand-back as `DEPS_DISMISSED: #<n> — <reason>`. A candidate is never skipped silently, and a dismissal needs a concrete reason (for example "the symbol already exists under another name in `src/x`"), not "seems fine". Then the judgment part: now that you have the brief (and, with OpenSpec, the design), does the feature need something that doesn't exist yet — a data model, API, service, or another backlog feature — that is neither implemented nor already recorded as a dependency of this feature? Check `<backlog>/features-implemented.md`, `<backlog>/features-planned.md`'s `### Hard implementation dependencies`, and the repository itself.
-> - None, or already recorded → continue.
-> - A genuine unrecorded one → add `**Feature <this #> → Feature <dep #>** (still pending)` with a one-sentence reason under `### Hard implementation dependencies` in `features-planned.md` (if the dependency has no backlog row, say so and recommend `feature-plan` for it), then end with `PLAN_NEEDS_DEPENDENCY_DECISION — <change-name> (#<n>) needs <dependency> which is not implemented`.
-> Only record dependencies without which a usable first version cannot work; don't hunt for speculative ones.
->
-> End with exactly `PLAN: READY — <change-name>` (or one of the signals above), then, if you dismissed any dependency candidate, one line per candidate: `DEPS_DISMISSED: #<n> — <reason>`.
-
-After it returns:
-- `PLAN_BLOCKED` → surface and stop.
-- `PLAN_NEEDS_DEPENDENCY_DECISION` → this is not a failure but must not barrel into implementation. In your own context ask with **AskUserQuestion**: "`<change-name>` depends on something not built yet. How to proceed?" — "Stop — I'll build the dependency first" (stop; the note stays recorded), "Proceed anyway — it isn't a blocker for a usable first version" (continue to Phase 3; the note stays), "Cancel". Only "proceed anyway" continues.
-- Check that the name after `PLAN: READY —` is exactly `<change-name>`; anything else means the subagent worked on the wrong feature: treat it as blocked. Keep any `DEPS_DISMISSED:` lines for the final summary.
-- Otherwise continue.
-
-## Phase 3 — Implement & review (subagent, foreground)
-
-> Implement `<change-name>`.
->
-> **Step 1 — Build it.** With OpenSpec, invoke `openspec-apply-change <change-name>` and work through every task, ticking each as it is done. Without it, read `<brief-path>`, write yourself a short numbered checklist of the concrete changes it implies, and implement each. Either way, follow the conventions already in the codebase, **add tests alongside the code** — tests that would fail without the change — and don't build beyond the brief. A blocker needing a human decision → end with `IMPLEMENT_BLOCKED — <reason>` and stop.
->
-> Never edit a file that records history already applied elsewhere (an applied database migration, a released changelog entry, a published schema) — add a new one instead.
->
-> Never print or write a generated secret's raw value. A task that needs one (or any other step only a person can do: a deploy, a device) stays unchecked, with `(manual: <the exact command or step for the person>)` appended to its line in `tasks.md`; that marker is what tells the close phase it is not unfinished work.
->
-> **Step 1b — All tasks done.** With OpenSpec, run `python3 <scripts>/task_state.py <repo-root> --change <change-name>`. Anything in `blocking` is unfinished: do it, or end with `IMPLEMENT_BLOCKED — <n> task(s) unchecked: <titles>`. Do not hand back `IMPLEMENT: DONE` with a blocking task left.
->
-> **Step 2 — Review.** Follow `reference/phase-reviews.md` over the current diff: recompute scope with `python3 <scripts>/work_scope.py <repo-root>` before each review, fix every 🔴/🟡 finding, re-review until clean or the round cap.
->
-> End with exactly `IMPLEMENT: DONE`, then one line `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review that did not go through a fresh reviewer subagent — every review run through a configured `skill` counts, since it runs in your own context — or `REVIEWS: none applied`) — or `IMPLEMENT_BLOCKED — …` / `REVIEW_BLOCKED — …`. After the `REVIEWS:` line, one line per manual task: `MANUAL: <title> — run: <command>`.
-
-Do not start Phase 4 until it returns `IMPLEMENT: DONE` with its `REVIEWS:` line; on any `*_BLOCKED`, surface and wait. With OpenSpec, run `python3 <scripts>/task_state.py <repo-root> --change <change-name>` yourself: a non-empty `blocking` is an `IMPLEMENT_BLOCKED` whatever the subagent said. Use the `REVIEWS:` line for the final summary, and say plainly in it when a review was self-reviewed. Keep the `MANUAL:` lines for the final summary.
-
-## Phase 4 — Gates
-
-Follow `reference/phase-gates.md` with `<id>` = `<change-name>`. It runs on **every** invocation; a gate with a narrower `when` glob is filtered by the changed files, the rest always run.
-
-## Phase 5 — Close (subagent, foreground)
-
-> Perform these steps in order.
->
-> **Step 1 — Verify the work against its spec (or its brief) and close every gap.** With OpenSpec this checks the change's scenarios; without it, the acceptance statements in `<brief-path>`. If `[spec] compliance_skill` names a skill, invoke it for `<change-name>` instead of the procedure below and apply the same rules to what it reports; otherwise read `reference/spec-compliance.md` in full and follow it (`<reports_dir>` is `[paths] reports_dir`, default `docs/reports`; it writes a dated report there). It checks the task list, reads each matching test, **runs it**, classifies every scenario Verified / Unverified / Failing from that evidence, and lists prose conflicts. Then act on its hand-back:
-> - **`TASKS_INCOMPLETE`** → stop: `CLOSE_BLOCKED — <n> task(s) unchecked: <titles>`. Unfinished work belongs back in Phase 3. (Tasks marked `(manual: …)` are not unfinished work; they are reported, not blocked on.)
-> - **`COMPLIANCE: NO_ACCEPTANCE_CRITERIA`** (no OpenSpec, and the brief states none) → note it for the final summary and continue; don't invent criteria.
-> - **Any Failing** → stop: `CLOSE_BLOCKED — <N> failing scenario(s): <summary>`. That is a real behavioural gap and belongs back in Phase 3, not fixed here.
-> - **Manual** rows (a scenario no automated test can express, with the reason given) do not block the archive and are never counted as verified; they go to the user in the final summary.
-> - **Any Unverified** → close every one; never carry one forward as a caveat. Add the missing test coverage (extend an existing test file where you can), then re-run the procedure for those scenarios. If a new test fails because the scenario is actually broken, treat it as Failing — never weaken the test. After 3 rounds with a scenario still unverifiable, stop: `CLOSE_BLOCKED — repeated spec-compliance cycles, <N> scenario(s) still unverified`.
-> - **Prose conflicts** (a requirement that says the behaviour is "unchanged", "exactly as before" or "no visible change" next to scenarios or a proposal that declare a user-visible change; scenarios can all be Verified and the requirement text still false):
->   - The proposal **declares** the change as intentional → reword that requirement in the change's delta spec (`<changes-dir>/<change-name>/specs/**/spec.md`) so it states the declared change, re-read it, and note the rewording in your hand-back. Change only the requirement statement; never edit a scenario's expected behaviour to match the code.
->   - The behaviour change is **not** declared anywhere → that is a Failing scenario in disguise: `CLOSE_BLOCKED — requirement "<title>" contradicts shipped behaviour: <summary>`.
->   - Never archive a change with a known prose conflict.
-> - Once everything is Verified or Manual, check whether this step changed the tree (tests you added, a reworded requirement): if so, **stop before archiving** and end with `CLOSE_NEEDS_REGATE — <the files you added or changed>`. You do not run gates or reviews yourself; the orchestrator does (it must ask about gated gates, which a subagent cannot). If nothing changed, continue.
->
-> **Step 2 — Docs (best-effort).** If `<docs-skill>` is non-empty, invoke it for the current branch's changes. "Nothing to sync" is fine; only stop if it errors and leaves files broken. Skip if empty.
->
-> **Step 3 — Archive the spec change (OpenSpec only).** Invoke `openspec-archive-change <change-name>` with the Skill tool and answer its delta-spec sync prompt with the option that syncs (that is what archiving a change means). Any other prompt — about incomplete tasks, a conflict, anything else — is a human decision: do not answer it, end with `ARCHIVE_NEEDS_DECISION — <the prompt text and its options>` (naming which of Steps 3–4 are already done) and change nothing further. Wait for it to finish.
->
-> **Step 4 — Archive the feature.** Invoke `features-archive <change-name>` with the Skill tool and wait until the row has moved from `features-planned.md` to `features-implemented.md`.
->
-> **Never hand-edit the backlog or spec files, or re-implement an archive skill with an ad-hoc script, to get the same effect** — `features-archive` writes the destination before touching the source so an interruption never loses a row, and a hand edit loses that guarantee. If the Skill tool is unavailable to you or an archive skill errors, do not work around it: end with `ARCHIVE_BLOCKED — <skill> could not be run: <reason>` (naming which of Steps 3–4 are already done) and change nothing further.
->
-> End with exactly `CLOSE: DONE`, then the lines the summary needs, each exactly: `COMPLIANCE: <the procedure's hand-back line>` (or `COMPLIANCE: N/A`), `DOCS: <the docs skill's hand-back line>` (or `DOCS: none`).
-
-If it returns `CLOSE_NEEDS_REGATE — <files>`: follow `reference/phase-gates.md` again in your own context (including its questions), then `reference/phase-reviews.md` → "Re-review of specific files" for those files, and then spawn Phase 5 again. Do this at most twice; a third time is `CLOSE_BLOCKED — the spec check keeps changing the tree`, surfaced to the user.
-
-If it returns `ARCHIVE_NEEDS_DECISION — …`: put the prompt and its options to the user with **AskUserQuestion** in your own context, then run the remaining archive step yourself with their answer. Never choose for them.
-
-Do not show the final summary until the feature is archived. After `CLOSE: DONE`, spot-check in your own context that the `<change-name>` row is gone from `features-planned.md` and present in `features-implemented.md` (and, with OpenSpec, that the change now sits under `<changes-dir>/archive/`) — a hand-back is a claim, not evidence. On `ARCHIVE_BLOCKED` (or a failed spot-check), run the remaining archive step(s) yourself: invoke `openspec-archive-change` / `features-archive <change-name>` with the Skill tool in your own context, then spot-check again. Never archive by editing the backlog files directly.
-
-A `CLOSE_BLOCKED` means the feature is implemented and tested but **not archived** — surface the scenarios and wait; never retry automatically. This workflow never archives a change with a known spec-compliance gap.
+**Never run `git commit`, `git push` or open a PR.**
 
 ---
 
-## Final summary
+## Overview
+
+Phase 0 runs directly in the orchestrator's own context (never a subagent —
+see that phase's own rationale below), Phases 1–6 each run as a dedicated
+subagent. Phases 3–5 are the **project's own phases**: one subagent per file
+found in `.backlog-kit/feature/` (see the Project phases entry in the index
+below), so whatever the project verifies — tests, E2E, build, extra reviews —
+is defined in the project, not in this skill.
+
+| Phase                        | Subagent   | Skills / actions                                                                                                                                  |
+| ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0 — Select & Confirm          | *(orchestrator's own context — never a subagent)* | `features-next` (recommend + mandatory `AskUserQuestion` confirmation) |
+| 1 — Propose                   | Subagent 1 | `git fetch origin --prune` to detect a branch/commits pushed from another device → `gitflow` (start feature to create `feature/<change-name>`, resume + merge in another device's pushed commits, or sync feature to catch up an existing one with `develop`) → mark the feature `🔶 In Progress` in `<backlog>/features-planned.md` → `openspec-propose` (if artifacts missing) |
+| 2 — Implement & Review        | Subagent 2 | `openspec-apply-change <name>` + `code-reviewer`, findings fixed before done |
+| 3–5 — Project phases          | One subagent per file | each `.backlog-kit/feature/NN-*.md` file in filename order (tests, conditional reviews, E2E, build — whatever the project defines); a file may begin with an orchestrator step, because a decision that needs `AskUserQuestion` is made by the orchestrator itself, before spawning its subagent |
+| 6 — Archive                   | Last subagent | `openspec-archive-change <name>` → `features-archive <name>` |
+
+---
+
+## Phase 0 — Select & Confirm (orchestrator's own context — never a subagent)
+
+**This phase must never be delegated to a spawned subagent, under any
+circumstances — including when an "Auto Mode" or similar autonomous-operation
+instruction is active.** Selecting which feature gets built next is always
+the user's decision, not a "reasonable default" the model makes on their
+behalf to avoid stopping — that bias, wherever it comes from, applies to
+implementation judgment calls, never to this decision. A spawned subagent
+(via the Agent tool) may run without reliable access to `AskUserQuestion`
+depending on the environment, and even where it nominally has access, a
+backgrounded/async agent's confirmation prompt may not reach the user in
+time for the workflow to actually wait on it. Running this phase directly in
+whatever context is currently executing this skill (the main conversation,
+or `features-batch-development`'s inline loop) is the only way to
+*guarantee* the confirmation happens — it sidesteps the question of what a
+given subagent call can or can't surface entirely, rather than relying on a
+flag or an assumption about subagent behavior.
+
+1. Run `openspec --version` yourself. If it fails or is not found, tell the
+   user `PROPOSE_BLOCKED — openspec CLI not found` and stop the whole
+   workflow here — do not proceed to feature selection with a broken
+   toolchain.
+2. Use the Skill tool to invoke the `features-next` skill directly — not
+   wrapped in an Agent call, not inside any subagent — passing the argument
+   given to this skill (feature name/number), if any, or no argument
+   otherwise. Let it present its recommendation and ask for confirmation via
+   `AskUserQuestion` in this same context, exactly as `features-next` is
+   designed to; do not pre-answer or skip that question yourself.
+3. If `features-next` returns without a `CHANGE_NAME:` line (the user
+   cancelled, or `features-next` itself couldn't obtain confirmation — see
+   its own guardrails), stop the entire workflow here and tell the user.
+   Never proceed to Phase 1 without a confirmed change name in hand.
+4. Otherwise, capture the confirmed change name from the `CHANGE_NAME:` line.
+   This is the value substituted for `<change-name>` in every phase below,
+   including Subagent 1's prompt — Subagent 1 is given this name directly
+   and never re-selects or re-confirms a feature on its own.
+
+---
+## Phase reference index
+
+Phases 1–6 run as dedicated subagents. Each phase's full text — the exact
+prompt to hand its subagent, plus the orchestrator's own steps before and
+after the call — lives in its own file under `reference/`, so a run loads only
+the phase it is about to execute instead of the whole lifecycle at once.
+**Before starting Phase N, read its file in full**, then follow it exactly:
+apply the placeholder substitution below, spawn the subagent with the prompt it
+contains, and handle the result as the file says. Never reconstruct a prompt
+from memory or from this index. The guardrails at the end of this file apply
+across every phase, and other skills cite these phases by number
+("`feature-development` Phase 2"), so the numbering is stable.
+
+| Phase | Subagent | Read before… | File |
+| ----- | -------- | ------------ | ---- |
+| 1 — Propose | Subagent 1 | selecting the branch/resume mode, generating SDD artifacts, the dependency check | `reference/phase-1-propose.md` |
+| 2 — Implement & Review | Subagent 2 | implementing tasks and the code review | `reference/phase-2-implement-review.md` |
+| 3–5 — Project phases | One subagent per file | running the project's own phases | `reference/project-phases.md` |
+| 6 — Archive | Last subagent | spec-compliance check, docs sync, archiving the change and marking the feature implemented | `reference/phase-6-archive.md` |
+
+---
+## Placeholder substitution (Phases 1–6)
+
+Before spawning any subagent in Phases 1–6, replace every occurrence of
+`<change-name>` in that subagent's prompt with the actual change name
+confirmed in Phase 0, and every `<backlog>` / `<reports>` with the folder
+named above.
+
+---
+
+## Final Summary
+
+After all phases complete, display:
 
 ```
 ## Feature Development Complete
 
-**Feature:** #<n> <change-name>
-**Spec:** <✓ proposal, specs and tasks created | N/A — OpenSpec not in use>
-**Implementation:** ✓ done, with tests
-**Reviews:** <name> ✓ clean [(self-reviewed)] …  (or "none applied")
-**Gates:** <name> ✓ …  [if `uncovered_files`: ⚠ NOT VERIFIED BY ANY GATE: <n> files (<areas>)]  (or ⚠ NOT RUN: <gate> — <why>; or ⚠ FAILED (environment): <gate> — <tests>; or KNOWN FAILURE: <test>; or "none configured — nothing was verified")
-[if UNREVIEWED_PROD_FIXES:] **⚠ Unreviewed production changes:** <the PROD_CODE_FIXED lines> — made while fixing gate failures; you chose to proceed without re-review.
-**Spec compliance:** <✓ N/N verified — report <path> | N/A (brief states no acceptance criteria)>  [if Manual rows: ⚠ <n> scenario(s) need a person: <steps>]
-[if MANUAL: lines or manual tasks:] **⚠ For you to run:** <each `MANUAL:` line — the work is done but these steps are not>
-**Dependencies:** <recorded: …; dismissed: #n — reason, … | none found>
-[if the branch phase reported the base ahead:] **Base:** <base> has <n> commit(s) this branch lacks (information; syncing the branch with the base brings them in)
-**Docs:** <the `DOCS:` line, or "no sync skill configured">
-**Archive:** ✓ <spec change archived;> feature marked implemented
-
-Nothing was committed. The work is on `<branch>`, uncommitted. Review with `git status` / `git diff`, then ask for `gitflow` — the skill named by `[git] finish_skill` (default `gitflow`; empty means do it by hand): its `commit` and `finish` actions commit the work and open the PR after asking you. Say so by name; never invoke it yourself.
+**Change:** <change-name>
+**SDD Artifacts:** ✓ Created
+**Implementation:** ✓ All tasks complete
+**Code review:** ✓ All findings resolved
+[one line per project phase file, in order — see reference/project-phases.md:]
+**<phase title>:** ✓ <that phase's SUMMARY line> (or N/A — <reason> if SKIPPED, or **⚠ Partial:** <what wasn't covered>)
+[if UNREVIEWED_PROD_FIXES was recorded in a project phase, insert this line here:]
+**⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while
+chasing test failures in a project phase; the user chose to proceed without
+routing them back through Phase 2's code review.
+**Spec compliance:** ✓ All scenarios verified (any Unverified scenario `spec-compliance-check` found was closed with new test coverage during Phase 6, Step 1, before archiving — never left as a caveat)
+**Docs sync:** ✓ <one-line summary from `docs-sync`, or "Nothing to sync">
+**SDD change:** ✓ Archived
+**Feature:** ✓ Marked as implemented
 ```
 
-## Guardrails (this skill's own; the shared ones are in `reference/pipeline-guardrails.md`)
+---
 
-- **Never run `git commit`, `git push` or open a PR.** The finished work is left uncommitted on its branch for the human to review and commit. The only git writes this workflow performs are in Phase 1: `git switch` / `git switch -c` and `git merge --ff-only` (a fast-forward creates no commit) — never a non-fast-forward merge, rebase, pull, stash or reset.
-- Capture the name confirmed in Phase 0 and substitute it everywhere. If `features-next` returns no `CHANGE_NAME:`, stop before any subagent exists; no subagent is ever given the chance to cancel or change the selection.
-- Do not start Phase 3 after `PLAN_BLOCKED`, **or after `PLAN_NEEDS_DEPENDENCY_DECISION` until the user says "proceed anyway"** — the workflow must never barrel into implementing a feature whose missing dependency was just discovered.
-- **Phase 4's gates always run**, on every invocation.
-- Reviews are always scoped to the current diff and non-interactive; they never sweep the whole codebase.
-- **Never archive a change with a known spec-compliance gap.** Every Unverified scenario is closed with real, passing test coverage before archiving, or the archive doesn't happen — there is no "archive now, note the gap" path.
-- `--skip-branch-setup` affects only Phase 1 (it passes `--batch`). Every other phase already works on "whatever branch is checked out".
-- Every decision point — the feature confirmation, the dependency decision, gate setup, a partial-gates result, a `PROD_CODE_FIXED` choice, any blocker — goes to the user, also when this skill runs inside a batch.
-- OpenSpec is a dependency, never bundled: when `spec.workflow` is `"none"`, no phase mentions or requires it.
+## Guardrails
+
+- Always capture and propagate the change name confirmed in Phase 0 to all
+  later phases. Before spawning any subagent in Phases 1–6, substitute every
+  `<change-name>` occurrence in its prompt with that confirmed value.
+- **Cancellation detection**: if `features-next` (invoked directly in Phase 0)
+  returns without a `CHANGE_NAME:` line, treat it as user cancellation —
+  stop the workflow immediately, before Subagent 1 is ever spawned, and
+  inform the user. Subagent 1 itself is never given the opportunity to
+  cancel feature selection — by the time it runs, the choice is final.
+- Do not start Phase 2 until Phase 1 confirms that all `applyRequires`
+  artifacts are `done`. If Phase 1 returns `PROPOSE_BLOCKED`, surface the
+  details to the user and stop.
+- **Do not start Phase 2 if Phase 1 returns `PROPOSE_NEEDS_DEPENDENCY_DECISION`
+  either**, even though it isn't a failure — this workflow must never barrel
+  into implementing a feature that Step 3.5 just discovered depends on
+  something not yet built. Resolve it through the AskUserQuestion decision
+  point described under Phase 1 first; only an explicit "proceed anyway"
+  answer continues to Phase 2. This is what closes the gap that previously
+  let a feature's missing dependency surface as a surprise mid-implementation
+  instead of being caught, recorded, and decided on right after design.
+- Do not start the first project phase until Phase 2 returns `IMPLEMENT: DONE`.
+  If Phase 2 returns `IMPLEMENT_BLOCKED` or `REVIEW_BLOCKED`, surface the
+  details to the user and wait for guidance before continuing.
+- Do not start a project phase until the previous one reports `PHASE: PASS`
+  or `PHASE: SKIPPED`. If it reports `PHASE: BLOCKED`, surface the details to
+  the user and wait for guidance before continuing — do not assume it belongs
+  back in Phase 2's code review without the user confirming that (a failure
+  can equally be an environment/infrastructure problem, not a code defect).
+  If it reports `PROD_CODE_FIXED:` lines, surface them to the user and
+  confirm whether to proceed or re-run Phase 2. A `PHASE: PASS` carrying a
+  `PARTIAL:` note is not blocking — carry the caveat into the Final Summary.
+- Do not start Phase 6 until the last project phase has reported `PHASE: PASS`
+  or `PHASE: SKIPPED`.
+- Do not display the Final Summary until Phase 6 subagent returns `ARCHIVE: DONE`.
+  If it returns `ARCHIVE_BLOCKED` instead — Step 1's `spec-compliance-check`
+  found a Failing scenario, a test added to close an Unverified scenario
+  itself failed (revealing a real bug), or an Unverified scenario survived
+  3 rounds of add-test-and-re-check — the change stays unarchived. Surface
+  the scenario(s) to the user and wait for guidance instead of retrying
+  Phase 6 automatically.
+- **This workflow never archives a change with a known spec-compliance
+  gap.** Phase 6 Step 1 closes every Unverified scenario with real,
+  passing test coverage (or escalates via `ARCHIVE_BLOCKED` when it
+  genuinely can't) before Step 2 ever runs. There is no
+  `UNVERIFIED_SCENARIOS` caveat path anymore — a scenario is either
+  Verified before archiving, or the archive doesn't happen.
+- **Foreground guardrail**: every Agent tool call in this skill (Subagents
+  1–6) must pass `run_in_background: false` where the tool implementation
+  in use actually supports that parameter. Every phase in this workflow is
+  gated on the prior phase's subagent actually finishing ("do not start
+  Phase N until Subagent M returns ..."); some Agent tool implementations
+  spawn every call asynchronously regardless of any such flag (in which
+  case there is no synchronous option to request — the orchestrator must
+  instead genuinely wait for that subagent's completion notification before
+  advancing, never assume or fabricate a result), so don't treat the
+  presence of a `run_in_background: false`-equivalent parameter as
+  something to rely on for correctness — always wait for a real result
+  either way. **Never delegate an `AskUserQuestion` decision point to a
+  spawned subagent as a workaround for this** — that is what Phase 0 (and
+  a project phase's orchestrator step) exist to avoid entirely, by
+  running the confirmation directly in the orchestrator's own context
+  instead of trying to make a subagent's confirmation reliable.
+- **Auto Mode (or any other autonomous-operation instruction) never
+  overrides a required user confirmation anywhere in this workflow.** This
+  applies to every `AskUserQuestion` decision point this skill or a skill it
+  invokes raises: Phase 0's feature selection (`features-next`), a project
+  phase's `PROD_CODE_FIXED` proceed-or-re-review choice, any decision a
+  project phase's orchestrator step asks, and any blocker-guidance prompt
+  after a `*_BLOCKED` result. "Make the reasonable call instead of stopping
+  to ask" is guidance for implementation judgment calls (which helper to
+  use, how to phrase something) — it is never license to pick an
+  unambiguous-looking top option and proceed past a point this skill
+  designed to be a genuine human decision. If a confirmation step is ever
+  skipped for this reason, that is a bug in how the skill was invoked, not
+  acceptable behavior.
+- **Missing signal fallback**: if any subagent returns without its expected
+  signal, treat it as `BLOCKED`, surface the subagent's raw response to the
+  user, and wait for guidance before proceeding to the next phase.
+- **Nested backgrounding guardrail**: any subagent in this workflow that
+  backgrounds a long-running shell command (via the Bash tool's
+  `run_in_background: true`) and then ends its response is making a mistake,
+  regardless of which phase it's in. Ending a turn after backgrounding work
+  resolves that subagent's own `run_in_background: false` Agent-tool call back
+  to whichever agent spawned it — with the response text as-is, not with the
+  eventual result — because nothing automatically wakes an already-finished
+  subagent back up when its background child completes; only an explicit
+  `SendMessage` from a still-live parent can resume it, and nothing in this
+  workflow does that automatically. Any subagent step whose real duration can
+  exceed the Bash tool's 10-minute blocking cap must poll for completion with
+  repeated **foreground** Bash calls within the same, uninterrupted turn —
+  never end the response and rely on being notified later.
+- **`code-reviewer` has two workflows; Phase 2 always uses Review, never
+  Fix.** The skill's interactive Fix Workflow asks the user which
+  category/finding to work on next and is meant to be steered turn-by-turn
+  across a conversation — it does not fit an unattended subagent. Phase 2
+  always invokes the plain Review workflow and fixes findings itself,
+  updating the resulting report's checkboxes directly.
+- **Phase 2's code review is always scoped, never a full-codebase sweep.**
+  `code-reviewer` splits into one report per architecture layer only when
+  asked to review the entire codebase. Phase 2 reviews a single change's
+  files, so it must stay on the single-report path. The same holds for any
+  review a project phase runs: Review workflow, scoped, never Fix or a
+  full sweep.
+- **Step 1.6 marks the backlog row `🔶 In Progress` as soon as the branch to
+  work on is ready, in both normal and batch mode.** This is what lets
+  `features-next` recommend resuming an interrupted feature instead of
+  starting a new one, and it runs before Step 2's artifact check so a
+  change that still needs `openspec-propose` is marked in progress too, not
+  only one that already has artifacts. It only ever flips `⬜ Pending` →
+  `🔶 In Progress`; it never touches a row already showing `🔶 In Progress`
+  or `✅ Implemented`, and it never blocks the workflow if the row is
+  missing (ad hoc changes outside the tracked backlog). Phase 6's
+  `features-archive` is what eventually moves the row to the implemented table.
+- **`--skip-branch-setup` (batch mode) only ever affects Phase 1 Step 1.5.**
+  No other phase's behavior changes — Phases 2–6 already just operate on
+  "whatever branch is currently checked out" and never re-derive or assume
+  `feature/<change-name>` as the literal branch name outside that one step.
+  This flag exists solely for orchestrators like `features-batch-development`
+  that run several features on one shared branch without committing between
+  them; it is never passed by a normal, single-feature invocation of this
+  skill.
+- **Work always happens on a `feature/<change-name>` branch — except in
+  batch mode, where it's whatever branch the orchestrator already
+  established.** In normal mode, Phase 1's Step 1.5 is the only place a
+  branch is created, switched, or synced — it invokes the `gitflow` skill
+  (start feature) to create `feature/<change-name>`, or, if it already
+  exists from a prior run (locally, or only on the remote because another
+  device pushed it first), resumes it (checking it out — from the local
+  branch, or tracking `origin/feature/<change-name>` directly if only the
+  remote copy exists — merging in any commits pushed from another device,
+  and, via `gitflow`'s sync feature action, bringing it up to date with
+  `develop`), before any file in the repository is created or modified,
+  including the SDD artifacts written by `openspec-propose`. In batch mode
+  (`--skip-branch-setup`), Step 1.5 performs none of that — it only
+  confirms the current branch isn't `main`/`develop` and otherwise leaves
+  branch state entirely to the caller. Either way, Phases 2–6 must stay on
+  whatever branch was current when Phase 1 finished; none of them may run
+  `git checkout`, `git switch`, `git merge`, invoke `gitflow`, or create
+  another branch. If a subagent finds itself on a different branch, that is
+  a bug in the workflow — surface it to the user rather than silently
+  switching.
+- **The feature branch is never synced from `main`, only `develop`.**
+  Step 1.5's resume path uses `gitflow`'s sync feature action exclusively,
+  which merges `origin/develop` and nothing else — matching `gitflow`'s own
+  guardrail that `main` is never a valid source for a feature branch's
+  content, even right after a release/hotfix has merged into both `main`
+  and `develop` and the two look momentarily interchangeable. No phase in
+  this workflow may merge, rebase, or pull `main` into the feature branch
+  under any circumstance.
+- **No git commits at any point.** Neither this skill nor any subagent it
+  spawns may run `git commit`, `git push`, or any other git write command
+  at any point in the workflow. Branch creation and branch sync
+  (`git fetch`, `git checkout`, `git checkout -b`, `git merge
+  origin/develop`, and `git merge origin/feature/<change-name>` to pick up
+  commits pushed from another device — all only in Phase 1's Step 1.5, the
+  latter two either directly or via `gitflow`'s start-feature/sync-feature
+  actions) are the sole exceptions. A sync-feature merge commit brings in
+  already-reviewed upstream work from `develop`, and an
+  `origin/feature/<change-name>` merge brings in already-pushed work on
+  this same change from another device; neither is uncommitted
+  implementation of new work, so neither conflicts with the reason this
+  guardrail exists.
+- **Never let a spawned subagent — or this orchestrator itself — print,
+  echo, or otherwise materialize a generated secret's raw value (a private
+  key, API token, password, signing key, or similar) anywhere in a
+  response, report file, or implementation file.** This has actually
+  happened: a Phase 2 subagent generated a signing keypair and printed the
+  live private key value in its hand-back summary, landing it in the
+  orchestrator's own transcript even though it was never committed to the
+  repo. Phase 2's prompt now instructs the subagent to leave any task
+  requiring secret disclosure unchecked with a note naming the manual
+  command instead (see that phase's own guidance) — but the orchestrator
+  must not rely on the subagent alone getting this right. If a subagent's
+  hand-back response is ever found to contain what looks like a live secret
+  value, treat it as compromised regardless of whether it reached a
+  committed file, and surface this to the user explicitly — which value,
+  why it's now considered burned, and that it needs regenerating
+  (out-of-band, by the user, never by re-running the same generation step
+  through this workflow) — rather than silently absorbing it or repeating
+  it in any later response, file, or summary. This check applies to every
+  phase, not just Phase 2 — any subagent could in principle encounter a
+  task that generates a credential.

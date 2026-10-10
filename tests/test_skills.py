@@ -76,7 +76,7 @@ class SkillLint(unittest.TestCase):
                 self.assertRegex(ln.lower(), r"never|not|no |refuse|don't|stop", ln)
         # no other skill may mention being able to invoke it
         for d in SKILLS:
-            if d.name == "gitflow":
+            if d.name in ("gitflow", "feature-development", "bug-fix"):   # D23: the pipelines call gitflow's start/sync as the originals do
                 continue
             body = (d / "SKILL.md").read_text()
             for ln in [l for l in body.splitlines() if "`gitflow`" in l]:
@@ -102,37 +102,21 @@ class SkillLint(unittest.TestCase):
                      "stash", "cherry-pick", "apply", "am", "tag", "clean", "rm", "mv", "restore", "revert"}
         self.assertFalse(forbidden & mod.ALLOWED, forbidden & mod.ALLOWED)
 
-    def test_work_skills_forbid_non_ff_merges_in_prose(self):
-        for name in ("bug-fix", "feature-development"):
-            text = (KIT / "skills" / name / "reference" / "pipeline-guardrails.md").read_text()
-            self.assertIn("git merge --ff-only", text)
-            self.assertRegex(text, r"(?i)no `git merge` without `--ff-only`")
 
     def test_created_branches_never_track_the_base_branch(self):
-        for name, f in (("bug-fix", "phase-branch.md"), ("feature-development", "phase-branch.md"),
-                        ("bugs-batch-fix", "batch-runner.md"), ("features-batch-development", "batch-runner.md")):
+        for name, f in (("bugs-batch-fix", "batch-runner.md"), ("features-batch-development", "batch-runner.md")):
             text = (KIT / "skills" / name / "reference" / f).read_text()
             create = [ln for ln in text.splitlines() if ln.lstrip("> ").startswith("|") and "git switch -c" in ln and "--track" not in ln]
             self.assertTrue(create, f"{name}: no `create` row found")
             for ln in create:
                 self.assertIn("--no-track", ln, f"{name}: `git switch -c` must use --no-track: {ln[:80]}")
 
-    def test_gates_phase_forbids_system_changes_and_does_not_block_on_one_gate(self):
-        text = (KIT / "shared/phase-gates.md").read_text()
-        self.assertIn("Never install system packages", text)
-        self.assertIn("NOT RUN (environment)", text)
-        self.assertIn("GATES: PARTIAL", text)
-        self.assertIn("never wave it through", text)
-        self.assertIn("`npm ci`, not `npm install`", text)
 
     def test_there_is_no_confirmed_mode_every_item_is_confirmed_by_the_user(self):
         # decision D8: the source projects confirm every item, also inside a batch.
         for path in list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "shared").glob("*.md")):
             with self.subTest(file=str(path.relative_to(KIT))):
                 self.assertNotIn("--confirmed", path.read_text())
-        for name in ("bug-fix", "feature-development"):
-            text = (KIT / "skills" / name / "SKILL.md").read_text()
-            self.assertIn("goes to the user, also when this skill runs inside a batch", text)
         for name in ("bugs-batch-fix", "features-batch-development"):
             text = (KIT / "skills" / name / "SKILL.md").read_text()
             self.assertIn("still asks the user to confirm each", text)
@@ -142,12 +126,6 @@ class SkillLint(unittest.TestCase):
         self.assertIn("Refused at selection", (KIT / "skills/features-batch-development/SKILL.md").read_text())
         self.assertIn("Refused at selection", (KIT / "skills/bugs-batch-fix/SKILL.md").read_text())
 
-    def test_uncovered_changes_are_called_out_not_folded_into_pass(self):
-        gates = (KIT / "shared/phase-gates.md").read_text()
-        self.assertIn("uncovered_files", gates)
-        self.assertIn("NOT VERIFIED BY ANY GATE", gates)
-        for name in ("bug-fix", "feature-development"):
-            self.assertIn("NOT VERIFIED BY ANY GATE", (KIT / "skills" / name / "SKILL.md").read_text())
 
     def test_vendored_copies_are_current(self):
         proc = subprocess.run([sys.executable, str(KIT / "tools/vendor.py"), "--check"], capture_output=True, text=True)
@@ -210,31 +188,6 @@ class PackagingTest(unittest.TestCase):
             self.assertTrue((Path(d) / ".claude/skills/bug-fix/SKILL.md").is_file())
             self.assertNotEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
             self.assertEqual(subprocess.run(cmd + ["--force", "--only", "bug-fix"], capture_output=True).returncode, 0)
-
-
-class SpecComplianceProseTest(unittest.TestCase):
-    def test_close_phase_checks_requirement_prose_not_only_scenarios(self):
-        text = (Path(__file__).resolve().parents[1] / "skills/feature-development/SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("prose conflict", text)
-        self.assertIn("never edit a scenario's expected behaviour to match the code", text.replace("Never edit", "never edit"))
-        self.assertIn("Never archive a change with a known prose conflict", text)
-
-
-class FinishSkillPointerTest(unittest.TestCase):
-    ROOT = Path(__file__).resolve().parents[1]
-
-    def test_hand_off_can_name_the_projects_finish_skill_but_never_runs_it(self):
-        for rel in ("skills/feature-development/SKILL.md", "skills/bug-fix/SKILL.md",
-                    "skills/bugs-batch-fix/SKILL.md", "skills/features-batch-development/SKILL.md", "shared/batch-runner.md"):
-            text = (self.ROOT / rel).read_text(encoding="utf-8")
-            self.assertIn("[git] finish_skill", text, rel)
-            self.assertRegex(text, r"never invoke it( yourself)?", rel)
-
-    def test_finish_skill_is_a_documented_default(self):
-        sys.path.insert(0, str(self.ROOT / "lib"))
-        import backlog_kit
-        self.assertEqual(backlog_kit.load_config(self.ROOT)["git"]["finish_skill"], "gitflow")
-        self.assertIn("finish_skill", (self.ROOT / "backlog-kit.example.toml").read_text(encoding="utf-8"))
 
 
 class ReleaseHygieneTest(unittest.TestCase):

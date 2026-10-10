@@ -25,6 +25,7 @@ Ledger format (`fidelity/ledgers/<skill>.md`), one record per line, anything els
     sub: JPPhotoManagerWeb/docs/backlog => <backlog>
     PARAM | <first 70 chars of the original unit> | why, and the decision id
     COND  | ...        kept, but only under a config condition
+    FILE  | <project>/<skill>/<path> | a whole original file that moved out of the kit (a project-owned document)
     MOVED | ...        now lives in a script, a shared phase or a project-owned document
     DROPPED | ...      removed, with the reason
 
@@ -103,12 +104,16 @@ class Ledger:
         self.kit = None
         self.subs = []
         self.entries = []   # (status, fingerprint, note)
+        self.files = {}     # "project/relative/path.md" -> reason: a whole original file that moved out of the kit
         for ln in Path(path).read_text(encoding="utf-8").splitlines():
             if ln.startswith("kit:"):
                 self.kit = ln.split(":", 1)[1].strip()
             elif ln.startswith("sub:"):
                 a, _, b = ln[4:].partition("=>")
                 self.subs.append((a.strip(), b.strip()))
+            elif ln.startswith("FILE |"):
+                _, f, why = [x.strip() for x in ln.split("|", 2)]
+                self.files[f] = why
             else:
                 m = re.match(r"^(PARAM|COND|MOVED|DROPPED)\s*\|\s*(.*?)\s*\|\s*(.*)$", ln)
                 if m:
@@ -144,9 +149,12 @@ def analyse(skill):
     for project, tag in projects().items():
         d = FID / "base" / project / skill
         if d.is_dir():
-            for u in units(read_md(d)):
-                u = ledger.apply(u)
-                base.setdefault(u, set()).add(tag)
+            for f in sorted(d.rglob("*.md")):
+                if f"{project}/{skill}/{f.relative_to(d).as_posix()}" in ledger.files:
+                    continue
+                for u in units(f.read_text(encoding="utf-8", errors="replace")):
+                    u = ledger.apply(u)
+                    base.setdefault(u, set()).add(tag)
     results, seen = [], {}
     for u, tags in base.items():
         fp = fingerprint(u, seen)
@@ -200,6 +208,12 @@ def check(skill, ledger, results):
                 problems.append(f"{skill}: edited unit recorded as {st}, expected PARAM or COND: {fp!r}")
             if status == "ABSENT" and st not in ("MOVED", "DROPPED"):
                 problems.append(f"{skill}: absent unit recorded as {st}, expected MOVED or DROPPED: {fp!r}")
+    for f, why in ledger.files.items():
+        project, _, rest = f.partition("/")
+        if not (FID / "base" / project / rest).is_file():
+            problems.append(f"{skill}: FILE entry names no original file: {f!r}")
+        if not why.strip():
+            problems.append(f"{skill}: FILE entry without a reason: {f!r}")
     for st, fp, note in ledger.entries:
         if fp not in fps:
             problems.append(f"{skill}: stale ledger entry (no such original unit): {fp!r}")

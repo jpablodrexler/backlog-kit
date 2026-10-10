@@ -24,24 +24,20 @@ WORK = ["bug-fix", "feature-development"]                         # also need gi
 BATCH = ["bugs-batch-fix", "features-batch-development"]          # loop over WORK skills; need list/report/branch helpers
 
 LIB_FOR = {
-    "backlog_kit.py": CORE + WORK + BATCH + ["features-archive", "gitflow", "spec-compliance-check"],
-    "gitread.py": WORK + BATCH + ["gitflow", "spec-compliance-check"],
-    "branch_state.py": WORK + BATCH + ["gitflow"],
-    "work_scope.py": WORK + BATCH + ["spec-compliance-check"],
-    "detect_gates.py": WORK,
+    "backlog_kit.py": CORE + ["features-archive", "gitflow", "spec-compliance-check"] + BATCH,
+    "gitread.py": BATCH + ["gitflow", "spec-compliance-check"],
+    "branch_state.py": BATCH + ["gitflow"],
+    "work_scope.py": BATCH + ["spec-compliance-check"],
     "batch_plan.py": BATCH,
     "batch_report.py": BATCH,
     "flow_plan.py": ["gitflow"],
-    "dep_scan.py": ["feature-development"],
-    "task_state.py": ["feature-development", "spec-compliance-check"],
+    "task_state.py": ["spec-compliance-check"],
 }
 
 SHARED_FOR = {
-    "phase-branch.md": WORK,
-    "phase-reviews.md": WORK,
-    "phase-gates.md": WORK,
-    "spec-compliance.md": ["feature-development", "spec-compliance-check"],
-    "pipeline-guardrails.md": WORK + BATCH,
+    "project-phases.md": WORK,
+    "spec-compliance.md": ["spec-compliance-check"],
+    "pipeline-guardrails.md": BATCH,
     "batch-runner.md": BATCH,
 }
 
