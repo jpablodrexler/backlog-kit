@@ -24,21 +24,6 @@ class DotfileGlobs(unittest.TestCase):
         self.assertTrue(bk.glob_match("db/m.sql", "db/**"))
 
 
-class EscapedPipes(unittest.TestCase):
-    def test_header_migration_keeps_an_escaped_pipe_in_a_cell(self):
-        with tempfile.TemporaryDirectory() as d:
-            p = Path(d) / "features-planned.md"
-            p.write_text("## Feature List\n\n| # | Change name | Priority | Effort | Area | Implementation | Summary | Brief |\n"
-                         "| - | - | - | - | - | - | - | - |\n"
-                         "| 1 | `a` | P1 | S | X | ⬜ Pending | uses a \\| b | [brief](features/001-a.md) |\n")
-            cfg = bk.load_config(d)
-            cfg["spec"]["workflow"] = "openspec"
-            self.assertEqual(bk.migrate_planned_header(p, cfg)["rows"], 1)
-            row = bk.split_row(p.read_text().splitlines()[-1])
-            self.assertEqual(len(row), 9)
-            self.assertIn("uses a | b", row)
-
-
 class GitReadAllowlist(unittest.TestCase):
     def test_branch_cannot_create_a_ref_and_diff_cannot_write_a_file(self):
         for bad in (("branch", "sneaky"), ("branch", "sneaky", "HEAD"), ("branch", "--merged", "main", "extra"),

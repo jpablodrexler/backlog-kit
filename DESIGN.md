@@ -263,3 +263,12 @@ Two comparison rounds kept finding losses because the skills had been written fr
 
 Not yet converted (still the earlier rewrites): the other seven planning skills, the pipelines, the batch runners, `gitflow`, the reviewers. They move over family by family; the interim kit mixes both generations, which is why `bugs-next` already reads a `Schema change` line that `bug-report` does not write yet.
 
+## Planning family converted (0.2.12)
+
+Seven more skills moved to the fidelity method (see "Fidelity method" above). Choices worth knowing:
+
+- **Where the projects differ, the base is the newer or stricter one, and the other project's text is recorded as a variant.** `features-status`, `bugs-status`, `bugs-archive` and `features-archive` follow the second project (its stale-note forms, its Resolution rule, its per-kind resolved check); `feature-plan` and `bug-report` follow the first (inline skeletons, the recommended-order step). Where the first project's wording named its own stack, the other project's generic wording was used verbatim.
+- **Defects found in the originals are kept and reported, not silently fixed.** `decision-record` creates the decisions README before the user confirms, against its own "write nothing before confirming" rule; `feature-plan` and `bug-report` skeletons have a legend that duplicates what the model must read fresh each run. They are listed in the release notes for the owner to fix at the source.
+- **Fewer moving parts.** With vocabularies fixed (D4), columns fixed (D1, D12), OpenSpec assumed (D11) and the folders derived (D19), the code that migrated headers between configurations, generated legends from the config and computed spec-link depth had nothing left to do and was deleted rather than kept "just in case".
+- **Interim inconsistency.** The pipelines (`feature-development`, `bug-fix`), the batch runners, `gitflow` and the reviewers are still the earlier rewrites and still read `[spec] workflow` and the old `reports_dir` style settings; they are converted next, family by family.
+

@@ -68,8 +68,7 @@ Everything is optional; see [`backlog-kit.example.toml`](backlog-kit.example.tom
 
 | Section | Keys |
 | --- | --- |
-| `[paths]` | `backlog_dir`, `decisions_dir`, `reports_dir` |
-| `[features]`, `[bugs]` | priority / effort / severity vocabularies, bug id prefix, which environments count as production |
+| `[paths]` | `backlog_dir` (the decisions, explorations and reports folders sit next to it) |
 | `[spec]` | `workflow` (`none` or `openspec`), `changes_dir`, `compliance_skill` |
 | `[git]` | `base_branch`, `feature_prefix`, `fix_prefix`, `finish_skill` |
 | `[work]` | `review_max_rounds`, `gate_max_rounds` |

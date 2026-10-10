@@ -2,6 +2,12 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.12
+- Fidelity pilot complete for the planning family: `feature-plan`, `features-status`, `features-archive`, `bug-report`, `bugs-status`, `bugs-archive` and `decision-record` are now rebuilt from the source projects' skills and scripts (60–84% of the original paragraphs verbatim; every other difference recorded in `fidelity/ledgers/` and tied to a decision in `fidelity/decisions.md`, D1–D19).
+- Simpler configuration: `[paths]` has the single `backlog_dir` (the decisions, explorations and reports folders sit next to it); the priority, effort, severity, area and environment vocabularies and the `Schema Change` column are fixed or defined by the backlog's own legend; `(prerequisite already implemented)` is the one resolved annotation; the bug id prefix is `BUG`.
+- Removed the kit-only helpers the originals do not have: `scaffold.py` (skeletons are inline in `feature-plan` and `bug-report`), `dep_scan.py` from `feature-plan` and `features-status`, `spec_link.py`, `clean_order_notes.py`, and the library code behind them (header migration, spec-link depth, order-note cleanup).
+- `features-status` and `bugs-status` follow the second project's checks (prose stale-note forms, every resolved bug needs a Resolution line); the environment split is counted from the data.
+
 ## 0.2.11
 - Fidelity pilot, first step. `features-next` and `bugs-next` are rebuilt from the source projects' own skills and scripts instead of being rewritten: 84% and 77% of the original paragraphs are verbatim, and every other difference is recorded in `fidelity/ledgers/` with the owner's decision (`fidelity/decisions.md`). `tools/fidelity.py --check` (also part of the test suite) fails when a difference is unrecorded; `rank_features.py` and `rank_bugs.py` are the originals plus a few edited lines and give identical results on both projects' real backlogs.
 - Behaviour restored to what the projects do: `Schema Change` column and the +5 "no schema change" tier (the kit's own effort bonus is gone); fixed P0–P3 / S1–S4 scales; the +20 environment bonus for anything other than `local`; a prerequisite with no row counts as shipped, with a warning when it is in neither file; every item is confirmed by the user also in a batch (`--confirmed` removed).

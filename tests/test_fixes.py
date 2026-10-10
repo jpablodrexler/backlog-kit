@@ -79,30 +79,6 @@ class SddArtifactsFromDisk(unittest.TestCase):
         self.assertIn("applyRequires", text)
 
 
-class SpecLinkDepth(unittest.TestCase):
-    def link(self, backlog):
-        tmp, root = repo(backlog=backlog)
-        self.addCleanup(tmp.cleanup)
-        (root / "openspec/changes/archive/2026-10-09-parser").mkdir(parents=True)
-        return json.loads(subprocess.run([sys.executable, str(S / "features-archive/scripts/spec_link.py"), str(root), "parser"],
-                                         capture_output=True, text=True, check=True).stdout)
-
-    def test_two_levels_deep(self):
-        self.assertEqual(self.link("docs/backlog")["link"], "../../openspec/changes/archive/2026-10-09-parser/proposal.md")
-
-    def test_three_levels_deep(self):
-        self.assertEqual(self.link("Web/docs/backlog")["link"], "../../../openspec/changes/archive/2026-10-09-parser/proposal.md")
-
-    def test_one_level_deep_and_not_yet_archived(self):
-        out = self.link("backlog")
-        self.assertEqual(out["link"], "../openspec/changes/archive/2026-10-09-parser/proposal.md")
-        tmp, root = repo()
-        self.addCleanup(tmp.cleanup)
-        res = json.loads(subprocess.run([sys.executable, str(S / "features-archive/scripts/spec_link.py"), str(root), "nothing"],
-                                        capture_output=True, text=True, check=True).stdout)
-        self.assertFalse(res["exists"])
-
-
 class ProseStaleDependencyNotes(unittest.TestCase):
     def status(self, deps):
         tmp, root = repo(deps=deps)
@@ -139,12 +115,6 @@ class ClosedBugsKeepTheirWriteUp(unittest.TestCase):
 class SkillTextFixes(unittest.TestCase):
     def read(self, rel):
         return (KIT / rel).read_text()
-
-    def test_decision_record_writes_nothing_before_confirmation(self):
-        t = self.read("skills/decision-record/SKILL.md")
-        self.assertIn("do not create anything yet", t)
-        self.assertLess(t.index("do not create anything yet"), t.index("### 5. Confirm before writing"))
-        self.assertIn("Nothing under `<decisions_dir>` is written before this step", t)
 
     def test_bugs_archive_never_leaves_two_resolution_lines(self):
         t = self.read("skills/bugs-archive/SKILL.md")
@@ -226,14 +196,6 @@ class PreviouslyUnverifiedFindings(unittest.TestCase):
         self.assertIn("neither features-planned.md nor features-implemented.md", out["warning"])
         self.assertIn("Feature 4 → Feature 39", out["warning"])
 
-    def test_emptied_hard_dependencies_section_gets_its_placeholder(self):
-        tmp, root = repo(deps="")
-        self.addCleanup(tmp.cleanup)
-        res = json.loads(subprocess.run([sys.executable, str(S / "features-archive/scripts/clean_order_notes.py"), str(root)], capture_output=True, text=True, check=True).stdout)
-        self.assertTrue(res["placeholder_restored"])
-        text = (root / "docs/backlog/features-planned.md").read_text()
-        self.assertIn("### Hard implementation dependencies\n\n_None yet._", text)
-
     def test_hand_backs_are_defined_and_consumed(self):
         fd, bf = self.read("skills/feature-development/SKILL.md"), self.read("skills/bug-fix/SKILL.md")
         for t in (fd, bf):
@@ -261,8 +223,8 @@ class PreviouslyUnverifiedFindings(unittest.TestCase):
     def test_archive_handles_leftover_rows_and_multi_feature_headings(self):
         t = self.read("skills/features-archive/SKILL.md")
         self.assertIn("`✅ Implemented`", t)
-        self.assertIn("already in `features-implemented.md`", t)
-        self.assertIn("not directional", t)
+        self.assertIn("`IMPLEMENTED_SET`", t)
+        self.assertIn("non-directional", t)
 
     def test_resume_asks_when_the_list_differs_and_skipped_items_stay_skipped(self):
         t = self.read("shared/batch-runner.md")

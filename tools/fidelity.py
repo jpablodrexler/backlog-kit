@@ -126,7 +126,7 @@ def sim(a, b):
 
 
 def fingerprint(unit, seen):
-    fp = unit[:70].rstrip()
+    fp = unit[:70].rstrip().replace("|", "¦")   # '|' separates the ledger fields
     n = seen.get(fp, 0) + 1
     seen[fp] = n
     return fp if n == 1 else f"{fp} #{n}"

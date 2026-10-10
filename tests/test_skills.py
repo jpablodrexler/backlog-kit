@@ -44,7 +44,7 @@ class SkillLint(unittest.TestCase):
                 fm = frontmatter((d / "SKILL.md").read_text())
                 self.assertEqual(fm["name"], d.name)
                 self.assertGreater(len(fm["description"]), 80)
-                self.assertIn("TRIGGER", fm["description"], "description must say when to trigger")
+                self.assertRegex(fm["description"], r"TRIGGER|Use when", "description must say when to trigger")
 
     def test_referenced_scripts_exist(self):
         for d in SKILLS:

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-Next free ADR number — scans the configured decisions dir for the 4-digit
-`NNNN-` filename prefix and takes max+1. One global sequence, never reused,
-even for a later-superseded record.
+Scan <decisions> (the `decisions` folder next to the backlog folder) for the next free ADR number —
+decision-record/SKILL.md step 2's mechanical numbering rule (scan
+filenames for the 4-digit `NNNN-` prefix, take max+1; one global
+sequence, never reused even for a later-superseded record).
 
 Usage:
     python3 next_id.py <repo-root>
-Prints JSON: {"next_number": "0004", "directory_exists": true, "directory": "docs/decisions"}
 """
 import re
 import sys
+import json
+import argparse
 from pathlib import Path
 
 _here = Path(__file__).resolve()
@@ -21,19 +23,21 @@ import backlog_kit as bk
 
 
 def main():
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    cfg = bk.load_config(sys.argv[1])
-    d = bk.Paths(sys.argv[1], cfg).decisions
+    ap = argparse.ArgumentParser()
+    ap.add_argument("repo_root")
+    args = ap.parse_args()
+
+    root = Path(args.repo_root)
+    decisions_dir = (root / bk.load_config(root)["paths"]["backlog_dir"].strip("/")).parent / "decisions"
     nums = []
-    if d.exists():
-        for f in d.glob("*.md"):
-            m = re.match(r"^(\d{4})-", f.name)
+    if decisions_dir.exists():
+        for f in decisions_dir.glob("*.md"):
+            m = re.match(r'^(\d{4})-', f.name)
             if m:
                 nums.append(int(m.group(1)))
-    n = (max(nums) + 1) if nums else 1
-    bk.emit({"next_number": f"{n:04d}", "directory_exists": d.exists(),
-             "directory": cfg["paths"]["decisions_dir"]})
+
+    next_n = (max(nums) + 1) if nums else 1
+    print(json.dumps({"next_number": f"{next_n:04d}", "directory_exists": decisions_dir.exists()}))
 
 
 if __name__ == "__main__":

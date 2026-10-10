@@ -1,37 +1,70 @@
 ---
 name: decision-record
-description: Records a short, numbered Architecture Decision Record (ADR) in the decisions folder whenever a real technical decision is made — a pattern chosen over an alternative, a library rejected, a constraint discovered the hard way — capturing what was decided, what was rejected and why, and what it costs going forward. TRIGGER when asked to record or log a decision, write an ADR, or capture "why did we do X"; also proactively right after making or reversing a non-obvious technical choice, before the reasoning is lost.
+description: >-
+  Records a lightweight Architecture Decision Record (ADR) in
+  the project's decisions folder whenever a real architectural or technical
+  decision is made — a pattern chosen over an alternative, a library rejected,
+  a constraint discovered the hard way (e.g. "Library X rejected — its licence
+  changed to a paid one"). Gives each decision its own
+  durable, numbered, append-only record instead of a footnote buried in
+  CLAUDE.md or docs/*.md. TRIGGER when asked to record/log a decision, write
+  an ADR, or capture "why did we do X" context. Also TRIGGER proactively,
+  right after making or reversing a non-obvious architectural choice during a
+  feature or fix — before the reasoning is lost. Does not replace docs/*.md
+  reference material (see "Relationship to reference docs").
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Record a numbered ADR under `<decisions_dir>` (default `docs/decisions/`, configurable in `.backlog-kit.toml`) capturing a real decision, the alternatives it rejected, and its consequences — **not** a description of what the code does. Records are an append-only decision *history*; current-state reference docs are a different thing.
+Record a short, numbered Architecture Decision Record (ADR) under
+`<decisions>/`, capturing a real decision, the
+alternatives it rejected, and its consequences — not a description of
+what the code does.
 
-**Input**: a description of the decision — what was decided and ideally what was considered and why it lost. Ask a clarifying question only if there's no rejected alternative or no discoverable reason at all to work from (step 1).
+`<decisions>` is `docs/decisions`: the `decisions` folder next to the backlog folder (so `JPPhotoManagerWeb/docs/decisions` when `.backlog-kit.toml` sets `[paths] backlog_dir = "JPPhotoManagerWeb/docs/backlog"`).
+
+**Input**: A description of the decision (what was decided, and ideally
+what alternative(s) were considered and why they lost). As much or as
+little detail as the user gives; ask a clarifying question only if there's
+no rejected alternative or no discoverable reason at all to work from (see
+step 1).
 
 ---
 
 ## Steps
 
-### 1. Confirm it's decision-worthy
+### 1. Confirm this is actually decision-worthy
 
-Would a future engineer or agent plausibly ask "why not X instead?" If yes, record it. If it's just how something was implemented, with no real fork (no alternative seriously considered, no non-obvious constraint that forced the outcome), it belongs in a code comment or the relevant reference doc — say so and skip, rather than padding the log. If the request doesn't make clear what was rejected or why, ask **one** question before drafting. Never invent a plausible-sounding alternative.
+Not every implementation choice needs a record. A good heuristic: **would a
+future engineer or agent plausibly ask "why not X instead?" about this?** If
+yes — record it. If it's just "how Y was implemented" with no real fork in
+the road (no alternative seriously considered, no non-obvious constraint
+that forced the outcome), it belongs in a code comment or the relevant
+`docs/*.md` file, not an ADR — say so and skip rather than padding
+`<decisions>/` with routine choices.
 
-### 2. Find the next number
+If the user's request doesn't make clear what was rejected or why, ask one
+clarifying question before drafting rather than inventing a plausible-
+sounding alternative.
 
-```
-python3 scripts/next_id.py <repo-root>
-```
+### 2. Read the existing records and determine the next number
 
-(from this skill's base directory). It returns `next_number` (4-digit, max+1 over the `NNNN-` filename prefixes; one global sequence, never reused even for a superseded record), `directory_exists` and `directory`.
-
-Read every existing record and the folder's `README.md` index. If the folder or index doesn't exist, this is the first record: **do not create anything yet** — the index is created in step 6, after the user confirms, from this skeleton:
+Read every file in `<decisions>/` (and its
+`README.md` index, if present). **If the directory or index doesn't exist
+yet**, this is the first record — create
+`<decisions>/README.md` with this skeleton before
+continuing:
 
 ```markdown
 # Architecture Decision Records
 
-Numbered, append-only records of non-obvious technical decisions — what was decided, what alternatives were rejected and why, and what it costs going forward. This is decision *history*, not current-state reference material: a record stays as written even after a later one supersedes it.
+Numbered, append-only records of non-obvious technical decisions for
+this project — what was decided, what alternatives were rejected and
+why, and what it costs going forward. This is a decision *history*, not
+current-state reference material (that's the reference docs under
+`docs/`); a decision recorded here stays as-written even
+after a later record supersedes it.
 
 ## Index
 
@@ -39,9 +72,17 @@ Numbered, append-only records of non-obvious technical decisions — what was de
 | - | ----- | ------ | ---- |
 ```
 
-### 3. Slug
+Run `python3 .claude/skills/decision-record/scripts/next_id.py <repo-root>`
+— it scans existing filenames for the `NNNN-` prefix (4-digit,
+zero-padded), takes the highest number found, and returns `max + 1` (or
+`0001` if none exist yet). Numbers are a single sequence and are never
+reused, even for a decision later superseded or reversed.
 
-A short kebab-case title with no filler (`reject-primeng-licensing`, `no-prod-environment-split`) → `<decisions_dir>/NNNN-title-slug.md`.
+### 3. Derive a short kebab-case title slug
+
+Short, descriptive, no filler words — e.g. `reject-library-x-licensing`,
+`no-environment-split`. This becomes
+`<decisions>/NNNN-title-slug.md`.
 
 ### 4. Draft the record
 
@@ -53,11 +94,13 @@ A short kebab-case title with no filler (`reject-primeng-licensing`, `no-prod-en
 
 ## Context
 
-<The problem or question that forced a decision — 2–4 sentences. What was about to go wrong, or what genuinely had more than one reasonable answer?>
+<The problem or question that forced a decision — 2-4 sentences. What was
+about to go wrong, or what genuinely had more than one reasonable answer?>
 
 ## Decision
 
-<What was decided, stated plainly — one or two sentences, not a summary of the discussion.>
+<What was decided, stated plainly — one or two sentences, not a summary of
+the whole discussion.>
 
 ## Alternatives considered
 
@@ -66,44 +109,87 @@ A short kebab-case title with no filler (`reject-primeng-licensing`, `no-prod-en
 
 ## Consequences
 
-- <What this makes easier, or protects against>
-- <What this makes harder, or what future work must watch for>
+- <What this makes easier, or what it protects against>
+- <What this makes harder, or what future work needs to watch for>
 ```
 
-Reuse every technical detail the user gave; fill gaps only with detail clearly inferable from the actual repo — don't invent an alternative that wasn't genuinely considered.
+Reuse whatever technical detail the user already gave; fill gaps with
+reasonable, clearly-inferable detail consistent with the actual code/repo
+state — don't invent an alternative that wasn't genuinely considered just
+to fill the template.
 
-### 5. Confirm before writing
+### 5. Confirm with the user before writing
 
-Show the draft and ask one question with **AskUserQuestion** — "Record this decision?" — "Yes, record it as drafted" / "Let me edit something first" (apply edits, re-display) / "Cancel". Write nothing until the user confirms.
+Display the fully drafted record and use the **AskUserQuestion tool** with
+a single question — "Record this decision?" — options: "Yes, record it as
+drafted", "Let me edit something first" (resolve free-text edits and
+re-display before writing), "Cancel". Do not write anything until the user
+confirms.
 
-### 6. Write the record and the index row
+### 6. Write the record and update the index
 
-0. If the folder or its `README.md` index did not exist (step 2), create them now from the skeleton there. Nothing under `<decisions_dir>` is written before this step.
-1. Write `<decisions_dir>/NNNN-title-slug.md`.
-2. Append `| NNNN | <Title> | Accepted | <YYYY-MM-DD> |` to the index table, preserving its format.
+1. Write `<decisions>/NNNN-title-slug.md`.
+2. Append a row to the `## Index` table in
+   `<decisions>/README.md`:
+   `| NNNN | <Title> | Accepted | <YYYY-MM-DD> |`.
 
-### 7. If it supersedes an earlier decision
+### 7. If this decision supersedes an earlier one
 
-Change **only the `Status:` line** of the earlier record to `Superseded by NNNN` and update its index row to match. Never edit or delete its Context / Decision / Alternatives / Consequences — what was believed at the time stays intact; only its standing changes.
+If the user's description reverses or replaces a decision already recorded
+(e.g. re-evaluating a past rejection), find that earlier record and change
+**only its `Status:` line** to `Superseded by NNNN` (using the new record's
+number). Never edit or delete its `Context`/`Decision`/`Alternatives`/
+`Consequences` sections — the record of what was believed and decided at
+the time stays intact; only its current standing changes. Update its row in
+the index table's `Status` column to match.
 
-### 8. Report
+### 8. Display confirmation
 
 ```
 ## Decision Recorded
 
-**#NNNN** `<decisions_dir>/NNNN-title-slug.md` — <Title>
+**#NNNN** `<decisions>/NNNN-title-slug.md` — <Title>
 [If superseding:] Marked **#MMMM** as superseded by this record.
 
-If this changes what your reference docs (README, architecture docs) should currently say, update them separately — this skill only records *why*.
+If this decision changes what CLAUDE.md/docs/*.md should currently say
+about the topic, sync those files separately — this skill only records
+*why* the decision was made, not the current-state narrative.
 ```
+
+---
+
+## Relationship to reference docs
+
+`<decisions>/` is out of scope for the reference docs
+under `docs/*.md` — it's append-only decision history,
+not current-state reference material those files are kept synced against
+the code. The two complement each other but never overlap:
+
+- **This skill** captures *why* a decision was made, once, at the time it
+  was made. It never edits `CLAUDE.md`/`docs/*.md`.
+- **The reference docs** (for example `docs/architecture.md`) keep the *current-state* narrative accurate
+  against the code as it exists today. If recording a new decision means
+  that narrative needs updating, this skill says so in step 8's
+  confirmation but doesn't do it — update those files separately.
 
 ---
 
 ## Guardrails
 
-- **Append-only.** Never rewrite or delete an existing record's body; only a `Status` line changes, and only per step 7.
-- Not every choice is decision-worthy; when in doubt, ask rather than pad.
-- Never edit the project's reference docs from this skill; recommend the update instead.
-- Never write anything before the user confirms in step 5.
-- Never assign a number that already exists; always scan fresh.
-- **Never run `git commit`, `git push` or open a PR.** Recording a decision edits markdown files only.
+- **Records are append-only.** Never rewrite or delete an existing record's
+  `Context`/`Decision`/`Alternatives`/`Consequences` — only a `Status` line
+  changes, and only per step 7.
+- **Not every choice is decision-worthy.** Don't create a record for a
+  routine implementation detail with no rejected alternative — see step 1.
+  When in doubt, ask rather than pad the log.
+- **Never touch `CLAUDE.md`/`docs/*.md` directly.** If a decision affects
+  what those files should currently say, update them separately — don't
+  edit them from this skill.
+- **Never write anything before the user confirms the draft in step 5.**
+- **Never assign a record number that already exists** — numbers are a
+  single global sequence, scanned fresh from
+  `<decisions>/` each run, never reused even for a
+  later-superseded decision.
+- Preserve the exact Markdown table formatting of the `## Index` table when
+  appending a row.
+- **Never run `git commit`, `git push` or open a PR.**

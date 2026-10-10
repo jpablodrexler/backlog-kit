@@ -1,14 +1,16 @@
 ---
 name: features-archive
-description: Marks features as implemented — moves their rows from features-planned.md to features-implemented.md, rewriting each to the implemented-table shape with a Details cell linking the feature's brief (and the archived spec, with OpenSpec), and carrying over resolved dependency notes. Writes the destination before touching the source so an interruption never loses data. TRIGGER when one or more features have shipped and need archiving.
+description: Mark features as implemented in the backlog's features-planned.md and move them to features-implemented.md (rewriting the row to the implemented-table shape, with a Details cell linking the feature's brief file and archived spec). Use when one or more features have been fully implemented and need to be archived.
 license: MIT
 metadata:
   version: "0.1"
 ---
 
-Archive implemented features from `<backlog>/features-planned.md` into `<backlog>/features-implemented.md`. `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` says otherwise.
+Archive one or more implemented features from `<backlog>/features-planned.md` into `<backlog>/features-implemented.md`.
 
-**Input**: one or more feature numbers (`3 7`) or names (`task-due-dates`). If omitted, detect candidates (step 1) and ask.
+`<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`.
+
+**Input**: One or more feature numbers (e.g. `3 7`) or names (e.g. `task-due-dates`). If omitted, auto-detect from archived SDD changes and prompt the user to confirm.
 
 ---
 
@@ -16,92 +18,144 @@ Archive implemented features from `<backlog>/features-planned.md` into `<backlog
 
 ### 1. Resolve which features to archive
 
-Given numbers or names → use them, go to step 2.
+**If the user provided numbers or names**, use them directly — skip to step 2.
 
-Otherwise detect candidates:
+**Otherwise, auto-detect from the archived SDD changes:**
 
-- **With `spec.workflow = "openspec"`**: list the directories under `<changes_dir>/archive/` (default `openspec/changes/archive/`), strip the `YYYY-MM-DD-` prefix to get change names, and match each against the `Change name` column of planned rows still showing `⬜ Pending` or `🔶 In Progress`. An archived spec change is the signal that a feature has shipped.
-- **Otherwise**: candidates are the planned rows showing `🔶 In Progress` — someone started them; ask which have shipped.
-- **Always also**: any planned row showing `✅ Implemented` (an earlier archive pass was interrupted after flipping it). Offer it like any other candidate; archiving it finishes the move.
-- **Fallback** when nothing matches: list every `⬜ Pending` row.
+This project follows a workflow where each feature in `<backlog>/features-planned.md` is implemented via a corresponding OpenSpec (SDD) change. The full lifecycle is:
+1. Feature added to `<backlog>/features-planned.md` with `⬜ Pending`
+2. SDD change created under `openspec/changes/<change-name>/` with proposal, specs, design, and tasks artifacts
+3. SDD change applied (code implemented and committed)
+4. SDD change archived to `openspec/changes/archive/YYYY-MM-DD-<change-name>/` via `/opsx:archive`
+5. This skill archives the matching feature in `<backlog>/features-planned.md`
 
-`AskUserQuestion` takes 2–4 options. For ≤4 candidates use `multiSelect: true`, one per candidate. For more, print the full numbered list as plain text and ask "Archive all listed" / "Archive specific ones (I'll list the numbers)" / "Cancel", resolving "specific ones" from the free-text reply. The user always has the final say.
+To detect candidates at step 5:
+
+a. **List archived SDD changes**: read all directory names under `openspec/changes/archive/`. Strip the leading `YYYY-MM-DD-` date prefix from each directory name to get the raw change names (e.g. `2026-06-21-task-due-dates` → `task-due-dates`).
+
+b. **Cross-reference with <backlog>/features-planned.md**: read `<backlog>/features-planned.md`. For each archived change name, look for a row in the `## Feature List` table whose `Change name` column (the backtick-wrapped value, e.g. `` `task-due-dates` ``) matches. Collect only the rows still showing `⬜ Pending` or `🔶 In Progress` in the Implementation column — rows already showing `✅ Implemented` are excluded. The common case is `🔶 In Progress`, since `feature-development` marks a feature that way as soon as it starts (see that skill's Step 1.6) and this skill is normally invoked at the end of that same run; `⬜ Pending` only shows up here for a row archived some other way (e.g. manually, or via an ad hoc change never marked in progress).
+
+c. **Present candidates to the user**: `AskUserQuestion` only accepts 2–4 options per question (even with `multiSelect`), so how to present candidates depends on the count:
+   - **4 or fewer matches**: use the **AskUserQuestion tool** with `multiSelect: true`, one option per candidate (number + name), and ask which to archive.
+   - **More than 4 matches**: don't try to cram them into `AskUserQuestion`. Print the full numbered list as plain text first, then use **AskUserQuestion** with a small fixed set of options — "Archive all listed", "Archive specific ones (I'll list the numbers)", "Cancel" — and resolve "specific ones" from the user's free-text follow-up (matched against the printed list) rather than a second attempt to enumerate them through the tool.
+
+d. **Fallback**: if no matches are found (all archived SDD changes either have no corresponding feature row or are already marked `✅ Implemented`), fall back to reading `docs/backlog/features-planned.md` and listing all `⬜ Pending` features. If the backlog is large, do not attempt to present dozens of pending features as `AskUserQuestion` options — print the full list as plain text and let the user pick by naming number(s)/name(s) directly, using **AskUserQuestion** only for the surrounding yes/no/cancel framing if needed.
 
 ### 2. Read both files
 
-If either file is missing there's nothing to archive — say so and stop (`feature-plan` creates both on first use).
+Read:
+- `<backlog>/features-planned.md` (source)
+- `<backlog>/features-implemented.md` (destination)
 
-### 3. Validate each selected feature
+If either file doesn't exist yet, there is nothing to archive — report that to the user and stop (`feature-plan` creates both files' initial skeleton on first use; if neither has ever run, there's no backlog yet).
 
-Find the planned row by `#` (numeric input) or `Change name` (the backtick-wrapped value). If no planned row matches but the feature is already in `features-implemented.md`, warn that it's already archived and skip it. **If it matches a planned row *and* is already in `features-implemented.md`** (an interrupted run saved the destination first), don't append a second copy in step 6: skip the write, and only delete the planned row in step 7. Check the brief file `<backlog>/features/NNN-<name>.md` exists; if not, warn (it's never created or edited here) and still archive the row.
+### 3. For each selected feature — validate it exists and is pending
 
-**Ordering is a data-safety rule.** Steps 4–5 are read-only extraction; step 6 writes the **destination**; only after that save succeeds does step 7 edit the **source**, once. An interruption then leaves content duplicated, never lost. Never edit `features-planned.md` before `features-implemented.md` is saved.
+In the `<backlog>/features-planned.md` table find the matching row: for a numeric selection, match the `#` column; for a name (e.g. `task-due-dates`, including how `feature-development`'s Phase 5 always calls this skill — with a name, never a number), match the `Change name` column (the backtick-wrapped value), the same way step 1b's auto-detection already does. If the row already shows `✅ Implemented` warn the user and skip it.
 
-### 4. Extract and rewrite each row (in memory)
+Also check the feature's brief file: `<backlog>/features/NNN-<change-name>.md` (`NNN` = the number zero-padded to three digits; the `[brief](…)` link in the row's `Brief` cell names it). It must exist; if it doesn't, warn the user — it is never created or edited here — and still archive the row.
 
-Copy the planned row, then **in the copy** reshape it from the planned shape to the implemented shape (`# | Change name | Priority | Effort | Area | Details`), reading planned cells by header name:
+Steps 4–8 below are ordered deliberately: everything is *extracted (read-only)* first, then written to the **destination** file (`<backlog>/features-implemented.md`), and only after that save succeeds is the **source** file (`<backlog>/features-planned.md`) mutated — once, in a single save. This is a data-safety ordering, not an arbitrary one: if the skill gets interrupted (crash, killed session, disk error) between extraction and the final `<backlog>/features-planned.md` save, the worst case is that content is already safely duplicated in `<backlog>/features-implemented.md`, never that it existed only in memory and got lost when both files were already mutated. Do not reorder this so that `<backlog>/features-planned.md` is edited before `<backlog>/features-implemented.md` has been successfully saved.
 
-- keep `#`, `Change name`, `Priority`, `Effort`, `Area` exactly as they are;
-- **drop** `SDD Artifacts` (if present), `Implementation`, `Summary`, `Brief` — "implemented" is decided only by which table holds the row;
-- add `Details`: `[brief](features/NNN-<name>.md)`, and with `openspec` append ` · [spec](<link>)`, where `<link>` comes from `python3 scripts/spec_link.py <repo-root> <change-name>` — never write it by hand: the path is relative to the backlog dir and depends on how deep `paths.backlog_dir` is. The script picks the most recent `YYYY-MM-DD-<change-name>` folder under `<changes_dir>/archive/`; if it reports `exists: false` (not archived yet), warn and use the link it built from today's date — `features-status` will flag the missing target until the folder exists.
+### 4. Extract the row from <backlog>/features-planned.md (read-only) and rewrite it in that copy
 
-The row left behind in the planned file keeps showing `⬜ Pending`/`🔶 In Progress` until step 7 deletes it; it is never flipped in place. Don't edit the actual planned file yet.
+Copy the full table row (the `|` delimited line) for each selected feature. **In that copy** — not in the actual file — rewrite it from the planned shape (`# | Change name | Priority | Schema Change | Effort | Area | SDD Artifacts | Implementation | Summary | Brief`) to the implemented shape (`# | Change name | Priority | Schema Change | Effort | Area | Details`), reading the planned cells by header name, never by position:
 
-### 5. Extract dependency / implementation notes (in memory)
+- keep `#`, `Change name`, `Priority`, `Schema Change`, `Effort`, `Area` exactly as they are — plain text, the name still backtick-wrapped, no links;
+- **drop** the `SDD Artifacts`, `Implementation`, `Summary` and `Brief` cells (an implemented row has no status columns and no summary — "implemented" is decided only by which table holds the row, so there is no `✅ Implemented` text to write);
+- add the `Details` cell: `[brief](features/NNN-<change-name>.md) · [spec](<path to openspec/changes/archive/<archive-dir>/proposal.md>)`, paths relative to `<backlog>/` (so `../../openspec/changes/archive/…` when the backlog is `docs/backlog`; `NNN` = zero-padded feature number). `<archive-dir>` is the directory under the repo-root `openspec/changes/archive/` named `YYYY-MM-DD-<change-name>` — find it by listing that folder and matching the slug after the date prefix (if several match, take the most recent date). If no archive directory exists (the SDD change was never archived — e.g. an ad hoc feature), warn the user and write only the `[brief]` link, with no `[spec]` part. The `[brief]` link is the same one as the planned row's `Brief` cell;
 
-Scan the `## Dependencies` sections of the planned file for blocks that mention a selected feature number. A block starts at a heading or bold label such as `**Feature 3 — …**` or `**Feature 3 → Feature 2**` and runs to the **next `**Feature N …**`-style heading** — not the next blank line (blocks span paragraphs). A heading may name several features (`**Features 4, 5, 6 — no schema changes**`); record all of them. A block like that is not directional: delete it from the planned file only once **every** number it names is in `IMPLEMENTED_SET`, and until then leave it alone. For a hard dependency `**Feature A → Feature B**`, B (after the arrow) is the prerequisite.
+The finished row reads `| N | `name` | P | Schema | Effort | Area | [brief](features/NNN-<name>.md) · [spec](<path to openspec/changes/archive/<archive-dir>/proposal.md>) |`. This copy is what step 7 writes into `<backlog>/features-implemented.md`; do not defer the rewrite to step 8, since the planned row is about to be deleted there regardless. The feature's brief file under `<backlog>/features/` is never moved, copied or changed. Do not edit the actual `<backlog>/features-planned.md` file yet.
 
-**`IMPLEMENTED_SET`** = every `#` already in `features-implemented.md`'s Feature List, plus this run's selection — the full set that will be implemented after this run, not just this batch. Prerequisites are often satisfied across separate archive runs, so judging against only this batch would leave "still pending" notes stale forever.
+### 5. Extract associated dependency / implementation notes (read-only)
 
-### 6. Write `features-implemented.md` first
+Scan the **Dependencies** and **Implementation notes** sections of `<backlog>/features-planned.md` for any blocks that reference the selected feature numbers. A block is:
 
-1. Append each rewritten row to the end of `## Feature List` (right after its last row; rows are grouped by archive batch, not sorted), keeping the table contiguous.
-2. Under `## Dependencies (Historical)` → `### Implementation notes`, add the step 5 blocks (a multi-feature block that also stays in the planned file is added here too; duplication is fine):
-   - If no block with that heading exists here yet: append it. For `A → B`, judge only the **prerequisite B**: if B is in `IMPLEMENTED_SET`, write the annotation as `(resolved)` instead of copying "still pending" — A became unblocked the moment B shipped, whether or not A has.
-   - If one already exists: don't append a second copy; if B is now in `IMPLEMENTED_SET` and it still reads "still pending", update it to `(resolved)` in place. A block can legitimately read "resolved" while A's row is still pending in the planned file — "resolved" means "no longer blocking", not "both done".
+- A top-level heading or bold label that mentions the feature number (e.g. `**Feature 3 — …**`, `**Feature 3 → …**`)
+- Everything after that heading up to (but not including) the **next top-level `**Feature N …**`-style heading** — not simply the next blank line.
 
-Save, and **confirm the save succeeded** before step 7.
+Some blocks span many paragraphs separated by blank lines and use nested italic sub-headers as internal structure rather than starting a new block — stopping at the first blank line would truncate the block and strand its remaining paragraphs behind in `<backlog>/features-planned.md` with no parent heading. Only a line matching the `**Feature N ...**` heading pattern ends the current block.
 
-### 7. Edit `features-planned.md` — one edit, one save
+**Some headings reference more than one feature number** (e.g. `**Features 4, 5, 6 — no schema changes**`). For each block, record every feature number its heading mentions, not just the one that led you to it — this determines how it's handled in step 8.
 
-1. Delete each selected feature's row from `## Feature List` (it's removed, not flipped; its brief file stays put).
-2. Delete the step 5 blocks whose heading numbers are **all** in `IMPLEMENTED_SET`. A block that still references an unimplemented feature stays.
-3. For an `A → B` block left behind (A still pending) whose prerequisite B is now in `IMPLEMENTED_SET`, update its annotation to `(resolved)` in place.
-4. Remove the archived features from `### Recommended implementation order`.
-5. Remove them from any "no hard dependencies" list.
+**For a hard-dependency heading of the form `**Feature A → Feature B**`** (every such block observed so far names exactly one A and one B), also record which side is the *prerequisite*: B, the number after the arrow, is what the dependent feature A is blocked on. This distinction matters for step 7 — the block's resolved/still-pending annotation describes whether A is unblocked, which depends only on whether B has shipped, not on whether A itself has. Conflating the two (requiring both A and B in `IMPLEMENTED_SET` before updating the annotation) leaves the annotation reading "still pending" indefinitely once B ships but A hasn't yet — exactly backwards, since that's the moment A actually becomes unblocked.
 
-Keep the `## Dependencies` header even if it empties.
+Collect these blocks in memory. Do not edit `<backlog>/features-planned.md` yet.
 
-### 7b. Tidy the order list
+**Compute `IMPLEMENTED_SET`** (needed by steps 7 and 8): every `#` value
+already present in `<backlog>/features-implemented.md`'s
+`## Feature List` table (read in step 2), unioned with the feature numbers
+selected for archiving this run. This is the full set of features that will
+be implemented *after* this run completes — not just this run's batch. A
+multi-feature block's prerequisites are very often satisfied across several
+separate archive runs rather than all at once (e.g. `**Feature 4 →
+Feature 3**` when feature 3 was archived weeks before feature 4 is), so checking
+only "this run's selection" against such a block — as an earlier version of
+this skill did — means it can never be recognized as fully resolved and is
+left behind in `<backlog>/features-planned.md`
+indefinitely, any "still pending" note about it stale forever even after
+every feature it names is long since implemented.
 
-Order-list entries carry free text such as ``- `playlist-unmatched-entries-log` (#2) — P3, blocked on #1 (logs its names), small``. Once #1 is archived that note is wrong. After step 7 is saved, run:
+### 6. Extract migration table rows (read-only)
 
-```
-python3 scripts/clean_order_notes.py <repo-root>
-```
+In the **Deployment (migration) dependencies** table, find the row(s) mapping a migration to a selected feature and copy them in memory. Not every feature has one — some are noted "no schema change" instead. Do not edit `<backlog>/features-planned.md` yet.
 
-It also restores the `_None yet._` placeholder when archiving emptied the list (an empty section with no placeholder looks truncated). It removes the `blocked on/by #N` clause (with its parenthetical) for every prerequisite now in `features-implemented.md`, keeps any prerequisite that is still pending, touches nothing else, and prints what it changed. Mention each change in the report. It is idempotent; `--dry-run` previews. Don't hand-edit the list instead — the script is the single place that decides what counts as a stale note.
+### 7. Write everything to <backlog>/features-implemented.md first
 
-### 8. Report
+At the end of the `## Feature List` table in `<backlog>/features-implemented.md`, insert the implemented-shape row(s) built in step 4 (right after its last row — rows are grouped by archive batch, not sorted by number), keeping the table contiguous (no blank line inside it).
+
+Under `## Dependencies (Historical)` → `### Implementation notes`, add the note blocks extracted in step 5 (a multi-feature-heading block that also stays in `<backlog>/features-planned.md` per step 8 — because not everything its heading references is in `IMPLEMENTED_SET` yet — is still added here too; duplication across the two files is fine, that's not what this step guards against). For each block:
+
+- **If an equivalent block (same heading) doesn't already exist here** (i.e. this is the first archive run to touch it): append it. Decide whether it's resolved:
+  - For a hard-dependency (`A → B`) block, check **only the prerequisite side, B**: if B is in `IMPLEMENTED_SET`, the dependency is resolved *regardless of whether A has shipped yet*.
+  - For a non-directional multi-feature heading with no prerequisite/dependent distinction (e.g. `**Features 4, 5, 6 — no schema changes**`), it's resolved once every feature number in the heading is in `IMPLEMENTED_SET`.
+
+  When resolved, mark it `(prerequisite already implemented)` (as on existing blocks in this file), preserving any existing `(soft)`/`(hard)` dependency-strength qualifier — that's a separate axis from resolved status and isn't touched by this — rather than leaving an unresolved-looking heading or copying in stale wording. Note this means an `A → B` block can be marked resolved while A's own row is still sitting `⬜ Pending`/`🔶 In Progress` in `features-planned.md` — that's correct: "resolved" here means "no longer blocking," not "both features are done."
+- **If an equivalent block already exists here** (a prior archive run already copied it over, back when it wasn't yet resolved): don't append a second copy. Instead, if it is now resolved by the same per-kind test above (B in `IMPLEMENTED_SET` for `A → B`; all heading numbers for a non-directional block), bring the existing copy's heading annotation up to date the same way (add/update it to `(prerequisite already implemented)`) rather than leaving it unresolved-looking. Also check the block's own prose for an aside naming a specific feature as still pending (e.g. "*(Note: ... where it remains because #N is still pending.)*", the pattern used to explain cross-file duplication) — if the feature that note names is now in `IMPLEMENTED_SET`, that sentence is now false and needs updating or removing, not left to quietly misdescribe the block's own history. This is what actually fixes stale claims already sitting in `<backlog>/features-implemented.md` from before this per-side check was corrected — a dependency note's resolved/pending status is a description of whether the *prerequisite* has shipped, not an immutable historical quote, and it stops being true the moment that prerequisite is archived.
+
+For each migration row extracted in step 6, append it to the **Deployment (migration) dependencies (applied)** table in `<backlog>/features-implemented.md`.
+
+Save `<backlog>/features-implemented.md`. **Confirm this save succeeded before proceeding to step 8** — per the Guardrails, `<backlog>/features-planned.md` must never be mutated until this is confirmed.
+
+### 8. Now mutate <backlog>/features-planned.md — a single edit, a single save
+
+With the destination safely written, make all of the following changes to `<backlog>/features-planned.md` and save it **once**:
+
+1. Delete each selected feature's table row entirely from the `## Feature List` table (the implemented-shape version of it already landed in `<backlog>/features-implemented.md` in step 7 — this row, still showing `⬜ Pending` or `🔶 In Progress`, is simply removed, not rewritten; its brief file stays in `features/`).
+2. Delete the dependency/note blocks extracted in step 5 — but **only the ones whose heading numbers are a full subset of `IMPLEMENTED_SET`** (not just this run's selection — see step 5's definition of `IMPLEMENTED_SET`, which also includes features already archived in earlier runs). If a block's heading references any feature number that is in neither `IMPLEMENTED_SET` nor being archived now (e.g. archiving #4 alone out of a `**Features 4, 5, 6 …**` block where 5 and 6 are still pending), leave that block in `<backlog>/features-planned.md` untouched — the features still pending there need it.
+2a. For a hard-dependency (`A → B`) block left behind by rule 2 above (A still pending, so the block wasn't deleted) whose prerequisite B *is* in `IMPLEMENTED_SET` as of this run: bring that block's annotation up to date to `(prerequisite already implemented)` in place, the same correction step 7 already makes to the copy in `features-implemented.md`. Do not skip this just because the block itself isn't being deleted — leaving the wording stale here is exactly the bug this rule exists to prevent: A's own row can legitimately stay `⬜ Pending`/`🔶 In Progress` in this file for a long time after B ships, and the annotation should reflect "no longer blocking" the whole time, not just from the moment A itself is eventually archived.
+3. Remove the migration rows extracted in step 6 from the **Deployment (migration) dependencies** table.
+4. Update the **Recommended implementation order** block if it lists the archived features — remove them from the ordered list.
+5. Remove the archived features from the **no hard dependencies** list in the Dependencies section if they appear there.
+
+Save the updated `<backlog>/features-planned.md`.
+
+### 9. Display summary
 
 ```
 ## Archive Complete
 
 Archived N feature(s):
-- #<n> `<name>` — moved to features-implemented.md (Details: brief[ + spec] link)
+- #<n> `<name>` — moved to <backlog>/features-implemented.md
+- …
 
-Dependency/implementation note blocks moved: <count>
-Order-list notes cleared: <count> (<entry>: removed "blocked on #N …")
+Notes / dependency blocks moved: <count>
+Migration rows moved: <count>
 ```
 
 ---
 
 ## Guardrails
 
-- **Destination before source, always**, and the source gets exactly one edit and one save.
-- The rewrite to the implemented shape happens in step 4's in-memory copy. Rewriting later against the planned row would only mutate a row step 7 deletes, leaving a wrong-width row under the implemented header.
-- Only the row moves. The brief file is never copied, moved or edited.
-- A dependency block's "still pending" status is judged against `IMPLEMENTED_SET`, never this run's selection alone — and for `A → B`, by B only.
-- If a selected number doesn't exist in the planned file, report it and continue with the rest.
-- Preserve exact table formatting in both files; keep section headers intact — only add or remove rows and note blocks, plus step 7b's removal of shipped "blocked on" clauses from order-list bullets.
-- **Never run `git commit`, `git push` or open a PR.** This skill never writes code or runs tests; it only moves rows between markdown files.
+- **Destination before source, always.** Never edit or save `<backlog>/features-planned.md` (flipping its Implementation column, deleting rows, or removing note/migration content) until the corresponding write to `<backlog>/features-implemented.md` in step 7 has been made and confirmed saved. This ordering (steps 4–6 extract read-only, step 7 writes the destination, step 8 is the sole mutation of the source) exists specifically so an interruption mid-run leaves data duplicated rather than lost — do not collapse or reorder it, and do not perform two separate saves to `<backlog>/features-planned.md` (one flipping the column, one removing content) — step 8 is one edit, one save.
+- **The rewrite happens in step 4's in-memory copy, not in `<backlog>/features-planned.md`.** Step 4 must produce the implemented-shape row (with its `Details` cell, without `SDD Artifacts`/`Implementation`/`Summary`/`Brief`) before step 7 writes it to `<backlog>/features-implemented.md` — rewriting later (e.g. deferring it to step 8, against the actual `<backlog>/features-planned.md` row) would only mutate a row that step 8 deletes moments later, leaving a planned-shaped row archived in `features-implemented.md`. The row that stays behind in `<backlog>/features-planned.md` at step 8 is expected to still show `⬜ Pending` or `🔶 In Progress` right up until it's deleted — it is never itself rewritten, only removed.
+- **The feature's brief file never moves or changes.** `<backlog>/features/NNN-<change-name>.md` stays exactly where it is; archiving only moves the table row and links to it from the `Details` cell.
+- If a selected feature number does not exist in `<backlog>/features-planned.md`, report an error for that entry and continue with the rest.
+- Preserve the exact Markdown table formatting (column widths, pipe characters) in both files.
+- The **Priority**, **Schema Change**, **Effort**, and **Area** columns carry over to the implemented row as-is; the planned-only `SDD Artifacts`, `Implementation`, `Summary` and `Brief` cells are dropped and replaced by one `Details` cell (step 4).
+- Keep the section headers and structure of both files intact — only add/remove rows and note blocks, never rewrite entire sections.
+- If the **Dependencies** section becomes empty after removals, leave the section header in place rather than deleting it.
+- The auto-detection in step 1 is a convenience heuristic — the user always has the final say on which features to archive.
+- **A dependency block's resolved/pending status is judged against `IMPLEMENTED_SET` (this run's selection plus every feature already in `<backlog>/features-implemented.md`), never against this run's selection alone.** Prerequisites for a multi-feature block are routinely satisfied across several separate archive runs rather than all at once — checking only the current batch is what let stale "still pending" claims (in headings or in prose asides) survive indefinitely in both files even after every feature a block named was long since implemented. See step 5 for `IMPLEMENTED_SET`'s definition and step 7 for how an already-resolved block's heading and prose get updated instead of duplicated with stale wording.
+- **For a hard-dependency (`A → B`) block specifically, "resolved" tracks only B (the prerequisite), never A (the dependent).** Requiring both sides to be in `IMPLEMENTED_SET` before updating the annotation — an earlier version of this skill's mistake — leaves the wording reading "still pending" for as long as A itself remains unimplemented, even though A became genuinely unblocked the moment B shipped. A later `features-next` recommendation of a now-actually-unblocked A then looks, from the stale doc text alone, like it has an unresolved dependency. Update the annotation as soon as B lands, in both files (step 7's copy in `features-implemented.md`, and step 8's rule 2a in-place fix to any copy left behind in `features-planned.md`) — regardless of whether A has shipped yet.
+- **Never run `git commit`, `git push` or open a PR.**

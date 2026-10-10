@@ -2,38 +2,13 @@
 # leave out falls back to the default shown here. Requires Python 3.11+ to be read.
 
 [paths]
-backlog_dir      = "docs/backlog"        # features-*.md, bugs-*.md, features/, bugs/
-decisions_dir    = "docs/decisions"      # ADRs (decision-record)
-explorations_dir = "docs/explorations"   # optional; features-next offers open explorations
-reports_dir      = "docs/reports"        # review reports written by bug-fix / feature-development
+# The one folder setting. The decisions, explorations and reports folders sit next to it
+# (<docs>/decisions, <docs>/explorations, <docs>/reports, where <docs> contains the backlog folder).
+backlog_dir = "docs/backlog"        # features-*.md, bugs-*.md, features/, bugs/
 
-[features]
-# Ordered highest -> lowest. Position drives scoring: with 4 tiers the top one
-# scores 400, then 300, 200, 100. Rename or resize freely.
-priorities = ["P0", "P1", "P2", "P3"]
-# Ordered smallest -> largest. The first entry earns features-next's small-effort bonus.
-efforts    = ["S", "M", "L"]
-areas      = ["Frontend", "Backend", "Full-stack"]
-
-[features.priority_labels]
-P0 = "production-safety / security / data-loss gap"
-P1 = "high-impact"
-P2 = "scalability / quality"
-P3 = "convenience"
-
-[bugs]
-id_prefix = "BUG"                          # ids look like BUG-001
-# Ordered most -> least severe.
-severities = ["S1", "S2", "S3", "S4"]
-environments = ["local", "prod", "both"]
-# Environments that earn bugs-next's "hurting real users now" bonus.
-prod_environments = ["prod", "both"]
-
-[bugs.severity_labels]
-S1 = "blocker - app unusable, data loss or security hole"
-S2 = "major - a feature is broken with no workaround"
-S3 = "minor - impaired, but there is a workaround"
-S4 = "trivial - cosmetic or copy"
+# Priorities (P0-P3), efforts (S/M/L), severities (S1-S4), the bug id prefix (BUG) and the Schema Change
+# column are fixed, as in the projects the kit comes from; the Area and Environment values are whatever the
+# legend of your backlog files says.
 
 [spec]
 # "none" (default) or "openspec". backlog-kit never bundles OpenSpec; with

@@ -12,7 +12,7 @@ import copy
 import json
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 try:
     import tomllib
@@ -30,38 +30,14 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 DEFAULTS = {
+    # backlog_dir is the one folder setting. The decisions, explorations and reports folders sit next to
+    # it (decision D19): <docs>/decisions, <docs>/explorations, <docs>/reports, derived by _derive_paths.
     "paths": {
         "backlog_dir": "docs/backlog",
-        "decisions_dir": "docs/decisions",
-        "explorations_dir": "docs/explorations",
-        "reports_dir": "docs/reports",
-    },
-    "features": {
-        # Ordered highest -> lowest; position drives scoring (see tier_score).
-        "priorities": ["P0", "P1", "P2", "P3"],
-        "priority_labels": {
-            "P0": "production-safety / security / data-loss gap",
-            "P1": "high-impact",
-            "P2": "scalability / quality",
-            "P3": "convenience",
-        },
-        # Ordered smallest -> largest; the first entry earns the small-effort bonus.
-        "efforts": ["S", "M", "L"],
-        "areas": ["Frontend", "Backend", "Full-stack"],
     },
     "bugs": {
+        # Fixed in the source projects (decision D18); still read by the batch runners until they are converted.
         "id_prefix": "BUG",
-        # Ordered most -> least severe.
-        "severities": ["S1", "S2", "S3", "S4"],
-        "severity_labels": {
-            "S1": "blocker - app unusable, data loss or security hole",
-            "S2": "major - a feature is broken with no workaround",
-            "S3": "minor - impaired, but there is a workaround",
-            "S4": "trivial - cosmetic or copy",
-        },
-        "environments": ["local", "prod", "both"],
-        # Environments that earn the "hurting real users now" bonus.
-        "prod_environments": ["prod", "both"],
     },
     "git": {
         # Empty = detect from origin/HEAD, then main / master / develop / trunk.
@@ -120,15 +96,24 @@ def _merge(base, override):
     return out
 
 
+def _derive_paths(cfg):
+    """The auxiliary folders sit next to the backlog folder: <docs>/decisions, /explorations, /reports."""
+    parent = str(PurePosixPath(norm_path(cfg["paths"]["backlog_dir"]).strip("/")).parent)
+    docs = "" if parent == "." else parent + "/"
+    cfg["paths"].update(decisions_dir=docs + "decisions", explorations_dir=docs + "explorations",
+                        reports_dir=docs + "reports")
+    return cfg
+
+
 def load_config(root):
     """Defaults merged with <root>/.backlog-kit.toml (if present)."""
     p = Path(root) / CONFIG_FILE
     if not p.is_file():
-        return copy.deepcopy(DEFAULTS)
+        return _derive_paths(copy.deepcopy(DEFAULTS))
     if tomllib is None:
         raise SystemExit(f"{CONFIG_FILE} needs Python 3.11+ (tomllib) to be read.")
     with p.open("rb") as fh:
-        return _merge(DEFAULTS, tomllib.load(fh))
+        return _derive_paths(_merge(DEFAULTS, tomllib.load(fh)))
 
 
 class Paths:
@@ -147,99 +132,6 @@ class Paths:
         self.decisions = self.root / cfg["paths"]["decisions_dir"]
         self.explorations = self.root / cfg["paths"]["explorations_dir"]
         self.reports = self.root / cfg["paths"]["reports_dir"]
-
-
-def planned_header(cfg):
-    cols = ["#", "Change name", "Priority", "Effort", "Area"]
-    if cfg["spec"]["workflow"] == "openspec":
-        cols.append("SDD Artifacts")
-    cols += ["Implementation", "Summary", "Brief"]
-    return cols
-
-
-def planned_header_found(path):
-    """The header cells of the table under `## Feature List` in features-planned.md, or None."""
-    lines = read_lines(path)
-    table = find_table(lines, "## Feature List") if lines is not None else None
-    return table[0] if table else None
-
-
-def migrate_planned_header(path, cfg):
-    """Add or drop the `SDD Artifacts` column so the table matches `spec.workflow`.
-
-    Lossless: an added cell reads `⬜ Pending` (no spec artifacts yet), a dropped one is just
-    removed. Only rows whose cell count matches the old header are rewritten. Returns
-    {"changed": bool, "rows": n, "skipped": [line numbers]}; writes atomically.
-    """
-    import os
-    lines = read_lines(path)
-    want = planned_header(cfg)
-    start = next((i for i, ln in enumerate(lines or []) if ln.strip() == "## Feature List"), None)
-    if start is None:
-        return {"changed": False, "rows": 0, "skipped": []}
-    h = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("|")), None)
-    if h is None:
-        return {"changed": False, "rows": 0, "skipped": []}
-    old = split_row(lines[h])
-    if old == want:
-        return {"changed": False, "rows": 0, "skipped": []}
-    if "SDD Artifacts" in old:
-        col, adding = old.index("SDD Artifacts"), False
-    elif "SDD Artifacts" in want:
-        col, adding = want.index("SDD Artifacts"), True
-    else:
-        return {"changed": False, "rows": 0, "skipped": [], "note": "headers differ in more than the SDD column"}
-    def fmt(cells):
-        # split_row unescapes `\|`; writing it back must re-escape or one cell becomes two.
-        return "| " + " | ".join(c.replace("|", "\\|") for c in cells) + " |"
-    def convert(cells, fill="⬜ Pending"):
-        return cells[:col] + [fill] + cells[col:] if adding else cells[:col] + cells[col + 1:]
-    new_header = convert(old, "SDD Artifacts")
-    lines[h] = fmt(new_header)
-    lines[h + 1] = "| " + " | ".join("-" * max(3, len(c)) for c in new_header) + " |"
-    rows, skipped = 0, []
-    i = h + 2
-    while i < len(lines) and lines[i].lstrip().startswith("|"):
-        cells = split_row(lines[i])
-        if len(cells) == len(old):
-            lines[i] = fmt(convert(cells))
-            rows += 1
-        else:
-            skipped.append(i + 1)
-        i += 1
-    tmp = Path(path).with_suffix(".md.tmp")
-    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
-    return {"changed": True, "rows": rows, "skipped": skipped}
-
-
-def spec_link(root, cfg, name, today=None):
-    """Relative link (from the backlog dir) to the archived change's proposal.md, or None.
-
-    Picks the most recent `<changes_dir>/archive/YYYY-MM-DD-<name>/`. The relative path is computed
-    from the real backlog dir, not assumed to be two levels deep. If no archive folder exists yet,
-    the link is built from `today` (YYYY-MM-DD) and `exists` is False.
-    """
-    import os
-    from datetime import date
-    arch = Path(root) / cfg["spec"]["changes_dir"] / "archive"
-    found = sorted(d.name for d in arch.glob(f"*-{name}") if d.is_dir() and re.fullmatch(rf"\d{{4}}-\d{{2}}-\d{{2}}-{re.escape(name)}", d.name)) if arch.is_dir() else []
-    dirname = found[-1] if found else f"{today or date.today().isoformat()}-{name}"
-    target = arch / dirname / "proposal.md"
-    backlog = Path(root) / cfg["paths"]["backlog_dir"]
-    return {"link": os.path.relpath(target, backlog).replace(os.sep, "/"), "exists": bool(found), "archive_dir": dirname}
-
-
-def spec_artifacts_ready(root, cfg, name):
-    """True if `<changes_dir>/<name>/` holds the artifacts a change needs before it can be applied
-    (proposal, tasks and at least one spec). The disk is the truth; the `SDD Artifacts` cell is a
-    convenience that can lag behind it."""
-    d = Path(root) / cfg["spec"]["changes_dir"] / name
-    return (d / "proposal.md").is_file() and (d / "tasks.md").is_file() and \
-        (d / "specs").is_dir() and any((d / "specs").rglob("spec.md"))
-
-
-IMPLEMENTED_HEADER = ["#", "Change name", "Priority", "Effort", "Area", "Details"]
 
 
 # --- markdown tables ---------------------------------------------------------
@@ -353,17 +245,6 @@ def id_number(identifier):
     return int(tail) if tail.isdigit() else 10 ** 9
 
 
-def tier_score(value, ordered, step=100, untiered=50):
-    """Score by position in `ordered` (first = highest): n*step ... 1*step.
-
-    A value not in the list scores `untiered`, so a blank or unknown cell
-    sorts last instead of erroring.
-    """
-    if value in ordered:
-        return (len(ordered) - ordered.index(value)) * step
-    return untiered
-
-
 def order_list_positions(lines, heading, entry_regex):
     """{captured-id: 1-based position} from a bullet list under `heading`.
 
@@ -413,58 +294,11 @@ def hard_dependencies(lines):
 # --- free-text "blocked on #N" notes in the Recommended implementation order --------------------
 
 _ITEM = r"(?:`[^`]+`\s*\(#\d+\)|#\d+)"
-BLOCKED_NOTE_RE = re.compile(
-    rf"(?P<lead>,?\s*)\bblocked (?P<prep>on|by) (?P<items>{_ITEM}(?:\s*(?:,|and|&)\s*{_ITEM})*)(?P<paren>\s*\([^)]*\))?",
-    re.IGNORECASE)
-ORDER_HEADING = "### Recommended implementation order"
 HARD_DEPS_HEADING = "### Hard implementation dependencies"
-
-
-def clean_blocked_notes(line, implemented):
-    """Drop prerequisites that have shipped from a "blocked on #N" note in one order-list bullet.
-
-    `implemented` is the set of implemented feature numbers (strings). A note whose prerequisites
-    have all shipped is removed with its explanatory parenthetical; a note that still has an
-    unshipped prerequisite keeps only those (its parenthetical is dropped, since it may describe a
-    shipped one). Returns the new line, or `line` unchanged.
-    """
-    def repl(m):
-        nums = re.findall(r"#(\d+)", m.group("items"))
-        remaining = [n for n in nums if n not in implemented]
-        if len(remaining) == len(nums):
-            return m.group(0)
-        if not remaining:
-            return ""
-        return f"{m.group('lead')}blocked {m.group('prep')} " + ", ".join(f"#{n}" for n in remaining)
-
-    new = BLOCKED_NOTE_RE.sub(repl, line)
-    if new == line:
-        return line
-    new = re.sub(r"(—|-)\s*,\s*", r"\1 ", new)          # "— , small" left by removing the first clause
-    new = re.sub(r"\s*(?:,|—|-)\s*$", "", new)             # nothing left after a trailing separator
-    return re.sub(r"[ \t]{2,}", " ", new).rstrip()
-
-
-def order_section_bounds(lines):
-    """(start, end) line indexes of the bullets under the order heading, or None."""
-    start = next((i for i, ln in enumerate(lines) if ln.strip() == ORDER_HEADING), None)
-    if start is None:
-        return None
-    end = len(lines)
-    for i in range(start + 1, len(lines)):
-        if re.match(r"^#{1,3} ", lines[i]):
-            end = i
-            break
-    return start + 1, end
 
 
 def emit(obj):
     print(json.dumps(obj, indent=2))
-
-
-def script_main_guard():
-    if sys.version_info < (3, 8):  # pragma: no cover
-        raise SystemExit("backlog-kit scripts need Python 3.8+ (3.11+ to read .backlog-kit.toml).")
 
 
 # --- path globs --------------------------------------------------------------

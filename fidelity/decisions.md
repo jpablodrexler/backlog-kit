@@ -22,6 +22,9 @@ configurable, was removed, or was changed on purpose is recorded here with the o
 | D14 | `feature-plan` step 9 (insert the new feature into the Recommended implementation order) | **Included** (from the first project); `features-next` then gives the order bonus. | 2026-10-10 |
 | D15 | Kit-only helper scripts (`dep_scan.py`, `spec_link.py`, `clean_order_notes.py`, `scaffold.py`): keep any? | **None kept** (no selection given, so the recommendation applies): the originals do these things with prose, and the skeletons are inline in `feature-plan`. Each goes away as the skill that used it is converted; `scaffold.py` and `dep_scan.py` from `feature-plan` are gone. Reversible from git history. | 2026-10-10 |
 | D16 | `features-status`: the two projects' checks differ (stale-note detection: the first requires both ends of a dependency to be implemented and only reads the heading form; the second flags any referenced feature that is implemented and also reads the prose forms) | **The second project's** (newer and stricter); not a configuration choice. | 2026-10-10 |
+| D17 | Annotation `features-archive` writes when a dependency's prerequisite has shipped (`(resolved)` in one project, `(prerequisite already implemented)` in the other) | **`(prerequisite already implemented)`**. No config key. | 2026-10-10 |
+| D18 | Bug id prefix (`[bugs] id_prefix`) | **Fixed `BUG`**, as in both projects. The key goes away as the batch runners are converted. | 2026-10-10 |
+| D19 | Auxiliary folders (`decisions_dir`, `explorations_dir`, `reports_dir`) | **One setting, `backlog_dir`**; the others sit next to it: `<docs>/decisions`, `<docs>/explorations`, `<docs>/reports`, where `<docs>` is the folder that contains the backlog folder. | 2026-10-10 |
 
 Not asked (not configurable, taken from the more complete original): order lists accept numbered and
 link forms (J's `bugs-next`); `features-next` reads `SDD Artifacts` from the cell only (no disk check).
