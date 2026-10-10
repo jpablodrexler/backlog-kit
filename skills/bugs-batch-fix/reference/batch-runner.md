@@ -44,8 +44,8 @@ For `--all` the list is *derived*, not typed by the user, so **show the ordered 
 python3 <scripts>/batch_report.py find <repo-root> --kind <kind> --items "<id1>,<id2>,…"
 ```
 
-- **`exact` or `near`** → this is a **resume**. The report names the `branch`, the `done` ids (skip them) and the `remaining` ones. Do **not** create or re-propose a branch. Run `python3 <scripts>/branch_state.py <repo-root> --branch <that branch> --fetch` and act on its `action` (table below). If the action is `create`, the branch from the interrupted run no longer exists: **stop and tell the user** rather than silently creating a same-named but different branch.
-- **`partial`** → don't guess. Ask with **AskUserQuestion** whether this continues that report or is a new run.
+- **`exact`** (the same set of ids) → this is a **resume**. The report names the `branch`, the `done` ids (skip them) and the `remaining` ones. Do **not** create or re-propose a branch. Run `python3 <scripts>/branch_state.py <repo-root> --branch <that branch> --fetch` and act on its `action` (table below). If the action is `create`, the branch from the interrupted run no longer exists: **stop and tell the user** rather than silently creating a same-named but different branch.
+- **`near` or `partial`** (the lists overlap but differ: the result lists `added` and `dropped` ids) → don't guess, and don't reuse the old list silently: an id the user just added would be missing from that report, and one they dropped would still run. Say which ids differ and ask with **AskUserQuestion** whether this continues that report (resume exactly its list; the added ids are not run) or is a new run (fresh report, fresh list).
 - **`none`** → a fresh run. Pick the candidate branch name: one the user supplied (add `<branch-prefix>` if it lacks it) or the default `<branch-prefix>batch-<YYYY-MM-DD>`. Run `branch_state.py --branch <candidate> --fetch`:
   - `blocked` (uncommitted work *outside backlog-kit's own files*, or a diverged branch) → **stop and report**, naming the files from `dirty_files`. Never stash, discard or reset. (The backlog, reports and decisions folders, `.backlog-kit.toml` and the installed skills are the kit's own bookkeeping: filing a bug leaves them uncommitted, and they carry over to the new branch, so they don't count.)
   - the branch already exists (`local_exists` or `remote_exists`) → it is unrelated leftover state, not something to reuse silently: warn by name and ask "Continue on it as-is" / "Stop so I can pick another name".
@@ -68,7 +68,7 @@ Confirm `git branch --show-current` equals the intended branch before going on.
 ### 3. Initialize or resume the report
 
 - **Fresh run:** `python3 <scripts>/batch_report.py init <repo-root> --kind <kind> --branch <branch> --items "<id1>,<id2>,…"` — it writes the report with every item `⬜ Not started` and prints its `path`.
-- **Resume:** reuse the existing report's `path`. Never overwrite it or any entry already `✅`.
+- **Resume:** reuse the existing report's `path`. Never overwrite it or any entry already `✅`. On a resume the runner works the report's `remaining` ids (`not-started`, `in-progress`, and `blocked` ones, which are retried); items already `skipped` or `left-open` are not run again unless the user asks.
 
 ### 4. The loop
 

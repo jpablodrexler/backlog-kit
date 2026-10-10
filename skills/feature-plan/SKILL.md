@@ -119,7 +119,7 @@ This step is **not** optional: a backlog with rows missing from the order is wor
 
 1. Find the tier boundary: after the last entry whose priority is the same or higher than the new feature's, before the first entry with strictly lower priority. Same-priority entries keep their relative order; the new one lands after all of them. If the list isn't strictly tier-sorted, apply the rule literally and never reorder existing bullets.
 2. If step 8 recorded a dependency, make sure the new entry sits after its prerequisite, whatever tier placement alone would say.
-3. If the list reads `_None yet._`, the new entry replaces that placeholder.
+3. If the list reads `_None yet._`, the new entry replaces that placeholder. If the `### Recommended implementation order` heading is missing altogether (an older or hand-made backlog), add it under `## Dependencies` first, with its one-paragraph description, then the entry.
 4. Every other bullet stays exactly as it was.
 
 Write the entry in the style of its neighbours (priority; unblocked or blocked on what; independent/small where relevant). When placement among peers is genuinely ambiguous, put it last within its tier — don't invent a rationale.

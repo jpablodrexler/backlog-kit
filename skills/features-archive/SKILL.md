@@ -22,6 +22,7 @@ Otherwise detect candidates:
 
 - **With `spec.workflow = "openspec"`**: list the directories under `<changes_dir>/archive/` (default `openspec/changes/archive/`), strip the `YYYY-MM-DD-` prefix to get change names, and match each against the `Change name` column of planned rows still showing `⬜ Pending` or `🔶 In Progress`. An archived spec change is the signal that a feature has shipped.
 - **Otherwise**: candidates are the planned rows showing `🔶 In Progress` — someone started them; ask which have shipped.
+- **Always also**: any planned row showing `✅ Implemented` (an earlier archive pass was interrupted after flipping it). Offer it like any other candidate; archiving it finishes the move.
 - **Fallback** when nothing matches: list every `⬜ Pending` row.
 
 `AskUserQuestion` takes 2–4 options. For ≤4 candidates use `multiSelect: true`, one per candidate. For more, print the full numbered list as plain text and ask "Archive all listed" / "Archive specific ones (I'll list the numbers)" / "Cancel", resolving "specific ones" from the free-text reply. The user always has the final say.
@@ -32,7 +33,7 @@ If either file is missing there's nothing to archive — say so and stop (`featu
 
 ### 3. Validate each selected feature
 
-Find the planned row by `#` (numeric input) or `Change name` (the backtick-wrapped value). If no planned row matches but the feature is already in `features-implemented.md`, warn that it's already archived and skip it. Check the brief file `<backlog>/features/NNN-<name>.md` exists; if not, warn (it's never created or edited here) and still archive the row.
+Find the planned row by `#` (numeric input) or `Change name` (the backtick-wrapped value). If no planned row matches but the feature is already in `features-implemented.md`, warn that it's already archived and skip it. **If it matches a planned row *and* is already in `features-implemented.md`** (an interrupted run saved the destination first), don't append a second copy in step 6: skip the write, and only delete the planned row in step 7. Check the brief file `<backlog>/features/NNN-<name>.md` exists; if not, warn (it's never created or edited here) and still archive the row.
 
 **Ordering is a data-safety rule.** Steps 4–5 are read-only extraction; step 6 writes the **destination**; only after that save succeeds does step 7 edit the **source**, once. An interruption then leaves content duplicated, never lost. Never edit `features-planned.md` before `features-implemented.md` is saved.
 
@@ -48,7 +49,7 @@ The row left behind in the planned file keeps showing `⬜ Pending`/`🔶 In Pro
 
 ### 5. Extract dependency / implementation notes (in memory)
 
-Scan the `## Dependencies` sections of the planned file for blocks that mention a selected feature number. A block starts at a heading or bold label such as `**Feature 3 — …**` or `**Feature 3 → Feature 2**` and runs to the **next `**Feature N …**`-style heading** — not the next blank line (blocks span paragraphs). A heading may name several features (`**Features 4, 5, 6 — no schema changes**`); record all of them. For a hard dependency `**Feature A → Feature B**`, B (after the arrow) is the prerequisite.
+Scan the `## Dependencies` sections of the planned file for blocks that mention a selected feature number. A block starts at a heading or bold label such as `**Feature 3 — …**` or `**Feature 3 → Feature 2**` and runs to the **next `**Feature N …**`-style heading** — not the next blank line (blocks span paragraphs). A heading may name several features (`**Features 4, 5, 6 — no schema changes**`); record all of them. A block like that is not directional: delete it from the planned file only once **every** number it names is in `IMPLEMENTED_SET`, and until then leave it alone. For a hard dependency `**Feature A → Feature B**`, B (after the arrow) is the prerequisite.
 
 **`IMPLEMENTED_SET`** = every `#` already in `features-implemented.md`'s Feature List, plus this run's selection — the full set that will be implemented after this run, not just this batch. Prerequisites are often satisfied across separate archive runs, so judging against only this batch would leave "still pending" notes stale forever.
 

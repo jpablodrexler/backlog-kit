@@ -33,7 +33,7 @@ Which bug gets fixed is the user's decision; a spawned subagent can't reliably s
 
 1. Invoke `bugs-next` with the Skill tool directly (not inside an Agent call), passing the id if one was given — and `--confirmed` if this skill was given it. Let it present its recommendation and ask for confirmation in this context; in `--confirmed` mode it validates the id and asks nothing.
 2. No `BUG_ID:` line back (cancelled, or confirmation couldn't be obtained) → stop and tell the user. Never go on without a confirmed id.
-3. Otherwise `<id>` is the confirmed id. Read its row in `<backlog>/bugs-open.md` and its details in `<backlog>/bugs/<id>.md` now, and keep the steps to reproduce / expected / actual / environment / notes as `<repro-details>` to paste verbatim into the reproduce subagent's prompt — a subagent shouldn't have to hunt for them.
+3. Otherwise `<id>` is the confirmed id. Read its row in `<backlog>/bugs-open.md` and its details in `<backlog>/bugs/<id>.md` now (if the details file is missing, fall back to the row's Summary as the report, and tell the user the write-up is missing and thin), and keep the steps to reproduce / expected / actual / environment / notes as `<repro-details>` to paste verbatim into the reproduce subagent's prompt — a subagent shouldn't have to hunt for them.
 
 **Branch**: `<slug>` = `<id lowercased>-<2–4 kebab words from the title>` (e.g. `bug-004-report-total-wrong`); `<branch>` = the `[git] fix_prefix` (default `fix/`) + `<slug>`.
 
@@ -64,7 +64,7 @@ Follow `reference/phase-branch.md`, with `<backlog-row>` = "Open `<backlog>/bugs
 After it returns:
 - `FIX_BLOCKED — cannot reproduce` → in your own context ask with **AskUserQuestion**: "Mark `<id>` as ❓ Cannot reproduce?" — "Yes, mark it Cannot reproduce" (invoke `bugs-archive <id> cannot-repro "<the subagent's note>"` and stop), "Keep it open — I'll add repro detail" (stop; leave the row `🔶 In Progress`), "Cancel". Do not go on to Phase 3.
 - Any other `*_BLOCKED` → surface and stop.
-- Otherwise capture the `REPRO: DONE — test: <path>` line as `<repro-test-path>`.
+- Otherwise capture the `REPRO: DONE — test: <path>` line as `<repro-test-path>`, check that the `BUG_ID:` echo equals `<id>` (anything else: blocked), and **run `<repro-test-path>` yourself** to confirm it fails, for the reason in the report, before going on — a hand-back is a claim, not evidence.
 
 ## Phase 3 — Fix & review (subagent, foreground)
 
@@ -74,13 +74,15 @@ After it returns:
 >
 > **Step 1 — Fix.** Fix the **root cause**, not the symptom, with the narrowest change that does it. Never edit a file that records history already applied elsewhere (an applied database migration, a released changelog entry, a published schema) — add a new one instead. Then run `<repro-test-path>` and confirm it now **passes**. A blocker needing a human decision → end with `FIX_BLOCKED — <reason>` and stop.
 >
+> **Step 1b — The reported scenario.** The regression test pins the logic; also exercise the scenario the report describes (run the program or command, call the endpoint, drive the flow) as far as the project allows without installing anything, and quote what you observed against the expected result. If it cannot be run here, say `ORIGINAL SCENARIO: not verified — <why>`.
+>
 > **Step 2 — Review.** Follow `reference/phase-reviews.md` over the current diff: recompute scope with `python3 <scripts>/work_scope.py <repo-root>` before each review, fix every 🔴/🟡 finding, re-review until clean or the round cap.
 >
 > Never print or write a generated secret's raw value; leave any task needing one unchecked with the manual command named.
 >
-> End with exactly `FIX_IMPLEMENTED: DONE` (or `REVIEW_BLOCKED — …` / `FIX_BLOCKED — …`).
+> End with exactly `FIX_IMPLEMENTED: DONE`, then `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review you ran yourself rather than through a fresh reviewer, or `REVIEWS: none applied`), then `ORIGINAL SCENARIO: confirmed — <observed>` or `ORIGINAL SCENARIO: not verified — <why>` — or `REVIEW_BLOCKED — …` / `FIX_BLOCKED — …`.
 
-Do not start Phase 4 until it returns `FIX_IMPLEMENTED: DONE`; on any `*_BLOCKED`, surface and wait.
+Do not start Phase 4 until it returns `FIX_IMPLEMENTED: DONE`; on any `*_BLOCKED`, surface and wait. Then **run `<repro-test-path>` yourself** and confirm it passes. Keep the `REVIEWS:` and `ORIGINAL SCENARIO:` lines for the final summary.
 
 ## Phase 4 — Gates
 
@@ -106,7 +108,9 @@ Do not show the final summary until the bug is closed. After `CLOSE: DONE`, spot
 **Bug:** <id> — <title>
 **Regression test:** <path> (failed before the fix, passes now)
 **Root cause / fix:** <one or two sentences>
-**Reviews:** <name> ✓ clean  …  (or "none applied")
+**Reviews:** <name> ✓ clean [(self-reviewed)] …  (or "none applied")
+**Original scenario:** <confirmed — what was observed | not verified — why>
+[if the branch phase reported the base ahead:] **Base:** <base> has <n> commit(s) this branch lacks (information; syncing the branch with the base brings them in)
 **Gates:** <name> ✓ …  [if `uncovered_files`: ⚠ NOT VERIFIED BY ANY GATE: <n> files (<areas>)]  (or ⚠ NOT RUN: <gate> — <why>; or ⚠ FAILED (environment): <gate> — <tests>; or KNOWN FAILURE: <test>; or "none configured — nothing was verified beyond the regression test")
 [if UNREVIEWED_PROD_FIXES:] **⚠ Unreviewed production changes:** <the PROD_CODE_FIXED lines> — made while fixing gate failures; you chose to proceed without re-review.
 **Docs:** <one line, or "nothing to sync" / "no sync skill configured">

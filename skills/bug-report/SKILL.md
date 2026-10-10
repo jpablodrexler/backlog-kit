@@ -87,7 +87,7 @@ Ask one question with **AskUserQuestion** — "Add this bug to the backlog?" —
 1. Create `<backlog>/bugs/<ID>.md` (create the folder if needed). The filename is exactly the id and never changes.
 2. In **one edit** to `bugs-open.md`, append the row to `## Bug List`:
    `| [BUG-NNN](bugs/BUG-NNN.md) | <s> | <area> | <env> | ⬜ Open | | <summary> |`
-   Rows must follow the header separator row **with no blank line between them**. The scaffold leaves a blank line and a `_No open bugs._` placeholder after the table: when it's present, remove **both** the placeholder and that blank line — a stray blank line detaches the row from the table, so it renders as plain text and `bugs-status` counts zero.
+   Rows must follow the header separator row **with no blank line between them**. The scaffold leaves a blank line and a `_No open bugs._` placeholder after the table: when it's present, remove **both** the placeholder and that blank line — a stray blank line detaches the row from the table, so it renders as plain text (the status script tolerates one blank line, but markdown renderers do not).
 3. In the same edit, insert the bug into `## Recommended fix order` (step 8). Not optional.
 
 Don't append anything to `## Details` (it holds only a pointer sentence) and don't touch `bugs-fixed.md`.

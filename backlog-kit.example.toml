@@ -77,6 +77,8 @@ sync_skill = ""
 #   put to the user first, e.g. for a gate that touches a live service), timeout_minutes = 10,
 #   known_failures = [] (test names or patterns that already fail for reasons unrelated to your
 #   changes — reported as KNOWN FAILURE and not fixed, instead of blocking every run).
+# Leave `when` OFF a smoke or build gate that must catch a change that looks unrelated; a gate with
+# `when` is skipped when no changed file matches it.
 #
 # [[gates]]
 # name = "tests"

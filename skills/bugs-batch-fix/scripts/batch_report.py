@@ -110,6 +110,7 @@ def cmd_find(a):
             continue
         cls = "exact" if have == want else "near" if jac >= 0.8 else "partial"
         cand = {"match": cls, "overlap": round(jac, 2), "path": str(f), "branch": info["branch"],
+                "added": sorted(want - have), "dropped": sorted(have - want),
                 "done": [i["id"] for i in info["items"] if i["status"] in (k["done"], "cannot-reproduce")],
                 "remaining": [i["id"] for i in info["items"] if i["status"] in RETRYABLE]}
         if best is None or cand["overlap"] >= best["overlap"]:

@@ -90,6 +90,9 @@ class Base(unittest.TestCase):
 
     def features(self, deps="_None yet._", order="_None yet._"):
         self.write("features-planned.md", FEATURES_PLANNED % (deps, order))
+        (self.root / "docs/backlog/features").mkdir(exist_ok=True)
+        for n, name in ((1, "alpha"), (2, "beta"), (3, "gamma")):
+            (self.root / "docs/backlog/features" / f"{n:03d}-{name}.md").write_text(f"# Feature {n} — {name}\n\nx\n")
         self.write("features-implemented.md", FEATURES_IMPL)
 
 
@@ -295,3 +298,32 @@ class Report(Base):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlanFeaturesBriefAndNumberedOrder(Base):
+    def plan(self, *args):
+        return run("batch_plan.py", self.root, "--kind", "features", *args)
+
+    def test_a_missing_brief_is_reported_before_the_run_starts(self):
+        self.features()
+        (self.root / "docs/backlog/features/002-beta.md").unlink()
+        out = self.plan("--all")
+        self.assertEqual([(p["kind"], p["input"]) for p in out["problems"]], [("missing-brief", "beta")])
+
+    def test_numbered_order_lists_are_read_like_bulleted_ones(self):
+        self.features(order="1. `gamma` (#3) — x\n2. `alpha` (#1) — y\n3. `beta` (#2) — z")
+        p = self.root / "docs/backlog/features-planned.md"
+        p.write_text(p.read_text().replace("| P1 |", "| P2 |").replace("| P3 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
+        out = self.plan("--all")
+        self.assertEqual([i["id"] for i in out["items"]], ["gamma", "alpha", "beta"])
+        self.assertEqual(out["warnings"], [])
+
+
+class ResumeNeedsTheSameList(Base):
+    def test_near_and_partial_report_what_differs(self):
+        rep = run("batch_report.py", "init", self.root, "--kind", "bugs", "--items", "BUG-001,BUG-002,BUG-003,BUG-004,BUG-005", "--branch", "fix/b")
+        out = run("batch_report.py", "find", self.root, "--kind", "bugs", "--items", "BUG-001,BUG-002,BUG-003,BUG-004,BUG-005,BUG-006")
+        self.assertEqual(out["match"], "near")
+        self.assertEqual((out["added"], out["dropped"]), (["BUG-006"], []))
+        text = (Path(__file__).resolve().parents[1] / "shared/batch-runner.md").read_text()
+        self.assertIn("don't reuse the old list silently", text)

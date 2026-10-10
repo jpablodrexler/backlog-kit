@@ -33,6 +33,28 @@ import backlog_kit as bk
 PLACEHOLDER = "_None yet._"
 
 
+def restore_placeholder(lines, heading, entry_regex):
+    """Put `_None yet._` back under `heading` when its section has no entries and no placeholder."""
+    start = next((i for i, ln in enumerate(lines) if ln.strip() == heading), None)
+    if start is None:
+        return False
+    level = len(heading) - len(heading.lstrip("#"))
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        m = re.match(r"^(#+) ", lines[i])
+        if m and len(m.group(1)) <= level:
+            end = i
+            break
+    section = lines[start + 1:end]
+    if any(re.match(entry_regex, ln) for ln in section) or any(ln.strip() == PLACEHOLDER for ln in section):
+        return False
+    idx = end
+    while idx > start + 1 and lines[idx - 1].strip() == "":
+        idx -= 1
+    lines[idx:idx] = ["", PLACEHOLDER]
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("repo_root")
@@ -54,16 +76,11 @@ def main():
             if new != lines[i]:
                 changed.append({"line": i + 1, "before": lines[i], "after": new})
                 lines[i] = new
-    restored = False
-    if bounds:
-        start, end = bounds
-        section = lines[start:end]
-        if not any(re.match(r"^\s*-\s", ln) for ln in section) and not any(ln.strip() == PLACEHOLDER for ln in section):
-            idx = end
-            while idx > start and lines[idx - 1].strip() == "":
-                idx -= 1
-            lines[idx:idx] = ["", PLACEHOLDER]
-            restored = True
+    restored = restore_placeholder(lines, "### Recommended implementation order",
+                                   r"^\s*(?:-|\d+[.)])\s")
+    # Archiving the last feature that had a dependency block empties that section too.
+    restored_deps = restore_placeholder(lines, bk.HARD_DEPS_HEADING, r"^\s*\*\*Features?\s")
+    restored = restored or restored_deps
     written = (bool(changed) or restored) and not a.dry_run
     if written:
         text = "\n".join(lines) + "\n"

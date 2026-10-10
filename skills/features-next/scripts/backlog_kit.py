@@ -344,7 +344,8 @@ def order_list_positions(lines, heading, entry_regex):
         m_head = re.match(r"^(#+) ", ln)
         if m_head and len(m_head.group(1)) <= level:
             break
-        m = re.match(entry_regex, ln)
+        # A numbered list ("1. `x` (#2)") is as valid an order list as a bulleted one.
+        m = re.match(entry_regex, re.sub(r"^(\s*)\d+[.)]\s", r"\1- ", ln))
         if m:
             pos += 1
             positions[m.group(1)] = pos
@@ -380,6 +381,7 @@ BLOCKED_NOTE_RE = re.compile(
     rf"(?P<lead>,?\s*)\bblocked (?P<prep>on|by) (?P<items>{_ITEM}(?:\s*(?:,|and|&)\s*{_ITEM})*)(?P<paren>\s*\([^)]*\))?",
     re.IGNORECASE)
 ORDER_HEADING = "### Recommended implementation order"
+HARD_DEPS_HEADING = "### Hard implementation dependencies"
 
 
 def clean_blocked_notes(line, implemented):

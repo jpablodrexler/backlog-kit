@@ -210,3 +210,66 @@ class SpecComplianceRigor(unittest.TestCase):
         self.assertIn("**Never run `git commit`, `git push` or open a PR.**", t)
         self.assertIn("never tick a task", t)
         self.assertTrue((S / "spec-compliance-check/scripts/work_scope.py").is_file())
+
+
+class PreviouslyUnverifiedFindings(unittest.TestCase):
+    """Findings from the comparison that were first reported, then checked, then fixed."""
+
+    def read(self, rel):
+        return (KIT / rel).read_text()
+
+    def test_an_unknown_prerequisite_blocks_instead_of_silently_unblocking(self):
+        tmp, root = repo(deps="**Feature 4 → Feature 39** (still pending)\n\ntypo'd number")
+        self.addCleanup(tmp.cleanup)
+        proc = subprocess.run([sys.executable, str(S / "features-next/scripts/rank_features.py"), str(root), "--json"], capture_output=True, text=True)
+        out = json.loads(proc.stdout)
+        self.assertIn("unknown", json.dumps(out))
+        self.assertNotIn("top", out)                     # the only pending feature is blocked
+
+    def test_emptied_hard_dependencies_section_gets_its_placeholder(self):
+        tmp, root = repo(deps="")
+        self.addCleanup(tmp.cleanup)
+        res = json.loads(subprocess.run([sys.executable, str(S / "features-archive/scripts/clean_order_notes.py"), str(root)], capture_output=True, text=True, check=True).stdout)
+        self.assertTrue(res["placeholder_restored"])
+        text = (root / "docs/backlog/features-planned.md").read_text()
+        self.assertIn("### Hard implementation dependencies\n\n_None yet._", text)
+
+    def test_hand_backs_are_defined_and_consumed(self):
+        fd, bf = self.read("skills/feature-development/SKILL.md"), self.read("skills/bug-fix/SKILL.md")
+        for t in (fd, bf):
+            self.assertIn("REVIEWS:", t)
+            self.assertIn("(self-reviewed)", t)
+        self.assertIn("DEPS_DISMISSED", fd)
+        self.assertIn("**Dependencies:**", fd)
+        self.assertIn("`BUG_ID:` echo equals `<id>`", bf)
+        self.assertIn("run `<repro-test-path>` yourself", bf)
+        self.assertIn("ORIGINAL SCENARIO", bf)
+        self.assertIn("fall back to the row's Summary", bf)
+        self.assertIn("Never edit a file that records history already applied elsewhere", fd)
+
+    def test_shared_rules_cover_backgrounding_archive_blocking_and_re_review(self):
+        g = self.read("shared/pipeline-guardrails.md")
+        self.assertIn("never ends its turn on a backgrounded command", g)
+        self.assertIn("`ARCHIVE_BLOCKED` is not `CLOSE_BLOCKED`", g)
+        r = self.read("shared/phase-reviews.md")
+        self.assertIn("## Re-review of specific files", r)
+        self.assertIn("never describe the scope in prose", r)
+        self.assertIn("Self-reviewed: yes", r)
+        self.assertIn("Re-review of specific files", self.read("shared/phase-gates.md"))
+        self.assertIn("Leave `when` OFF a smoke or build gate", self.read("backlog-kit.example.toml"))
+
+    def test_archive_handles_leftover_rows_and_multi_feature_headings(self):
+        t = self.read("skills/features-archive/SKILL.md")
+        self.assertIn("`✅ Implemented`", t)
+        self.assertIn("already in `features-implemented.md`", t)
+        self.assertIn("not directional", t)
+
+    def test_resume_asks_when_the_list_differs_and_skipped_items_stay_skipped(self):
+        t = self.read("shared/batch-runner.md")
+        self.assertIn("**`exact`** (the same set of ids)", t)
+        self.assertIn("items already `skipped` or `left-open` are not run again", t)
+
+    def test_status_describes_its_checks(self):
+        t = self.read("skills/features-status/SKILL.md")
+        for needle in ("--fix-header", "clean_order_notes.py", "prose aside", "possible unrecorded dependencies"):
+            self.assertIn(needle, t)

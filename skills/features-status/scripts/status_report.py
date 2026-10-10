@@ -156,7 +156,8 @@ def compute(root):
         r["header_mismatch"] = {"expected": bk.planned_header(cfg), "found": bk.planned_header_found(p.features_planned)}
 
     import dep_scan
-    r["dependency_candidates"] = dep_scan.scan(root)
+    # A dependency candidate needs a second pending feature to point at; skip the repo walk otherwise.
+    r["dependency_candidates"] = dep_scan.scan(root) if len(r["pending_rows"]) >= 2 else []
 
     planned_lines = bk.read_lines(p.features_planned) or []
     bounds = bk.order_section_bounds(planned_lines)

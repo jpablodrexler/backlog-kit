@@ -96,13 +96,20 @@ def main():
         by_number.setdefault(c["number"], []).append(c)
     missing_briefs = [c["brief_file"] for c in candidates if not (root / c["brief_file"]).is_file()]
 
-    blocked, blocked_reason = set(), {}
+    _, impl_rows = bk.table_rows(p.features_implemented, "## Feature List")
+    impl_numbers = {x.get("#", "").strip() for x in impl_rows}
+    blocked, blocked_reason, unknown_prereqs = set(), {}, []
     for a, b in bk.hard_dependencies(planned_lines):
-        # Blocked only while the prerequisite still has a live Pending/In Progress row;
-        # a prerequisite absent from this table has been archived, i.e. shipped.
+        # Blocked while the prerequisite still has a live Pending/In Progress row. A prerequisite
+        # absent from this table counts as shipped only if features-implemented.md really lists it:
+        # a typo'd or deleted number must not silently unblock its dependent.
         if a in by_number and b in pending_numbers:
             blocked.add(a)
             blocked_reason[a] = b
+        elif a in by_number and b not in impl_numbers:
+            blocked.add(a)
+            blocked_reason[a] = f"{b} (unknown: in neither features-planned.md nor features-implemented.md)"
+            unknown_prereqs.append(f"Feature {a} → Feature {b}")
 
     order = bk.order_list_positions(
         planned_lines, "### Recommended implementation order", r"^\s*-\s*`[^`]+`\s*\(#(\d+)\)")
@@ -165,6 +172,9 @@ def main():
         warnings.append(f"Duplicate feature number(s) in features-planned.md: {', '.join(sorted(duplicate_numbers))} — run features-status for the full integrity report.")
     if missing_briefs:
         warnings.append(f"Brief file(s) missing: {', '.join(missing_briefs)} — run features-status for the full integrity report.")
+    if unknown_prereqs:
+        warnings.append("Unknown prerequisite(s), treated as blocking: " + ", ".join(unknown_prereqs)
+                        + " — fix the number or the dependency note.")
     if warnings:
         result["warning"] = " ".join(warnings)
 

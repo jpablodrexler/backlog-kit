@@ -203,6 +203,13 @@ def plan_features(root, cfg, ids, want_all):
             seen.add(r["number"])
             items.append(r)
 
+    # The brief is what feature-development reads; a missing one would only surface mid-run.
+    for r in items:
+        brief = p.backlog / "features" / f"{int(r['number']):03d}-{r['id']}.md" if r["number"].isdigit() else None
+        if brief is not None and not brief.is_file():
+            problems.append({"input": r["id"], "kind": "missing-brief",
+                             "detail": f"#{r['number']} {r['id']} has no brief file ({brief.name}); it would stop at PLAN_BLOCKED"})
+
     # A feature listed before a still-pending prerequisite would be refused by features-next.
     position = {r["number"]: i for i, r in enumerate(items)}
     for a, bq in deps:

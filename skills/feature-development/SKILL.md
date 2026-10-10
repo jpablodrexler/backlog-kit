@@ -31,7 +31,7 @@ Selecting what gets built next is the user's decision, always — a spawned suba
 
 1. **OpenSpec only** (`spec.workflow = "openspec"`): run `openspec --version` yourself. If it fails or the CLI isn't found, tell the user `PLAN_BLOCKED — openspec CLI not found` and stop; don't select a feature with a broken toolchain. (backlog-kit depends on OpenSpec but never bundles it — it must be installed separately.) Check too that `openspec-propose`, `openspec-apply-change` and `openspec-archive-change` are among your available skills (`openspec init` generates them; the CLI alone is not enough): if one is missing, tell the user `PLAN_BLOCKED — the OpenSpec skills are not installed in this project (run `openspec init`)` and stop. Then check that the project itself is initialized: the folder that holds `[spec] changes_dir` (default `openspec/`) must exist, with its `config.yaml`. If not, tell the user `PLAN_BLOCKED — OpenSpec is not initialized in this repo (run `openspec init`)` and stop: building a feature under `workflow = "openspec"` with no OpenSpec project would archive it with no spec at all. If `features-status` reports a planned table whose `SDD Artifacts` column disagrees with the config, stop and say so: `feature-plan` repairs it (its scaffold step runs `--fix-header`), and until then the rows' columns can't be trusted.
 2. Invoke `features-next` with the Skill tool directly (not in an Agent call), passing the name/number if one was given — and `--confirmed` if this skill was given it. Let it present and ask in this context; in `--confirmed` mode it validates the feature (including that no prerequisite is unbuilt) and asks nothing.
-3. No `CHANGE_NAME:` line back (cancelled, or confirmation couldn't be obtained) → stop and tell the user. Never go on without a confirmed name.
+3. No `CHANGE_NAME:` line back (cancelled, or confirmation couldn't be obtained) → stop and tell the user. Never go on without a confirmed name. A feature that has no backlog row cannot be selected: plan it first with `feature-plan`.
 4. Otherwise `<change-name>` is the confirmed name. Find its brief file `<backlog>/features/NNN-<change-name>.md` from the row's `Brief` link — `<brief-path>`.
 
 **Branch**: `<branch>` = the `[git] feature_prefix` (default `feature/`) + `<change-name>`.
@@ -57,11 +57,12 @@ Follow `reference/phase-branch.md` with `<id>` = `<change-name>` and `<backlog-r
 > - A genuine unrecorded one → add `**Feature <this #> → Feature <dep #>** (still pending)` with a one-sentence reason under `### Hard implementation dependencies` in `features-planned.md` (if the dependency has no backlog row, say so and recommend `feature-plan` for it), then end with `PLAN_NEEDS_DEPENDENCY_DECISION — <change-name> (#<n>) needs <dependency> which is not implemented`.
 > Only record dependencies without which a usable first version cannot work; don't hunt for speculative ones.
 >
-> End with exactly `PLAN: READY` (or one of the signals above).
+> End with exactly `PLAN: READY — <change-name>` (or one of the signals above), then, if you dismissed any dependency candidate, one line per candidate: `DEPS_DISMISSED: #<n> — <reason>`.
 
 After it returns:
 - `PLAN_BLOCKED` → surface and stop.
 - `PLAN_NEEDS_DEPENDENCY_DECISION` → this is not a failure but must not barrel into implementation. In your own context ask with **AskUserQuestion**: "`<change-name>` depends on something not built yet. How to proceed?" — "Stop — I'll build the dependency first" (stop; the note stays recorded), "Proceed anyway — it isn't a blocker for a usable first version" (continue to Phase 3; the note stays), "Cancel". Only "proceed anyway" continues.
+- Check that the name after `PLAN: READY —` is exactly `<change-name>`; anything else means the subagent worked on the wrong feature: treat it as blocked. Keep any `DEPS_DISMISSED:` lines for the final summary.
 - Otherwise continue.
 
 ## Phase 3 — Implement & review (subagent, foreground)
@@ -70,13 +71,15 @@ After it returns:
 >
 > **Step 1 — Build it.** With OpenSpec, invoke `openspec-apply-change <change-name>` and work through every task, ticking each as it is done. Without it, read `<brief-path>`, write yourself a short numbered checklist of the concrete changes it implies, and implement each. Either way, follow the conventions already in the codebase, **add tests alongside the code** — tests that would fail without the change — and don't build beyond the brief. A blocker needing a human decision → end with `IMPLEMENT_BLOCKED — <reason>` and stop.
 >
+> Never edit a file that records history already applied elsewhere (an applied database migration, a released changelog entry, a published schema) — add a new one instead.
+>
 > Never print or write a generated secret's raw value; leave any task needing one unchecked with the manual command named.
 >
 > **Step 2 — Review.** Follow `reference/phase-reviews.md` over the current diff: recompute scope with `python3 <scripts>/work_scope.py <repo-root>` before each review, fix every 🔴/🟡 finding, re-review until clean or the round cap.
 >
-> End with exactly `IMPLEMENT: DONE` (or `IMPLEMENT_BLOCKED — …` / `REVIEW_BLOCKED — …`).
+> End with exactly `IMPLEMENT: DONE`, then one line `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review you ran yourself rather than through a fresh reviewer, or `REVIEWS: none applied`) — or `IMPLEMENT_BLOCKED — …` / `REVIEW_BLOCKED — …`.
 
-Do not start Phase 4 until it returns `IMPLEMENT: DONE`; on any `*_BLOCKED`, surface and wait.
+Do not start Phase 4 until it returns `IMPLEMENT: DONE` with its `REVIEWS:` line; on any `*_BLOCKED`, surface and wait. Use the `REVIEWS:` line for the final summary, and say plainly in it when a review was self-reviewed.
 
 ## Phase 4 — Gates
 
@@ -95,7 +98,7 @@ Follow `reference/phase-gates.md` with `<id>` = `<change-name>`. It runs on **ev
 >   - The proposal **declares** the change as intentional → reword that requirement in the change's delta spec (`<changes-dir>/<change-name>/specs/**/spec.md`) so it states the declared change, re-read it, and note the rewording in your hand-back. Change only the requirement statement; never edit a scenario's expected behaviour to match the code.
 >   - The behaviour change is **not** declared anywhere → that is a Failing scenario in disguise: `CLOSE_BLOCKED — requirement "<title>" contradicts shipped behaviour: <summary>`.
 >   - Never archive a change with a known prose conflict.
-> - Once everything is Verified, re-run the project's gates that cover tests (`python3 <scripts>/work_scope.py <repo-root>` lists the gates) to confirm the new tests pass alongside everything else, and say in your hand-back which report holds the evidence.
+> - Once everything is Verified, tests you added in this step changed the tree: run `python3 <scripts>/work_scope.py <repo-root>` and re-run every gate it says applies to the changed files (not only the test gates: a new test file can fail lint or type checks), and re-run the reviews whose `when` now matches (`phase-reviews.md`). Say in your hand-back which report holds the evidence.
 >
 > **Step 2 — Docs (best-effort).** If `<docs-skill>` is non-empty, invoke it for the current branch's changes. "Nothing to sync" is fine; only stop if it errors and leaves files broken. Skip if empty.
 >
@@ -121,10 +124,12 @@ A `CLOSE_BLOCKED` means the feature is implemented and tested but **not archived
 **Feature:** #<n> <change-name>
 **Spec:** <✓ proposal, specs and tasks created | N/A — OpenSpec not in use>
 **Implementation:** ✓ done, with tests
-**Reviews:** <name> ✓ clean  …  (or "none applied")
+**Reviews:** <name> ✓ clean [(self-reviewed)] …  (or "none applied")
 **Gates:** <name> ✓ …  [if `uncovered_files`: ⚠ NOT VERIFIED BY ANY GATE: <n> files (<areas>)]  (or ⚠ NOT RUN: <gate> — <why>; or ⚠ FAILED (environment): <gate> — <tests>; or KNOWN FAILURE: <test>; or "none configured — nothing was verified")
 [if UNREVIEWED_PROD_FIXES:] **⚠ Unreviewed production changes:** <the PROD_CODE_FIXED lines> — made while fixing gate failures; you chose to proceed without re-review.
-**Spec compliance:** <✓ all scenarios verified | N/A>
+**Spec compliance:** <✓ N/N verified — report <path> | N/A (brief states no acceptance criteria)>
+**Dependencies:** <recorded: …; dismissed: #n — reason, … | none found>
+[if the branch phase reported the base ahead:] **Base:** <base> has <n> commit(s) this branch lacks (information; syncing the branch with the base brings them in)
 **Docs:** <one line, or "nothing to sync" / "no sync skill configured">
 **Archive:** ✓ <spec change archived;> feature marked implemented
 
