@@ -363,3 +363,75 @@ class SpecWorkflowHeaderMismatch(unittest.TestCase):
         text = (self.root / "docs/backlog/features-planned.md").read_text()
         self.assertNotIn("SDD Artifacts", text)
         self.assertIn("| 5 | `old-one` | P3 | S | Backend | ⬜ Pending | does a thing | [brief](features/005-old-one.md) |", text)
+
+
+class DependencyScan(unittest.TestCase):
+    """dep_scan: unrecorded hard dependencies implied by briefs (a vague brief once hid one)."""
+
+    HEAD = ("# Planned Features\n\n## Feature List\n\n"
+            "| # | Change name | Priority | Effort | Area | Implementation | Summary | Brief |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n")
+
+    def build(self, briefs, deps="_None yet._", code=None):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        root = Path(self.tmp.name)
+        bl = root / "docs/backlog"
+        (bl / "features").mkdir(parents=True)
+        rows = ""
+        for n, (name, text) in briefs.items():
+            (bl / "features" / f"{n:03d}-{name}.md").write_text(f"# Feature {n} — {name}\n\n{text}\n")
+            rows += f"| {n} | `{name}` | P2 | S | Backend | ⬜ Pending | s | [brief](features/{n:03d}-{name}.md) |\n"
+        (bl / "features-planned.md").write_text(
+            self.HEAD + rows + f"\n## Dependencies\n\n### Hard implementation dependencies\n\n{deps}\n\n### Recommended implementation order\n\n_None yet._\n")
+        (bl / "features-implemented.md").write_text("# Implemented Features\n\n## Feature List\n\n| # | Change name | Priority | Effort | Area | Details |\n| --- | --- | --- | --- | --- | --- |\n")
+        for rel, text in (code or {}).items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(text)
+        return root
+
+    def scan(self, root, *extra, stdin=None):
+        script = KIT / "skills/feature-development/scripts/dep_scan.py"
+        out = subprocess.run([sys.executable, str(script), str(root), *extra], capture_output=True, text=True, input=stdin, check=True).stdout
+        return json.loads(out)["candidates"]
+
+    BRIEFS = {
+        3: ("arg-parser", "Extract argument handling into a new `args.js` exporting `parseArgs(argv)`. Add unit tests for `parseArgs`."),
+        4: ("shout-flag", "Make `--shout` meaningful: `parseArgs` returns `shout: true`, and index.js prints upper case."),
+    }
+
+    def test_symbol_introduced_by_another_pending_feature_is_a_candidate(self):
+        root = self.build(self.BRIEFS)
+        c = self.scan(root, "--feature", "4")
+        self.assertEqual([(x["dependent"], x["prerequisite"], x["kind"]) for x in c], [("4", "3", ["symbol"])])
+        self.assertIn("parseArgs", c[0]["evidence"][0])
+
+    def test_the_defining_feature_and_tests_only_mentions_are_not_dependents(self):
+        root = self.build(self.BRIEFS)
+        self.assertEqual(self.scan(root, "--feature", "3"), [])   # defines parseArgs; the "tests" sentence adds nothing
+
+    def test_already_recorded_dependency_is_not_reported(self):
+        root = self.build(self.BRIEFS, deps="**Feature 4 → Feature 3** (still pending)\n\nneeds parseArgs.")
+        self.assertEqual(self.scan(root), [])
+
+    def test_symbol_that_already_exists_in_the_repo_is_not_reported(self):
+        root = self.build(self.BRIEFS, code={"src/args.js": "function parseArgs() {}\n"})
+        self.assertEqual(self.scan(root, "--feature", "4"), [])
+
+    def test_explicit_mention_of_another_feature_is_a_candidate(self):
+        root = self.build({3: ("arg-parser", "Add `args.js`."), 5: ("lang-flag", "Needs the arg-parser feature to be in place first.")})
+        c = self.scan(root, "--feature", "5")
+        self.assertEqual(c[0]["kind"], ["mention"])
+
+    def test_flags_and_short_tokens_are_ignored(self):
+        root = self.build({3: ("a", "Add `--shout` and `ab`."), 4: ("b", "Uses `--shout` and `ab`.")})
+        self.assertEqual(self.scan(root), [])
+
+    def test_a_draft_not_yet_in_the_backlog_can_be_scanned_from_stdin(self):
+        root = self.build({3: self.BRIEFS[3]})
+        c = self.scan(root, "--new", "--name", "lang-flag", "--number", "5", stdin="Make `--lang` work: `parseArgs` reads the value.")
+        self.assertEqual([(x["dependent"], x["prerequisite"]) for x in c], [("5", "3")])
+
+    def test_status_lists_candidates_as_information(self):
+        root = self.build(self.BRIEFS)
+        text = run("f_status", root, as_json=False)
+        self.assertIn("Possible unrecorded dependency: #4 `shout-flag` → #3 `arg-parser`", text)

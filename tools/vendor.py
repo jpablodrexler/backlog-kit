@@ -32,6 +32,7 @@ LIB_FOR = {
     "batch_plan.py": BATCH,
     "batch_report.py": BATCH,
     "clean_order_notes.py": ["features-archive"],
+    "dep_scan.py": ["feature-plan", "features-status", "feature-development"],
 }
 
 SHARED_FOR = {

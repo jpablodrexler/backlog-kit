@@ -60,6 +60,16 @@ Use the `vocab` from step 3 (also printed in the Column legend of `features-plan
 
 ### 6. Confirm before writing
 
+First look for dependencies the brief implies but nobody has recorded. Pipe the drafted brief to the scanner (nothing is written; it only reads the repo and the backlog):
+
+```
+python3 scripts/dep_scan.py <repo-root> --new --name <change-name> --number <number> <<'BRIEF'
+<the drafted brief>
+BRIEF
+```
+
+Each entry in `candidates` is a pending feature this one appears to need (`evidence` says why: it names that feature, or it uses a symbol or file that exists nowhere in the repo and is introduced by that feature's brief). They are evidence, not verdicts. Show them in the draft under **Possible dependencies** and let the user decide; with no candidates, omit that part.
+
 Show the draft:
 
 ```
@@ -71,12 +81,14 @@ Show the draft:
 
 **Summary:** <summary>
 
+**Possible dependencies:** <`#<n> <name>` — <evidence>, one per line — or omit>
+
 **Full brief** (will be saved to `<backlog>/features/<NNN>-<change-name>.md`):
 
 <brief>
 ```
 
-Ask one question with **AskUserQuestion** — "Add this feature to the backlog?" — options "Yes, add it as drafted", "Let me edit something first" (apply the edits, re-display, ask again), "Cancel". Write nothing under `<backlog>` until the user says yes.
+Ask one question with **AskUserQuestion** — "Add this feature to the backlog?" — options "Yes, add it as drafted", with candidates also "Yes, and record the dependency on #<n>" (one option per candidate, up to the 4-option limit — otherwise say "name the ones to record" in free text), "Let me edit something first" (apply the edits, re-display, ask again), "Cancel". Write nothing under `<backlog>` until the user says yes.
 
 ### 7. Write the brief file, then the row
 
@@ -89,9 +101,9 @@ Do these in order — file first, so an interrupted run leaves an orphan file (w
 
 Don't touch `features-implemented.md`.
 
-### 8. Record a hard dependency (only if the user named one)
+### 8. Record a hard dependency (only if the user named or confirmed one)
 
-If — and only if — the description names another feature this one depends on, add an entry under `### Hard implementation dependencies`:
+If — and only if — the description names another feature this one depends on, or the user accepted a candidate from step 6, add an entry under `### Hard implementation dependencies`:
 
 ```
 **Feature <new#> → Feature <dep#>** (prerequisite already implemented | still pending)
@@ -99,7 +111,7 @@ If — and only if — the description names another feature this one depends on
 `<new-name>` <one-sentence reason it depends on `<dep-name>`>.
 ```
 
-Check whether the prerequisite is implemented (it has a row in `features-implemented.md`) or still pending. Never infer dependencies the user didn't state.
+Check whether the prerequisite is implemented (it has a row in `features-implemented.md`) or still pending. Never record a dependency the user neither stated nor confirmed; the scanner's candidates are proposals only.
 
 ### 9. Insert into the Recommended implementation order
 

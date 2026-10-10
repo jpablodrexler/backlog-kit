@@ -164,3 +164,12 @@ What worked: the bug-fix cycle (report, regression test, fix, review report, arc
 Found: the spec-compliance step classified scenarios only. The brief said both "no behaviour change" and "ignore unknown flags", which changes `--whatever Juan`; the review reported it as a suggestion, the proposal was corrected, but the requirement "Greeting output is unchanged" was archived and synced into `openspec/specs/` next to a scenario that contradicts it. The close phase now also checks requirement prose: a declared intentional change gets the requirement reworded, an undeclared one blocks the close, and a change is never archived with a known prose conflict.
 
 Also learned: `FAILED (environment)` gates can be remembered as known failures, but a gate that cannot run (`NOT RUN`) cannot, so run 2 of the guide is expected to re-ask per feature (to be measured).
+
+## Dependency detection (0.1.6)
+
+Spotting a hard dependency used to depend on a model noticing it while reading a brief (a vague brief once hid one in dogfood run 2). `lib/dep_scan.py` now does the mechanical half and hands back evidenced candidates:
+
+- **mention**: the brief names another pending feature (its change name, `feature N`, `#N`) with no recorded `Feature X → Feature Y`.
+- **symbol**: the brief uses a backticked identifier or file that exists nowhere in the repository, and exactly one other pending brief introduces it (named within a few words after a defining verb, in a sentence that is not about tests).
+
+It is wired in three places: `feature-plan` shows candidates in the draft and records one only if the user confirms; `feature-development` Phase 2 must confirm or dismiss every candidate (`DEPS_DISMISSED: #n — reason`, never silently); `features-status` lists them as information. Candidates are proposals, never blockers: only recorded dependencies make `features-next` refuse a feature. Known limits: it cannot see a dependency on something described only in prose with no backticked name, and a symbol defined in two briefs is ignored as ambiguous.

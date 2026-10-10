@@ -53,7 +53,7 @@ def compute(root):
         "priority_breakdown": {k: 0 for k in f["priorities"] + ["none"]},
         "effort_breakdown": {k: 0 for k in f["efforts"] + ["none"]},
         "spec_ready": 0, "pending_rows": [],
-        "duplicate_numbers": [], "stale_dependency_notes": [], "stale_order_notes": [], "header_mismatch": None, "openspec_missing": False, "openspec_dir": "", "implemented_without_spec": [],
+        "duplicate_numbers": [], "stale_dependency_notes": [], "stale_order_notes": [], "header_mismatch": None, "openspec_missing": False, "openspec_dir": "", "implemented_without_spec": [], "dependency_candidates": [],
         "leftover_implemented_in_planned": [],
         "missing_feature_files": [], "orphan_feature_files": [], "bad_feature_headings": [],
         "bad_planned_summaries": [], "missing_brief_links": [], "missing_spec_targets": [],
@@ -126,6 +126,9 @@ def compute(root):
                     f"#{row.get('#', '').strip()} {bk.strip_backticks(row.get('Change name', ''))}")
     elif bk.planned_header_found(p.features_planned) not in (None, bk.planned_header(cfg)):
         r["header_mismatch"] = {"expected": bk.planned_header(cfg), "found": bk.planned_header_found(p.features_planned)}
+
+    import dep_scan
+    r["dependency_candidates"] = dep_scan.scan(root)
 
     planned_lines = bk.read_lines(p.features_planned) or []
     bounds = bk.order_section_bounds(planned_lines)
@@ -243,6 +246,8 @@ def render(r, cfg_rel_backlog):
         issues.append("- ℹ Implemented without a `[spec]` link although `spec.workflow` is \"openspec\": "
                       + ", ".join(r["implemented_without_spec"])
                       + " (expected for features finished before OpenSpec was adopted; otherwise they were archived with no spec change).")
+    issues += [f"- ℹ Possible unrecorded dependency: #{c['dependent']} `{c['dependent_name']}` → #{c['prerequisite']} "
+               f"`{c['prerequisite_name']}` ({'; '.join(c['evidence'])})." for c in r["dependency_candidates"]]
     issues += [f"- ⚠ {x} has a table row but no {bl}/features/{x} file." for x in r["missing_feature_files"]]
     issues += [f"- ⚠ {bl}/features/{x} exists but its feature has no row in either table." for x in r["orphan_feature_files"]]
     issues += [f"- ⚠ {bl}/features/{b['file']} does not start with `{b['expected']}`." for b in r["bad_feature_headings"]]
