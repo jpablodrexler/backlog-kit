@@ -5,12 +5,15 @@ committed, what a PR would contain, which branches look finished. It never write
 the skill itself performs (and asks permission for) every commit, push, PR and branch delete.
 
 Usage:
-    python3 flow_plan.py <repo-root> --action sync|commit|finish|cleanup [--fetch]
+    python3 flow_plan.py <repo-root> --action start|sync|commit|finish|cleanup [--branch <b>] [--fetch]
 
 Prints JSON. Common fields: current_branch, base_branch, base_ref, on_base, branch_type
 (feature|fix|other), branch_name, remote_branch_exists, ahead_of_remote, behind_remote,
 `blockers` (reasons the action cannot proceed) and `warnings`. Per action:
 
+  start    needs_question: the checkout is already on a topic branch other than --branch, so the
+           skill must ask (continue / rename / start fresh) rather than switch silently;
+           current_pushed, current_commits_ahead_of_base and dirty feed that question
   sync     behind_base: commits on base_ref that the branch lacks
   commit   files: every changed path (untracked included) with {kind: code|kit, suspicious},
            diff_stat, backlog_closed (rows this change adds to features-implemented / bugs-fixed)
@@ -106,7 +109,8 @@ def backlog_closed(root, cfg, rng):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("repo_root")
-    ap.add_argument("--action", required=True, choices=["sync", "commit", "finish", "cleanup"])
+    ap.add_argument("--action", required=True, choices=["start", "sync", "commit", "finish", "cleanup"])
+    ap.add_argument("--branch", help="start: the branch about to be started")
     ap.add_argument("--fetch", action="store_true")
     a = ap.parse_args()
     root = a.repo_root
@@ -132,7 +136,16 @@ def main():
     protected = {base, *bs.PROTECTED_FALLBACK}
     changed = gitread.changed_files(root)
 
-    if a.action == "sync":
+    if a.action == "start":
+        if not a.branch:
+            sys.exit("--action start needs --branch")
+        k_cur = kind != "other"
+        info.update(target=a.branch, current_is_topic=k_cur, needs_question=k_cur and cur != a.branch,
+                    current_pushed=remote,
+                    current_commits_ahead_of_base=bs.count(root, f"{base_ref}..HEAD"),
+                    dirty=bool([f for f in changed if not bk.glob_match(f, bk.kit_globs(cfg))]))
+
+    elif a.action == "sync":
         if cur in protected:
             blockers.append(f"'{cur}' is a base branch; sync works on a topic branch")
         if changed:

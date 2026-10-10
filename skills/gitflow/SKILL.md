@@ -22,7 +22,11 @@ The loop backlog-kit supports is: plan a feature → select it → branch → de
 
 ## start feature|fix `<name>`
 
-Needs a clean working tree (backlog-kit's own files don't count). `<branch>` is the prefix plus the name (a bare name gets the prefix; a full branch name is used as is). Run
+`<branch>` is the prefix plus the name (a bare name gets the prefix; a full branch name is used as is). First run `python3 scripts/flow_plan.py <repo-root> --action start --branch <branch>`.
+
+**If `needs_question` is true** — the checkout is already on a topic branch other than `<branch>`, possibly with work nobody has committed — don't pick for the user. Show the current branch, whether it is pushed, how many commits it has, and whether the tree is dirty, then ask with **AskUserQuestion**: continue on the current branch (nothing to do), rename it to `<branch>` (`git branch -m <branch>`, offered only if it was never pushed), or start `<branch>` fresh from `<base>` (the current branch stays as it is; needs a clean tree). Do exactly the one chosen.
+
+Starting a fresh branch needs a clean working tree (backlog-kit's own files don't count). Run
 `python3 scripts/branch_state.py <repo-root> --branch <branch> --fetch` and carry out its `action` exactly:
 
 | `action` | do |
@@ -58,7 +62,7 @@ On a topic branch with a clean tree and at least one commit ahead of `<base>`. R
 
 1. If a PR for this head branch already exists, report its URL and stop; don't open a duplicate.
 2. If the branch is not on the remote (or is ahead of it), ask, then `git push -u origin <branch>` (a plain `git push` afterwards). Never `--force`.
-3. Write the PR description from the real diff, not from the branch name: read `commits`, `diff_stat`, `backlog_closed` and the files in `reports` (review reports, batch reports). Structure it as **Summary** (2–4 bullets: behaviour changed and why; name the backlog items finished), **Changes** (grouped by area when the diff spans several), and **Test plan** (only what the reports and commits actually show: gates run, tests, known failures and `NOT RUN` gates stated plainly; omit the section rather than invent one). Same `#<digits>` rule as above. The title is `title` from the plan (`Feature <name>` or `Fix <name>`).
+3. Write the PR description from the real diff, not from the branch name: read `commits`, `diff_stat`, `backlog_closed` and the files in `reports` (review reports, batch reports). Structure it as **Summary** (2–4 bullets: behaviour changed and why; name the backlog items finished), **Changes** (grouped by area when the diff spans several), and **Test plan** (only what the reports and commits actually show: gates run, tests, known failures and `NOT RUN` gates stated plainly; omit the section rather than invent one). Same `#<digits>` rule as above, and also when copying from earlier commit messages: a commit that says `feature #3` goes into the PR body as `feature 3`. The title is `title` from the plan (`Feature <name>` or `Fix <name>`).
 4. Show the title and body and ask "Open this PR into `<base>`?" — yes / edit / cancel.
 5. Open it with `base: <base>`, `head: <branch>`, and report the URL.
 
@@ -81,7 +85,8 @@ Show the branches that will go (local and/or remote, with the evidence) and ask.
 
 - **Only run a git write the user asked for in this invocation and confirmed.** No other backlog-kit skill commits, pushes or opens PRs, and none invokes this one; it never runs from another skill's hand-off, only when the user asks.
 - Never merge a PR (no `gh pr merge`, no merge tool), never `--force` / `--force-with-lease`, never amend, rebase, reset, stash or cherry-pick, never commit or push to `<base>`, never delete a branch with unmerged work, never delete `<base>`, a protected branch or the current branch, never `git branch -D`, never `--no-verify`.
-- `start`, `sync` and `cleanup` need a clean working tree: if it is dirty, stop and report; never stash or discard.
+- `sync` and `cleanup` need a clean working tree, and so does starting a fresh branch: if it is dirty, stop and report; never stash or discard.
+- A request to merge or pull a branch into a topic branch is `sync`: it merges `origin/<base>` and nothing else. Never merge any other branch (for example `main` when `<base>` is `develop`) into a topic branch, even when the two look identical at that moment: the next release can fork them apart before the branch is finished and carry content that never went through `<base>`.
 - Never change git configuration (name, email, signing). Commit with whatever identity the repository already has.
 - Don't assert a repo-state claim from memory ("merged", "up to date", "diverged"): run the check (`flow_plan.py`, `git log A..B`, the PR lookup) in the moment.
 - The plan script is read-only; everything written to git is written by you, after a yes.

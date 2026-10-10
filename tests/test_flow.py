@@ -192,3 +192,33 @@ class ScriptIsReadOnly(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StartPlan(FlowBase):
+    def plan_start(self, branch):
+        out = subprocess.run([sys.executable, str(SCRIPT), str(self.repo), "--action", "start", "--branch", branch],
+                             capture_output=True, text=True, check=True).stdout
+        return json.loads(out)
+
+    def test_on_the_base_branch_no_question(self):
+        out = self.plan_start("feature/x")
+        self.assertFalse(out["needs_question"])
+
+    def test_already_on_another_topic_branch_asks(self):
+        self.topic("feature/old")
+        (self.repo / "wip.py").write_text("x\n")
+        out = self.plan_start("feature/new")
+        self.assertTrue(out["needs_question"])
+        self.assertFalse(out["current_pushed"])
+        self.assertTrue(out["dirty"])
+
+    def test_restarting_the_branch_you_are_on_is_not_a_question(self):
+        self.topic("feature/same")
+        self.assertFalse(self.plan_start("feature/same")["needs_question"])
+
+    def test_skill_text_has_the_question_and_the_merge_redirect(self):
+        t = (KIT / "skills/gitflow/SKILL.md").read_text()
+        self.assertIn("**If `needs_question` is true**", t)
+        self.assertIn("rename it to `<branch>`", t)
+        self.assertIn("A request to merge or pull a branch into a topic branch is `sync`", t)
+        self.assertIn("`feature #3` goes into the PR body as `feature 3`", t)
