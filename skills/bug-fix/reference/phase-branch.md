@@ -30,7 +30,7 @@ Spawn a **general-purpose subagent** (foreground — every later phase is gated 
 >
 > **Step 3 — Mark it in progress.** `<backlog-row>` Only ever change `⬜` → `🔶 In Progress`; leave a row already `🔶 In Progress` or finished alone. If there is no matching row (work tracked outside the backlog), skip silently — that is not an error. This applies in batch mode too.
 >
-> **Step 4 — Hand back.** End with exactly `BRANCH: READY — <branch> (<action>)`, followed by any information note from Step 2.
+> **Step 4 — Hand back.** Your final reply must itself end with exactly `BRANCH: READY — <branch> (<action>)`, followed by any information note from Step 2. Put the signal in that reply's text, not in a separate hand-back or messaging tool, and never substitute a placeholder.
 
 After the subagent returns:
 - `BRANCH_BLOCKED …` → surface the reason and **stop**. Never retry automatically and never work around it by switching branches yourself.

@@ -21,6 +21,14 @@ except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
 
 CONFIG_FILE = ".backlog-kit.toml"
 
+# Scripts print status emoji (✅ 🔶). Windows consoles default stdout to a legacy
+# codepage (cp1252) and would crash with UnicodeEncodeError, so force UTF-8.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):  # captured / replaced streams
+        pass
+
 DEFAULTS = {
     "paths": {
         "backlog_dir": "docs/backlog",

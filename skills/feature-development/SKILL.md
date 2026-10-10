@@ -21,7 +21,7 @@ Orchestrate one feature from selection to archive, one subagent per phase. `<bac
 | 2 — Plan | subagent | read the brief; with OpenSpec, `openspec-propose` if artifacts are missing; check for a newly discovered hard dependency |
 | 3 — Implement & review | subagent | build it with tests; with OpenSpec, `openspec-apply-change`; then the configured reviews (`reference/phase-reviews.md`) |
 | 4 — Gates | orchestrator pre-step + subagent | `reference/phase-gates.md`: the project's own verification commands, to a pass |
-| 5 — Close | subagent | with OpenSpec, a spec-compliance check that closes every gap; optional docs sync; archive the change; `features-archive` |
+| 5 — Close | subagent + orchestrator check | with OpenSpec, a spec-compliance check that closes every gap; optional docs sync; archive the change; `features-archive` (orchestrator runs the archive itself if the subagent can't) |
 
 ---
 
@@ -93,13 +93,17 @@ Follow `reference/phase-gates.md` with `<id>` = `<change-name>`. It runs on **ev
 >
 > **Step 2 — Docs (best-effort).** If `<docs-skill>` is non-empty, invoke it for the current branch's changes. "Nothing to sync" is fine; only stop if it errors and leaves files broken. Skip if empty.
 >
-> **Step 3 — Archive the spec change (OpenSpec only).** Invoke `openspec-archive-change <change-name>` and respond to any prompts about delta-spec sync or incomplete tasks normally. Wait for it to finish.
+> **Step 3 — Archive the spec change (OpenSpec only).** Invoke `openspec-archive-change <change-name>` with the Skill tool and respond to any prompts about delta-spec sync or incomplete tasks normally. Wait for it to finish.
 >
-> **Step 4 — Archive the feature.** Invoke `features-archive <change-name>` and wait until the row has moved from `features-planned.md` to `features-implemented.md`.
+> **Step 4 — Archive the feature.** Invoke `features-archive <change-name>` with the Skill tool and wait until the row has moved from `features-planned.md` to `features-implemented.md`.
+>
+> **Never hand-edit the backlog or spec files, or re-implement an archive skill with an ad-hoc script, to get the same effect** — `features-archive` writes the destination before touching the source so an interruption never loses a row, and a hand edit loses that guarantee. If the Skill tool is unavailable to you or an archive skill errors, do not work around it: end with `ARCHIVE_BLOCKED — <skill> could not be run: <reason>` (naming which of Steps 3–4 are already done) and change nothing further.
 >
 > End with exactly `CLOSE: DONE`.
 
-Do not show the final summary until it returns `CLOSE: DONE`. A `CLOSE_BLOCKED` means the feature is implemented and tested but **not archived** — surface the scenarios and wait; never retry automatically. This workflow never archives a change with a known spec-compliance gap.
+Do not show the final summary until the feature is archived. After `CLOSE: DONE`, spot-check in your own context that the `<change-name>` row is gone from `features-planned.md` and present in `features-implemented.md` (and, with OpenSpec, that the change now sits under `<changes-dir>/archive/`) — a hand-back is a claim, not evidence. On `ARCHIVE_BLOCKED` (or a failed spot-check), run the remaining archive step(s) yourself: invoke `openspec-archive-change` / `features-archive <change-name>` with the Skill tool in your own context, then spot-check again. Never archive by editing the backlog files directly.
+
+A `CLOSE_BLOCKED` means the feature is implemented and tested but **not archived** — surface the scenarios and wait; never retry automatically. This workflow never archives a change with a known spec-compliance gap.
 
 ---
 
