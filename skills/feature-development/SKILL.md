@@ -122,6 +122,8 @@ Before spawning any subagent in Phases 1–6, replace every occurrence of
 confirmed in Phase 0, and every `<backlog>` / `<reports>` with the folder
 named above.
 
+Also append, to every one of those subagent prompts, the hand-back paragraph from `reference/project-phases.md` ("The hand-back paragraph") unchanged.
+
 ---
 
 ## Final Summary
@@ -228,6 +230,10 @@ routing them back through Phase 2's code review.
 - **Missing signal fallback**: if any subagent returns without its expected
   signal, treat it as `BLOCKED`, surface the subagent's raw response to the
   user, and wait for guidance before proceeding to the next phase.
+  Before re-running a phase whose signal is missing, look at the working tree
+  for what the subagent actually did (for example `git status`, the backlog
+  row, the test file) and tell the user; whether to accept that evidence in
+  place of the signal or to re-run the phase is the user's decision.
 - **Nested backgrounding guardrail**: any subagent in this workflow that
   backgrounds a long-running shell command (via the Bash tool's
   `run_in_background: true`) and then ends its response is making a mistake,

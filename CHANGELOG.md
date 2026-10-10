@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.19
+- Hand-back contract for subagents (found in the first real run: a Phase 1 subagent sent only placeholder text and no signal, and the run stalled). The pipelines and `gitflow` now tell the orchestrator to append one paragraph, defined once in `shared/project-phases.md`, to every subagent prompt: the hand-back is the final text of the response, ending with the signal line, never a separate message and never placeholder text. The `Missing signal fallback` of `feature-development` and `bug-fix` gains one rule: before re-running a phase whose signal is missing, look at the working tree for what the subagent did and tell the user, who decides whether to accept that evidence or re-run. These lines are additions to the originals.
+
 ## 0.2.18
 - Found in the first real run in pablo-web: `feature-development` and `bug-fix` cut their branch from `develop`, so a migration that only lives on its own branch disappears from disk when Phase 1 switches branch (the old skills return and `.backlog-kit/` is gone). `MIGRATING.md` now says to merge the migration into `develop` first, or to cut the work branch from the migration and pass `--skip-branch-setup`; `tools/migrate_check.py` warns when `develop` does not contain `.backlog-kit/`.
 

@@ -27,6 +27,14 @@ A phase file has a first-level heading (its title, used in the Final Summary) an
    It may also report `PROD_CODE_FIXED: <file> — <what and why>` lines for production code it changed while chasing a failing test.
 4. Handle the result as the guardrails in `../SKILL.md` say: continue on `PASS`/`SKIPPED`, surface `BLOCKED` and `PROD_CODE_FIXED:` to the user and wait, and treat a missing signal as `BLOCKED`. Record the phase's title and its `SUMMARY`/`PARTIAL` text for the Final Summary.
 
+### The hand-back paragraph (every subagent prompt, in every phase)
+
+Append this paragraph, unchanged, to the prompt of **every** subagent the skill spawns — the numbered phases and the project phases alike:
+
+> **Hand-back.** Your hand-back is the final text of your response, ending with exactly the signal line(s) this prompt asks for. Do not send it as a message through a messaging or hand-back tool, and never send placeholder text: the orchestrator reads only your final response, and a response without its signal is treated as blocked.
+
+Why: a subagent whose only output was a message of placeholder text, with no signal in its final response, stalled a run in its first real use. The skill's `Missing signal fallback` handles that case safely, but the paragraph keeps it from happening.
+
 ### `CHANGED_FILES`
 
 A phase that triggers on, or reviews, "the files this change touched" must use the same definition as Phase 2: run `git status --porcelain` and parse every path, including untracked (`??`) entries, recomputed fresh immediately before each use — never `git diff --name-only HEAD`, never a branch-to-branch diff (nothing is committed during this workflow, so it shows zero files). A review a project phase runs follows the same rules as Phase 2's Step 2: the skill's **Review** workflow, scoped to `CHANGED_FILES`, never its interactive Fix Workflow, findings fixed and checked off in the report, at most 3 rounds before `PHASE: BLOCKED`, and a final `code-reviewer` pass over fixes it applied.

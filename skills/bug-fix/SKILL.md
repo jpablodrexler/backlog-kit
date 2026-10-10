@@ -95,6 +95,8 @@ Before spawning any subagent, replace every `<bug-id>`, `<slug>`, and
 substitute `<repro-test-path>` with the path captured from Phase 1's
 `REPRO: DONE — test: <path>` line.
 
+Also append, to every one of those subagent prompts, the hand-back paragraph from `reference/project-phases.md` ("The hand-back paragraph") unchanged.
+
 ---
 
 ## Phase 1 — Branch & Reproduce (Subagent 1)
@@ -319,6 +321,10 @@ Nothing was committed. The fix (and its regression test) is on `fix/<slug>`, ent
 - **Missing signal fallback**: a subagent that returns without its
   expected signal is treated as `BLOCKED`; surface its raw response and
   wait.
+  Before re-running a phase whose signal is missing, look at the working tree
+  for what the subagent actually did (for example `git status`, the backlog
+  row, the test file) and tell the user; whether to accept that evidence in
+  place of the signal or to re-run the phase is the user's decision.
 - **`code-reviewer` (and any review a project phase runs) always uses its
   Review workflow, scoped to `CHANGED_FILES`, never the interactive Fix
   Workflow and never a full-codebase sweep.**
