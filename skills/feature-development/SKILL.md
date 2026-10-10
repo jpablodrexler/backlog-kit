@@ -21,7 +21,7 @@ Orchestrate one feature from selection to archive, one subagent per phase. `<bac
 | 2 — Plan | subagent | read the brief; with OpenSpec, `openspec-propose` if artifacts are missing; check for a newly discovered hard dependency |
 | 3 — Implement & review | subagent | build it with tests; with OpenSpec, `openspec-apply-change`; then the configured reviews (`reference/phase-reviews.md`) |
 | 4 — Gates | orchestrator pre-step + subagent | `reference/phase-gates.md`: the project's own verification commands, to a pass |
-| 5 — Close | subagent + orchestrator check | with OpenSpec, a spec-compliance check that closes every gap; optional docs sync; archive the change; `features-archive` (orchestrator runs the archive itself if the subagent can't) |
+| 5 — Close | subagent + orchestrator check | a spec / acceptance check (tests actually run, dated report) that closes every gap; optional docs sync; archive the change; `features-archive` (orchestrator runs the archive itself if the subagent can't) |
 
 ---
 
@@ -86,14 +86,16 @@ Follow `reference/phase-gates.md` with `<id>` = `<change-name>`. It runs on **ev
 
 > Perform these steps in order.
 >
-> **Step 1 — Verify spec compliance and close every gap (OpenSpec only).** If the project has its own spec-compliance skill, use it; otherwise do this yourself, read-only against `<changes-dir>/`: read `<changes-dir>/<change-name>/specs/**/spec.md` and `tasks.md`, and classify every acceptance scenario as **Verified** (a passing test or concrete evidence exercises exactly what it claims), **Unverified** (it may well be right, but nothing proves it), or **Failing** (the code contradicts it).
+> **Step 1 — Verify the work against its spec (or its brief) and close every gap.** With OpenSpec this checks the change's scenarios; without it, the acceptance statements in `<brief-path>`. If `[spec] compliance_skill` names a skill, invoke it for `<change-name>` instead of the procedure below and apply the same rules to what it reports; otherwise read `reference/spec-compliance.md` in full and follow it (`<reports_dir>` is `[paths] reports_dir`, default `docs/reports`; it writes a dated report there). It checks the task list, reads each matching test, **runs it**, classifies every scenario Verified / Unverified / Failing from that evidence, and lists prose conflicts. Then act on its hand-back:
+> - **`TASKS_INCOMPLETE`** → stop: `CLOSE_BLOCKED — <n> task(s) unchecked: <titles>`. Unfinished work belongs back in Phase 3.
+> - **`COMPLIANCE: NO_ACCEPTANCE_CRITERIA`** (no OpenSpec, and the brief states none) → note it for the final summary and continue; don't invent criteria.
 > - **Any Failing** → stop: `CLOSE_BLOCKED — <N> failing scenario(s): <summary>`. That is a real behavioural gap and belongs back in Phase 3, not fixed here.
-> - **Any Unverified** → close every one; never carry one forward as a caveat. Add the missing test coverage (extend an existing test file where you can), re-classify, repeat. If a new test fails because the scenario is actually broken, treat it as Failing — never weaken the test. After 3 rounds with a scenario still unverifiable, stop: `CLOSE_BLOCKED — repeated spec-compliance cycles, <N> scenario(s) still unverified`.
-> - **Requirement prose, not just scenarios.** Also read each requirement's `SHALL` statement and the proposal's `What Changes` / `Impact`, and look for a **prose conflict**: a requirement (or its title) that says the behaviour is "unchanged", "exactly as before" or "no visible change" while its own scenarios or the proposal declare a user-visible change. Scenarios can all be Verified and the requirement text still be false (found in a real run: "Greeting output is unchanged" archived next to a scenario that changed the output).
+> - **Any Unverified** → close every one; never carry one forward as a caveat. Add the missing test coverage (extend an existing test file where you can), then re-run the procedure for those scenarios. If a new test fails because the scenario is actually broken, treat it as Failing — never weaken the test. After 3 rounds with a scenario still unverifiable, stop: `CLOSE_BLOCKED — repeated spec-compliance cycles, <N> scenario(s) still unverified`.
+> - **Prose conflicts** (a requirement that says the behaviour is "unchanged", "exactly as before" or "no visible change" next to scenarios or a proposal that declare a user-visible change; scenarios can all be Verified and the requirement text still false):
 >   - The proposal **declares** the change as intentional → reword that requirement in the change's delta spec (`<changes-dir>/<change-name>/specs/**/spec.md`) so it states the declared change, re-read it, and note the rewording in your hand-back. Change only the requirement statement; never edit a scenario's expected behaviour to match the code.
 >   - The behaviour change is **not** declared anywhere → that is a Failing scenario in disguise: `CLOSE_BLOCKED — requirement "<title>" contradicts shipped behaviour: <summary>`.
 >   - Never archive a change with a known prose conflict.
-> - Once all are Verified, re-run the project's gates that cover tests (`python3 <scripts>/work_scope.py <repo-root>` lists them) to confirm the new tests pass alongside everything else.
+> - Once everything is Verified, re-run the project's gates that cover tests (`python3 <scripts>/work_scope.py <repo-root>` lists the gates) to confirm the new tests pass alongside everything else, and say in your hand-back which report holds the evidence.
 >
 > **Step 2 — Docs (best-effort).** If `<docs-skill>` is non-empty, invoke it for the current branch's changes. "Nothing to sync" is fine; only stop if it errors and leaves files broken. Skip if empty.
 >

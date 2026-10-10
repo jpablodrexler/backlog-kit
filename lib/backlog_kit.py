@@ -98,6 +98,7 @@ DEFAULTS = {
          "skill": "", "when": ["**"]},
     ],
     "spec": {
+        "compliance_skill": "",
         # "none" or "openspec". With "openspec", the planned-features table gains
         # an `SDD Artifacts` column and implemented rows link the archived spec.
         "workflow": "none",

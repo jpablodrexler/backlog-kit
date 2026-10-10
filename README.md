@@ -11,7 +11,7 @@ No server, no database, no service: the markdown files are the state. It works o
 | Area | Skills |
 | --- | --- |
 | Plan & track | `feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`, `decision-record` |
-| Work one item | `feature-development`, `bug-fix` (reproduce with a failing test first, then fix) |
+| Work one item | `feature-development`, `bug-fix` (reproduce with a failing test first, then fix), `spec-compliance-check` (proves each scenario with a test it ran, writes the evidence) |
 | Branch, commit, PR, clean up | `gitflow` — `start`, `sync`, `commit`, `finish` (push + PR), `cleanup`; only when you ask, and it asks before every write |
 | Work a list unattended | `features-batch-development`, `bugs-batch-fix` — one shared branch, zero commits, a dated report updated after each item, resumable after a crash |
 

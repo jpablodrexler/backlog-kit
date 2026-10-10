@@ -41,6 +41,9 @@ S4 = "trivial - cosmetic or copy"
 # link the archived change's proposal.md. Install OpenSpec separately.
 workflow    = "none"
 changes_dir = "openspec/changes"
+# Optional: a skill to use instead of the built-in spec / acceptance check in feature-development's close
+# phase. Leave empty to use the plugin's `spec-compliance-check` procedure.
+compliance_skill = ""
 
 # ---- bug-fix / feature-development -----------------------------------------------------------
 

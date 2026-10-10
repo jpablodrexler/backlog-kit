@@ -176,3 +176,37 @@ class SkillTextFixes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SpecComplianceRigor(unittest.TestCase):
+    """The folded-in check had lost the original's evidence rules; they live in one shared procedure now."""
+
+    def proc(self):
+        return (KIT / "shared/spec-compliance.md").read_text()
+
+    def test_procedure_demands_running_tests_evidence_and_a_report(self):
+        t = self.proc()
+        for needle in ("Read the test body", "**Run it.**", "exact command", "Never infer verification from reading the implementation alone",
+                       "TASKS_INCOMPLETE", "SPEC_COMPLIANCE_<change-name>_<YYYY-MM-DD>.md", "prose conflict", "NO_ACCEPTANCE_CRITERIA"):
+            self.assertIn(needle, t)
+
+    def test_both_consumers_carry_the_same_procedure(self):
+        a = (S / "feature-development/reference/spec-compliance.md").read_text()
+        b = (S / "spec-compliance-check/reference/spec-compliance.md").read_text()
+        self.assertEqual(a, b)
+
+    def test_close_phase_uses_it_in_both_modes_and_honours_a_configured_skill(self):
+        t = (S / "feature-development/SKILL.md").read_text()
+        self.assertIn("reference/spec-compliance.md", t)
+        self.assertIn("`[spec] compliance_skill`", t)
+        self.assertIn("TASKS_INCOMPLETE", t)
+        self.assertIn("without it, the acceptance statements in `<brief-path>`", t)
+        sys.path.insert(0, str(KIT / "lib"))
+        import backlog_kit
+        self.assertEqual(backlog_kit.load_config(KIT)["spec"]["compliance_skill"], "")
+
+    def test_standalone_skill_is_read_only_and_can_find_the_gates(self):
+        t = (S / "spec-compliance-check/SKILL.md").read_text()
+        self.assertIn("**Never run `git commit`, `git push` or open a PR.**", t)
+        self.assertIn("never tick a task", t)
+        self.assertTrue((S / "spec-compliance-check/scripts/work_scope.py").is_file())
