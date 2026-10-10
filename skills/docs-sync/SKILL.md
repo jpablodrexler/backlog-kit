@@ -38,7 +38,7 @@ source  = ["src/routes/**"]        # required: globs of the code that section do
 check   = "every route has an entry with its method, path and auth requirement"   # required: what "in sync" means
 ```
 
-- `doc` and `source` are required, `check` is required, `section` is optional. `source` is a list of globs relative to the repo root (`**` crosses folders; a glob may name a single file such as `package.json`).
+- `doc` (an in-repo Markdown file), `source` and `check` are required, `section` is optional. `source` is a list of globs relative to the repo root (`**` crosses folders; a glob may name a single file such as `package.json`).
 - Several entries may share one `doc` (one per section) and several docs may share a source.
 - A map entry that lacks a required key, or whose `doc` file does not exist, is reported as a map problem, not silently skipped. A `source` glob that matches nothing is also reported (the code may have moved).
 - `check` is the acceptance statement for that section. Verify it literally, item by item, against the code.
@@ -62,9 +62,9 @@ The skill still works. Discover the documentation set: `README.md`, the agent-fa
 
 This is the mode the close phase of `feature-development` and `bug-fix` uses when `[docs] sync_skill = "docs-sync"`.
 
-1. **Find what changed, read-only.** Run `git status` and `git diff` (add `--stat` first for a big change; `git diff <base>...HEAD --stat` when the work is already on a branch and the base is known). Include untracked files from `git status`. These are the only git commands this skill runs, and only to read.
+1. **Find what changed, read-only.** Run `git status` and `git diff HEAD` (staged and unstaged together; add `--stat` first for a big change; `git diff <base>...HEAD --stat` when the work is already on a branch and the base is known). Include untracked files from `git status`. Leave out the files backlog-kit itself writes (the backlog, reports and decisions folders and `.backlog-kit.toml`): they are bookkeeping, not changes to document. These are the only git commands this skill runs, and only to read.
 2. **Pick the sections at stake.**
-   - With a map: keep the entries whose `source` globs match a changed file.
+   - With a map: keep the entries whose `source` globs match a changed file. **Re-derive cumulative facts from everything the glob matches, not from the changed file alone**: a count, a list of routes or commands, a table of options changes when one file is added, removed or renamed, and the doc must match the whole set.
    - Without: classify each changed file into the fact classes above (a changed manifest or script means commands; a new or moved file means layout; a changed config reader means configuration; a changed public surface means interfaces; and so on).
    - Skip everything else. Do not re-verify untouched sections in change mode.
 3. **Compare doc and code side by side.** Read the current doc text and the changed code, and decide what is missing, stale or wrong. Read the code itself; never infer a default, a route's auth rule or a flag's meaning from a name.

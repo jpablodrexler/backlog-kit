@@ -307,6 +307,42 @@ class GeneralizedSkillsTest(unittest.TestCase):
         self.assertRegex(t, r"Never run a destructive git command")
         self.assertIn("never switches branches", t)
 
+    def test_dependency_upgrade_snapshots_stay_out_of_git_status_and_cover_edited_files(self):
+        t = self.text("dependency-upgrade")
+        self.assertIn("git rev-parse --git-dir", t)
+        self.assertIn("<git-dir>/backlog-kit/dependency-upgrade/snapshots/", t)
+        self.assertNotIn("<reports_dir>/dependency-upgrade/snapshots", t)
+        self.assertIn("before editing any file, copy it into the group's snapshot folder", t)
+
+    def test_dependency_upgrade_declares_groups_that_cannot_be_rolled_back(self):
+        t = self.text("dependency-upgrade")
+        self.assertIn("Declare source-rewriting groups", t)
+        self.assertIn("NOT ROLLED BACK", t)
+        self.assertIn("do not attempt a partial restore", t)
+
+    def test_dependency_upgrade_rechecks_vulnerabilities_and_never_says_clean_unchecked(self):
+        t = self.text("dependency-upgrade")
+        self.assertIn("## 6. Re-check vulnerabilities", t)
+        self.assertIn('"not checked", never "clean"', t)
+        self.assertIn("Vulnerability check (read-only)", t)
+
+    def test_dependency_upgrade_table_has_the_corrected_commands(self):
+        t = self.text("dependency-upgrade")
+        self.assertIn("Do not use `versions:use-latest-versions`", t)
+        self.assertIn("-DgenerateBackupPoms=false", t)
+        self.assertIn("dotnet restore --locked-mode", t)
+        self.assertIn("`--save-exact`", t)
+        self.assertIn("a major needs the constraint edited", t)
+        self.assertIn("a major needs `Cargo.toml` edited first", t)
+        self.assertIn("**Yarn flavour**", t)
+        self.assertIn("**Workspaces**", t)
+
+    def test_dependency_upgrade_restores_the_originals_levers(self):
+        t = self.text("dependency-upgrade")
+        for needle in ("**Version-managing parents come first.**", "ask_before", "Say \"candidate\", never \"unused\"",
+                       "current branch is the base branch"):
+            self.assertIn(needle, t)
+
     def test_docs_sync_edits_docs_only_and_documents_the_map(self):
         t = self.text("docs-sync")
         for key in ("[[docs.map]]", "doc", "section", "source", "check"):

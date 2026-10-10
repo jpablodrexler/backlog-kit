@@ -2,6 +2,10 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.10
+- `dependency-upgrade` reworked: snapshots live in the git directory (never in `git status`) and also cover every file the skill edits; a group whose tool rewrites source is declared beforehand and, if it fails, is reported with the files it changed instead of being half-restored; the vulnerability check runs before and after and says "not checked" when it could not run; the command table is corrected (Maven, uv, cargo, dotnet, npm caret, yarn flavour, workspaces); a BOM or parent is bumped first; `ask_before` gates, the unused-dependency caveat and the base-branch warning are back.
+- `docs-sync` reads staged work and skips backlog bookkeeping, re-derives cumulative facts from the whole glob, and requires map docs to be in-repo Markdown; `product-scope-roaster` no longer contradicts itself on cited documents; `architecture-reviewer` writes to `architecture-review/` and its data-access and state dimensions regain the transaction, caching, N+1, migration-discipline, API-consistency and client-storage checks.
+
 ## 0.2.9
 - Work pipelines: a task that needs a person (a generated secret, a deploy) is marked `(manual: <command>)`, reported to the user and no longer makes `TASKS_INCOMPLETE` / `CLOSE_BLOCKED` certain; `IMPLEMENT: DONE` is checked against the task list (new `task_state.py`) by the subagent and again by the orchestrator.
 - The close phase no longer re-runs gates inside a subagent (which ignored `ask_before`): it hands back `CLOSE_NEEDS_REGATE` and the orchestrator re-gates and re-reviews. The archive prompts of OpenSpec are no longer answered by the subagent (`ARCHIVE_NEEDS_DECISION`). Close hands back `COMPLIANCE:` and `DOCS:` lines for the summary.
