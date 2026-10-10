@@ -1,7 +1,7 @@
 {
   "name": "backlog-kit",
   "owner": {
-    "name": "jpablodrexler"
+    "name": "Juan Pablo Drexler"
   },
   "metadata": {
     "description": "Claude Code skills that work a markdown backlog to done through quality gates, without ever committing."
