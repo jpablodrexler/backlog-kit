@@ -78,7 +78,7 @@ The fragile, mechanical parts became tested scripts rather than prose:
 
 | Step | Script | What it guarantees |
 | --- | --- | --- |
-| Resolve + order the list | `batch_plan.py` | normalizes ids (`4`, `bug-4` → `BUG-004`; `#2` or a name for features); reports `unresolved`, `already-closed/implemented`, `wont-fix`, `cannot-repro`, `duplicate` as *problems* the user must settle; warns on a feature ordered before — or run without — its pending prerequisite; `--all` orders by the recommended-order list, else dependencies (stable topological sort, cycle-safe), else table order / severity |
+| Resolve + order the list | `batch_plan.py` | normalizes ids (`4`, `bug-4` → `BUG-004`; `#2` or a name for features); reports `unresolved`, `already-closed/implemented`, `wont-fix`, `cannot-repro`, `duplicate` as *problems* the user must settle; warns on a feature ordered before — or run without — its pending prerequisite; `--all` ranks like `features-next`/`bugs-next` (in-progress, then priority/severity tier, prerequisite before dependent, order list and table order only break ties; warns when the hand-kept order list disagrees) |
 | Resume an interrupted run | `batch_report.py find` | Jaccard overlap → `exact` / `near` (≥0.8) / `partial` / `none`; only a report with an item still `not-started` or `in-progress` is resumable; a blocked or skipped item does not keep a run "open" |
 | Progress report | `batch_report.py init / set / finish / show` | the report is only ever written by this script, atomically (temp file + `os.replace`), one entry per call, so a crash can never leave a half-written file; `finish` is idempotent |
 | Branch | `branch_state.py` (shared with the work skills) | a fresh run on a dirty tree or a diverged branch is `blocked`; resume with a missing branch stops instead of recreating one |
@@ -138,3 +138,7 @@ Still open: confirm-before-write must show the draft in the same turn (I skipped
 ## Packaging (0.1.0)
 
 Repo root is both a Claude Code plugin (`.claude-plugin/plugin.json`) and a one-plugin marketplace; `claude plugin validate` passes and a clean-HOME install yields all 13 skills. Plugin install namespaces skills (`backlog-kit:bug-fix`), which resolves the same-name shadowing seen in the dogfood runs. Fallback: `tools/install.py` copies skills into `.claude/skills/` and refuses to overwrite without `--force`. Name check: `backlog-kit` is unclaimed on npm and PyPI; GitHub could not be checked from the sandbox.
+
+## `--all` ordering (0.1.2)
+
+`--all` used to follow the Recommended order list verbatim, so a stale or hand-reordered list could run a P3 before a P1. It now uses the same ranking as the `*-next` skills; the list only breaks ties and a disagreement is reported as a warning. A named `--ids` list is still run exactly as given. `order_basis` is now `severity` (bugs) or `priority` (features).

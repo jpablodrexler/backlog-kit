@@ -100,17 +100,26 @@ class PlanBugs(Base):
     def test_all_orders_by_severity_when_no_fix_order(self):
         self.bugs()
         out = self.plan("--all")
-        self.assertEqual([i["id"] for i in out["items"]], ["BUG-002", "BUG-003", "BUG-001"])
+        # BUG-003 is already in progress, so it leads; then severity (S1 before S3)
+        self.assertEqual([i["id"] for i in out["items"]], ["BUG-003", "BUG-002", "BUG-001"])
         self.assertEqual(out["order_basis"], "severity")
 
-    def test_all_follows_recommended_fix_order_when_present(self):
+    def test_all_order_list_only_breaks_ties_within_a_severity(self):
         self.bugs()
         p = self.root / "docs/backlog/bugs-open.md"
-        p.write_text(p.read_text().replace("_No open bugs to order._", "- BUG-001 — first\n- BUG-003 — second"))
+        p.write_text(p.read_text().replace("| [BUG-001](bugs/BUG-001.md) | S3 |", "| [BUG-006](bugs/BUG-006.md) | S3 | a | local | ⬜ Open | | another minor |\n| [BUG-001](bugs/BUG-001.md) | S3 |")
+                     .replace("_No open bugs to order._", "- BUG-001 — first\n- BUG-006 — second"))
         out = self.plan("--all")
-        self.assertEqual([i["id"] for i in out["items"]], ["BUG-001", "BUG-003", "BUG-002"])
-        self.assertEqual(out["order_basis"], "recommended-order")
-        self.assertTrue(any("BUG-002" in w for w in out["warnings"]))
+        self.assertEqual([i["id"] for i in out["items"]], ["BUG-003", "BUG-002", "BUG-001", "BUG-006"])
+
+    def test_all_ignores_a_stale_order_list_that_contradicts_severity(self):
+        self.bugs()
+        p = self.root / "docs/backlog/bugs-open.md"
+        p.write_text(p.read_text().replace("_No open bugs to order._", "- BUG-001 — first\n- BUG-002 — second"))
+        out = self.plan("--all")
+        self.assertEqual([i["id"] for i in out["items"]], ["BUG-003", "BUG-002", "BUG-001"])
+        self.assertTrue(any("disagrees with the run order" in w for w in out["warnings"]))
+        self.assertTrue(any("BUG-003" in w and "Not in the" in w for w in out["warnings"]))
 
     def test_named_normalizes_and_flags_problems(self):
         self.bugs()
@@ -134,27 +143,45 @@ class PlanFeatures(Base):
     def plan(self, *args):
         return run("batch_plan.py", self.root, "--kind", "features", *args)
 
-    def test_table_order_without_order_list_or_deps(self):
+    def test_all_ranks_in_progress_then_priority(self):
         self.features()
         out = self.plan("--all")
-        self.assertEqual([i["id"] for i in out["items"]], ["alpha", "beta", "gamma"])
-        self.assertEqual(out["order_basis"], "table")
+        # gamma is in progress (P3), beta is P1, alpha is P2
+        self.assertEqual([i["id"] for i in out["items"]], ["gamma", "beta", "alpha"])
+        self.assertEqual(out["order_basis"], "priority")
+        self.assertEqual(out["warnings"], [])
 
-    def test_dependencies_put_prerequisite_first(self):
-        self.features(deps="**Feature 2 → Feature 3** (still pending)\n\n`beta` needs `gamma`.")
+    def test_all_table_order_breaks_ties(self):
+        self.features()
+        p = self.root / "docs/backlog/features-planned.md"
+        p.write_text(p.read_text().replace("| P1 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
         out = self.plan("--all")
-        self.assertEqual(out["order_basis"], "dependencies")
-        ids = [i["id"] for i in out["items"]]
-        self.assertLess(ids.index("gamma"), ids.index("beta"))
-        self.assertEqual(ids, ["alpha", "gamma", "beta"])  # stable: alpha keeps its place
+        self.assertEqual([i["id"] for i in out["items"]], ["alpha", "beta", "gamma"])
 
-    def test_recommended_order_wins_and_flags_dependency_violation(self):
+    def test_all_puts_prerequisite_before_a_higher_priority_dependent(self):
+        # beta (P1) needs gamma (P3, in progress anyway); alpha (P2) is unrelated
+        self.features(deps="**Feature 2 → Feature 3** (still pending)\n\n`beta` needs `gamma`.")
+        p = self.root / "docs/backlog/features-planned.md"
+        p.write_text(p.read_text().replace("🔶 In Progress", "⬜ Pending"))
+        out = self.plan("--all")
+        ids = [i["id"] for i in out["items"]]
+        self.assertEqual(ids, ["alpha", "gamma", "beta"])   # alpha (P2) outranks the P3 prerequisite; gamma then precedes beta
+        self.assertEqual(out["warnings"], [])
+
+    def test_all_stale_order_list_does_not_reorder_tiers(self):
         self.features(deps="**Feature 2 → Feature 3** (still pending)\n\nx",
                       order="- `beta` (#2) — first\n- `gamma` (#3) — second\n- `alpha` (#1) — third")
         out = self.plan("--all")
-        self.assertEqual(out["order_basis"], "recommended-order")
-        self.assertEqual([i["id"] for i in out["items"]], ["beta", "gamma", "alpha"])
-        self.assertTrue(any("ordered before its prerequisite" in w for w in out["warnings"]))
+        self.assertEqual([i["id"] for i in out["items"]], ["gamma", "beta", "alpha"])
+        self.assertTrue(any("disagrees with the run order" in w for w in out["warnings"]))
+
+    def test_all_order_list_breaks_ties_within_a_tier(self):
+        self.features(order="- `gamma` (#3) — x\n- `alpha` (#1) — y\n- `beta` (#2) — z")
+        p = self.root / "docs/backlog/features-planned.md"
+        p.write_text(p.read_text().replace("| P1 |", "| P2 |").replace("| P3 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
+        out = self.plan("--all")
+        self.assertEqual([i["id"] for i in out["items"]], ["gamma", "alpha", "beta"])
+        self.assertEqual(out["warnings"], [])
 
     def test_named_by_number_and_name_with_problems(self):
         self.features()

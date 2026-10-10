@@ -16,9 +16,13 @@ Output is JSON:
   order_basis how `--all` was ordered
 
 Ordering for `--all`:
-  features  Recommended implementation order if it has entries, else hard dependencies
-            (prerequisite first, topological, stable against table order), else table order
-  bugs      Recommended fix order if it has entries, else severity (configured order), then number
+  features  work already in progress first, then priority tier, with a hard prerequisite always
+            before its dependents; ties follow the Recommended implementation order, then table order
+  bugs      work already in progress first, then severity tier; ties follow the Recommended fix
+            order, then bug number
+            (the same ranking features-next / bugs-next apply, so `--all` agrees with them; the
+            order lists only break ties and a stale one never reorders a higher tier. A named
+            `--ids` list is always run exactly as given.)
 
 Usage:
     python3 batch_plan.py <repo-root> --kind bugs|features (--ids "a,b,c" | --all)
@@ -74,17 +78,16 @@ def plan_bugs(root, cfg, ids, want_all):
     items, problems, warnings, basis = [], [], [], None
     if want_all:
         rows = [r for r in open_rows if actionable(r)]
-        if fix_order:
-            basis = "recommended-order"
-            listed = sorted((r for r in rows if r["Bug ID"].strip() in fix_order), key=lambda r: fix_order[r["Bug ID"].strip()])
-            rest = [r for r in rows if r["Bug ID"].strip() not in fix_order]
-            if rest:
-                warnings.append("Not in the Recommended fix order, appended by severity: " + ", ".join(r["Bug ID"].strip() for r in rest))
-            rest.sort(key=lambda r: (bk.tier_score(r.get("Severity", "").strip(), b["severities"]) * -1, r["Bug ID"]))
-            rows = listed + rest
-        else:
-            basis = "severity"
-            rows.sort(key=lambda r: (-bk.tier_score(r.get("Severity", "").strip(), b["severities"]), r["Bug ID"]))
+        basis = "severity"
+
+        def key(r):
+            bid = r["Bug ID"].strip()
+            return (0 if "In Progress" in r.get("Status", "") else 1,
+                    -bk.tier_score(r.get("Severity", "").strip(), b["severities"]),
+                    fix_order.get(bid, UNLISTED), bid)
+
+        rows.sort(key=key)
+        warnings += order_list_warning("Recommended fix order", fix_order, [r["Bug ID"].strip() for r in rows])
         items = [item(r) for r in rows]
     else:
         seen = set()
@@ -113,23 +116,47 @@ def plan_bugs(root, cfg, ids, want_all):
 
 # --- features ------------------------------------------------------------------
 
-def topo_order(rows, deps):
-    """Stable topological order by feature number: a prerequisite precedes its dependents."""
-    nums = [r["number"] for r in rows]
-    before = {n: set() for n in nums}
+UNLISTED = 10 ** 6
+
+
+def order_list_warning(name, positions, run_order, label=lambda x: x):
+    """Tell the user when the hand-kept order list disagrees with the order the run will use."""
+    listed_in_run = [i for i in run_order if i in positions]
+    by_list = sorted(listed_in_run, key=lambda i: positions[i])
+    out = []
+    if listed_in_run != by_list:
+        out.append(f"The {name} disagrees with the run order (in-progress, then priority, then dependencies); "
+                   f"running: {', '.join(label(i) for i in run_order)}.")
+    unlisted = [i for i in run_order if positions and i not in positions]
+    if unlisted:
+        out.append(f"Not in the {name}, placed by priority: {', '.join(label(i) for i in unlisted)}.")
+    return out
+
+
+def rank_features(rows, deps, order, priorities):
+    """In-progress first, then priority tier, then list position, then table order — except that a
+    pending prerequisite always precedes its dependents. Returns (ordered rows, cycle_found)."""
+    index = {r["number"]: n for n, r in enumerate(rows)}
+    before = {r["number"]: set() for r in rows}
     for a, bq in deps:
         if a in before and bq in before:
             before[a].add(bq)
-    out, remaining, cycle = [], list(nums), False
+
+    def key(r):
+        return (0 if r["in_progress"] else 1, -bk.tier_score(r["priority"], priorities),
+                order.get(r["number"], UNLISTED), index[r["number"]])
+
+    out, remaining, cycle = [], list(rows), False
     while remaining:
-        ready = next((n for n in remaining if not (before[n] & set(remaining))), None)
-        if ready is None:
+        left = {r["number"] for r in remaining}
+        ready = [r for r in remaining if not (before[r["number"]] & left)]
+        if not ready:
             cycle = True
-            ready = remaining[0]
-        out.append(ready)
-        remaining.remove(ready)
-    by = {r["number"]: r for r in rows}
-    return [by[n] for n in out], cycle
+            ready = remaining
+        pick = min(ready, key=key)
+        out.append(pick)
+        remaining.remove(pick)
+    return out, cycle
 
 
 def plan_features(root, cfg, ids, want_all):
@@ -154,20 +181,10 @@ def plan_features(root, cfg, ids, want_all):
 
     items, problems, warnings, basis, cycle = [], [], [], None, False
     if want_all:
-        if order:
-            basis = "recommended-order"
-            listed = sorted((r for r in pending if r["number"] in order), key=lambda r: order[r["number"]])
-            rest = [r for r in pending if r["number"] not in order]
-            if rest:
-                warnings.append("Not in the Recommended implementation order, appended in table order: "
-                                + ", ".join(f"#{r['number']} {r['id']}" for r in rest))
-            items = listed + rest
-        elif deps:
-            basis = "dependencies"
-            items, cycle = topo_order(pending, deps)
-        else:
-            basis = "table"
-            items = pending
+        basis = "priority"
+        items, cycle = rank_features(pending, deps, order, cfg["features"]["priorities"])
+        warnings += order_list_warning("Recommended implementation order", order, [r["number"] for r in items],
+                                       label=lambda n: f"#{n}")
     else:
         seen = set()
         for raw in ids:

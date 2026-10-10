@@ -21,7 +21,7 @@ Run `bug-fix` in a loop over a list of bugs, all on one shared fix branch, never
 | `<done>` | `closed` |
 | `<branch-prefix>` | `[git] fix_prefix` (default `fix/`) — default branch `fix/bug-batch-<YYYY-MM-DD>` |
 | whole-backlog set | rows of `bugs-open.md` whose Status is `⬜ Open` or `🔶 In Progress` |
-| whole-backlog order | `## Recommended fix order` if it has entries, else severity (most severe first), then bug number |
+| whole-backlog order | the same ranking `bugs-next` uses: bugs already `🔶 In Progress` first, then severity (most severe first); the `## Recommended fix order` breaks ties within a severity, then bug number. A stale fix-order list never reorders a higher severity; `batch_plan.py` warns when it disagrees. |
 
 ## Outcome mapping (loop step 3)
 

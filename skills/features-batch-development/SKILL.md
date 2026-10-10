@@ -21,7 +21,7 @@ Run `feature-development` in a loop over a list of features, all on one shared b
 | `<done>` | `completed` |
 | `<branch-prefix>` | `[git] feature_prefix` (default `feature/`) — default branch `feature/batch-<YYYY-MM-DD>` |
 | whole-backlog set | every row of `features-planned.md` — that file only ever holds not-yet-implemented rows, so no filtering is needed |
-| whole-backlog order | `### Recommended implementation order` if it has entries, else hard dependencies (a prerequisite before its dependents, stable against table order), else table order |
+| whole-backlog order | the same ranking `features-next` uses: features already `🔶 In Progress` first, then priority tier, with a hard prerequisite always before its dependents; the `### Recommended implementation order` breaks ties within a tier, then table order. A stale order list never reorders a higher tier; `batch_plan.py` warns when it disagrees. |
 
 Each feature's full brief lives in `<backlog>/features/NNN-<change-name>.md`. The runner does not read it: `feature-development` reads it itself in its plan phase.
 
