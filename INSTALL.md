@@ -7,7 +7,7 @@ Requirements: Claude Code, Python 3.11+ on `PATH` as `python3`, git. [OpenSpec](
 The repo is both a plugin and a one-plugin marketplace.
 
 ```
-/plugin marketplace add <owner>/backlog-kit
+/plugin marketplace add jpablodrexler/backlog-kit
 /plugin install backlog-kit@backlog-kit
 ```
 
