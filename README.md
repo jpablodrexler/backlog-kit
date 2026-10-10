@@ -11,13 +11,13 @@ There is no server, no database and no service: the markdown files are the state
 ## The loop
 
 ```
-plan ──► select ──► branch ──► develop + verify ──► commit ──► PR ──► review ──► merge ──► clean up ─┐
- ▲   feature-plan  features-next   feature-development   gitflow   gitflow   (you)    (you)   gitflow  │
+plan ──► select ──► branch ──► develop + verify ──► you commit ──► PR ──► review ──► merge ──► clean up ─┐
+ ▲   feature-plan  features-next   feature-development   (you)       gitflow   (you)    (you)   gitflow  │
  │   bug-report    bugs-next       bug-fix                                                            │
  └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The middle of the loop (`feature-development`, `bug-fix`, the batch runners) never commits: it leaves a verified, archived result uncommitted on a branch for you to review. The ends of the loop belong to `gitflow`, which you invoke when you are ready.
+The middle of the loop (`feature-development`, `bug-fix`, the batch runners) never commits: it leaves a verified, archived result uncommitted on a branch for you to review. You commit it yourself; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready.
 
 ## What's in it
 
@@ -28,7 +28,7 @@ The middle of the loop (`feature-development`, `bug-fix`, the batch runners) nev
 | Review a change | `code-reviewer`, `security-reviewer`, `database-reviewer` — each has a non-interactive mode the review phase calls through `[[reviews]] skill = "…"`, and interactive audit and fix-the-findings modes |
 | Review the whole | `architecture-reviewer` (qualitative, grounded system health check), `product-scope-roaster` (harsh product-owner critique of the whole backlog) |
 | Keep things current | `docs-sync` (docs follow the code; optional `[[docs.map]]`; plugs into `[docs] sync_skill`), `dependency-upgrade` (grouped, gated, rolled back on failure) |
-| Branch, commit, PR, clean up | `gitflow` — `start`, `sync`, `commit`, `finish` (push and open the PR), `cleanup`; only when you ask, and it asks before every write |
+| Branch, PR, release, clean up | `gitflow` — start and sync `feature/`, `fix/`, `doc/`, `skill/`, `chore/` branches, `finish` (push and open the PR), `release`/`hotfix` (changelog, your own release phases from `.backlog-kit/release/`, two PRs, tag), `cleanup`; only when you ask, with the confirmations of the original skills (first push, tag, delete) |
 | Work a list unattended | `features-batch-development`, `bugs-batch-fix` — one shared branch, zero commits, a dated report updated after each item, resumable after a crash (plain skills, no helper scripts) |
 
 ## Quick start
@@ -44,13 +44,13 @@ The middle of the loop (`feature-development`, `bug-fix`, the batch runners) nev
    - "What should I work on next?" → `features-next` / `bugs-next`.
    - "Develop the next feature", "Fix BUG-004" → `feature-development` / `bug-fix`.
    - "Fix BUG-004, BUG-007 and BUG-009 while I'm out" → `bugs-batch-fix`.
-   - "Commit this", "finish the feature", "open the PR" → `gitflow`. After you merge: "clean up the branches", then "what's next?".
+   - "Finish the feature", "open the PR", "start a release" → `gitflow` (you commit your own work). After you merge: "clean up the branches", then "what's next?".
 
 Each work run ends by saying plainly that nothing was committed, what to review, and which skill to ask for next.
 
 ## Principles
 
-- **Nothing is committed, pushed or opened as a PR unless you ask for it.** The work skills' only git writes are branch switching and fast-forward merges. Only `gitflow` can commit, push or open a PR, only when you invoke it, and only after showing the exact commit message, files or PR text and getting a yes for each write. It never merges a PR, force-pushes or rewrites history. Lint tests enforce all of this.
+- **Nothing is committed, pushed or opened as a PR unless you ask for it.** The work skills never commit, push or open a PR; their only git writes are creating, switching and syncing the branch through `gitflow`. Only `gitflow` can push, open a PR or tag, only when you invoke it, and it asks before the first push of a branch, before a tag and before deleting a branch. It never merges a PR, force-pushes or rewrites history. Lint tests enforce the work skills' side of this.
 - **Verification is yours.** What counts as tested, built or reviewed is written by you as project phase files; the kit runs them in order and stops on a `PHASE: BLOCKED`. A phase that did not apply says `SKIPPED`, and one that could not check everything says `PARTIAL` — neither is folded into "pass".
 - **Evidence over claims.** Work done by subagents is spot-checked before it is reported; a scenario is verified only by a test that was actually run.
 - **Mechanics are code, judgment is Claude.** Ranking, ordering, ids, dependency detection, table checks, branch decisions and PR facts come from small, tested, read-only Python scripts; Claude is asked only for what needs judgment.
@@ -64,7 +64,6 @@ Everything is optional; see [`backlog-kit.example.toml`](backlog-kit.example.tom
 | --- | --- |
 | `[paths]` | `backlog_dir` (the decisions, explorations and reports folders sit next to it) |
 | `[spec]` | `workflow` (`none` or `openspec`), `changes_dir`, `compliance_skill` |
-| `[git]` | `base_branch`, `feature_prefix`, `fix_prefix`, `finish_skill` |
 | `[work]` | `review_max_rounds`, `gate_max_rounds` |
 | `[[gates]]` | `name`, `run`, `cwd`, `when`, `ask_before`, `timeout_minutes`, `known_failures` |
 | `[[reviews]]` | `name`, `focus`, `skill`, `when` |
@@ -88,7 +87,7 @@ Early software (0.2), exercised live on real repositories but not exhaustively. 
 - **The review, docs and upgrade skills are first versions.** They are generalized from two projects' skills, covered by structural tests only, and not yet run live: expect to tune their checklists to your stack through the project's own conventions documents.
 - **Dependency detection is a heuristic.** It finds briefs that name another pending feature or use a symbol that only another brief introduces; it cannot see a dependency described in prose with no named thing.
 - **GitHub only for PRs.** No GitLab, Bitbucket or Azure DevOps integration.
-- **No release, hotfix, tag or changelog actions.** They are project-specific; point `[git] finish_skill` at your own skill if you need them.
+- **Release steps beyond the changelog, PRs and tag are yours.** Bumping a version or running a release regression suite goes in `.backlog-kit/release/NN-*.md` phase files; `examples/` has the two source projects'.
 - **Project skills with the same name win.** When installing by copying into `.claude/skills/`, a skill of the same name already in the project shadows the kit's; the plugin install namespaces them (`backlog-kit:bug-fix`).
 
 ## Development

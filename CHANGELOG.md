@@ -2,6 +2,11 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.14
+- `gitflow` rebuilt from the projects' own skill (the first project's text; the second's variants are in `fidelity/ledgers/gitflow.md`): topic branches `feature/`, `fix/`, `doc/`, `skill/`, `chore/` plus `release/` and `hotfix/` are fixed (D27); `start`, `sync`, `finish`, release/hotfix with changelog, two PRs and tag, and `cleanup` are the originals' text, with their own confirmations (first push, tag, delete) (D29).
+- New: project release phases. The project-specific part of `finish release/hotfix` (version bump, regression suite) lives in `.backlog-kit/release/NN-*.md` and runs through the same mechanism as the feature and bug phases (D28); `examples/` has both projects'. A phase file may now consist of an `## Orchestrator` section only.
+- Removed: the kit's `commit` action and the yes before every write (D29), `flow_plan.py`, `branch_state.py`, `tests/test_flow.py`, and the `[git]` and `[bugs]` configuration sections (branches are fixed; the bug id prefix is `BUG`). `list_merge_candidates.py` is the original script, reading git through the allowlisted `gitread`.
+
 ## 0.2.13
 - Fidelity method applied to the pipelines: `feature-development`, `bug-fix`, `features-batch-development` and `bugs-batch-fix` are now the projects' own skills (the first project's text; the second project's variants are in the ledgers), not a rewrite. The generic phases (select, propose, implement with the code review, archive/close) are verbatim; everything project-specific is out of the kit.
 - New: project phase files. Tests, E2E, build and conditional reviews (database, security, viewport) live in the project as `.backlog-kit/feature/NN-*.md` and `.backlog-kit/bug/NN-*.md`, run in filename order, one subagent each, with an optional `## Orchestrator` section for decisions that need the user (see `shared/project-phases.md`). `examples/pablo-web/` and `examples/jp-photo-manager/` hold the two source projects' phases converted to this format.

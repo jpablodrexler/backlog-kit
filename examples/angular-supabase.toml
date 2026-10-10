@@ -3,10 +3,6 @@
 # pipeline backlog-kit was extracted from, written as configuration — nothing here is built in.
 # Copy to <repo>/.backlog-kit.toml and adapt.
 
-[git]
-base_branch    = "develop"
-feature_prefix = "feature/"
-fix_prefix     = "fix/"
 
 [guidance]
 regression_tests = """

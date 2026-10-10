@@ -34,17 +34,6 @@ DEFAULTS = {
     "paths": {
         "backlog_dir": "docs/backlog",
     },
-    "bugs": {
-        # Fixed in the source projects (decision D18); still read by the batch runners until they are converted.
-        "id_prefix": "BUG",
-    },
-    "git": {
-        # Empty = detect from origin/HEAD, then main / master / develop / trunk.
-        "base_branch": "",
-        "feature_prefix": "feature/",
-        "fix_prefix": "fix/",
-        "finish_skill": "gitflow",
-    },
     "work": {
         # Rounds of review-and-fix per review before the run stops and asks a human.
         "review_max_rounds": 3,

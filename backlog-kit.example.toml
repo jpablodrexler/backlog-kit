@@ -20,20 +20,10 @@ changes_dir = "openspec/changes"
 # phase. Leave empty to use the plugin's `spec-compliance-check` procedure.
 compliance_skill = ""
 
-# ---- Settings below are read only by skills not yet converted (gitflow, the three reviewers, ------
-# ---- spec-compliance-check, docs-sync, dependency-upgrade). feature-development, bug-fix and the ------
-# ---- batch skills ignore them: they run the project's phase files in .backlog-kit/feature|bug/. -----
+# ---- Settings below are read only by skills not yet converted (the three reviewers, ------------
+# ---- spec-compliance-check, docs-sync, dependency-upgrade). feature-development, bug-fix, the batch
+# ---- skills and gitflow ignore them: they run the project's phase files in .backlog-kit/feature|bug|release/.
 
-[git]
-# Empty = detect from origin/HEAD, then main / master / develop / trunk. The work skills only
-# ever create or switch branches and fast-forward them; they never commit, push or merge.
-base_branch    = ""
-feature_prefix = "feature/"
-fix_prefix     = "fix/"
-# The skill named in the hand-off message for committing and opening the PR. The plugin ships `gitflow`
-# (commit / finish / cleanup, each after asking you). Set your own skill name instead, or "" to say
-# "commit and open the PR yourself". The work skills only ever name it; they never run it.
-finish_skill   = "gitflow"
 
 [work]
 review_max_rounds = 3     # review-and-fix rounds before the run stops and asks a human

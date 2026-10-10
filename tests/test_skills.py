@@ -65,21 +65,21 @@ class SkillLint(unittest.TestCase):
                 self.assertIn("**Never run `git commit`, `git push` or open a PR.**", text,
                               "every skill must carry the canonical no-commit promise verbatim")
 
-    def test_gitflow_is_the_only_writer_and_only_when_asked(self):
+    def test_gitflow_is_the_only_pusher_and_keeps_the_originals_confirmations(self):
         text = (KIT / "skills/gitflow/SKILL.md").read_text()
-        self.assertIn("**Only run a git write the user asked for in this invocation and confirmed.**", text)
-        self.assertIn("Every git write here needs a yes", text)
-        self.assertIn("no other backlog-kit skill commits", text.replace("No other", "no other"))
-        for forbidden in ("gh pr merge", "--force", "--no-verify", "rebase"):
-            self.assertIn(forbidden, text)          # named only to forbid; check each is in a prohibition line
-            for ln in [l for l in text.splitlines() if forbidden in l]:
-                self.assertRegex(ln.lower(), r"never|not|no |refuse|don't|stop", ln)
-        # no other skill may mention being able to invoke it
+        for needle in ("Never force-push", "Never merge a PR automatically",
+                       "Never tag without explicit user confirmation",
+                       "Never delete `main` or `develop`",
+                       "Cleanup branches never deletes anything without the user explicitly confirming"):
+            self.assertIn(needle, text)
+        # the other skills only create/switch/sync a branch through gitflow and never commit
         for d in SKILLS:
-            if d.name in ("gitflow", "feature-development", "bug-fix", "features-batch-development", "bugs-batch-fix"):   # D23: the pipelines call gitflow's start/sync as the originals do
+            if d.name == "gitflow":
                 continue
             body = (d / "SKILL.md").read_text()
             for ln in [l for l in body.splitlines() if "`gitflow`" in l]:
+                if d.name in ("feature-development", "bug-fix", "features-batch-development", "bugs-batch-fix"):
+                    continue        # D23: the pipelines call gitflow's start and sync as the originals do
                 self.assertRegex(ln, r"never invoke it|[Dd]o not invoke", f"{d.name}: {ln[:80]}")
 
     def test_only_gitread_may_shell_out(self):
@@ -312,3 +312,22 @@ class GeneralizedSkillsTest(unittest.TestCase):
         for name in self.REVIEWERS:
             self.assertIn(f'skill = "{name}"', example)
             self.assertTrue((self.ROOT / "skills" / name / "SKILL.md").is_file())
+
+
+class ListMergeCandidates(unittest.TestCase):
+    """The original cleanup helper, reading git through the allowlisted gitread."""
+
+    def test_lists_local_topic_branches_without_a_remote(self):
+        import json, subprocess, sys, tempfile
+        script = KIT / "skills/gitflow/scripts/list_merge_candidates.py"
+        with tempfile.TemporaryDirectory() as d:
+            def g(*a):
+                subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a],
+                               check=True, capture_output=True)
+            g("init", "-q", "-b", "main")
+            g("commit", "-q", "--allow-empty", "-m", "x")
+            g("branch", "feature/a"); g("branch", "hotfix/v1.0.1"); g("branch", "other/z")
+            out = json.loads(subprocess.run([sys.executable, str(script), d, "--no-fetch", "--json"],
+                                            capture_output=True, text=True, check=True).stdout)
+            self.assertEqual([c["branch"] for c in out["candidates"]], ["feature/a", "hotfix/v1.0.1"])
+            self.assertEqual(out["candidates"][0]["where"], ["local"])

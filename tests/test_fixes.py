@@ -123,8 +123,7 @@ class SkillTextFixes(unittest.TestCase):
     def test_gitflow_cleanup_never_uses_force_delete(self):
         t = self.read("skills/gitflow/SKILL.md")
         self.assertIn("never `-D`", t)
-        self.assertIn("just_started", t)
-        self.assertIn("protected_branches", t)
+        self.assertIn("Never delete `main` or `develop`", t)
 
 
 if __name__ == "__main__":

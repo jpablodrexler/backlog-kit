@@ -282,3 +282,7 @@ Seven more skills moved to the fidelity method (see "Fidelity method" above). Ch
 - **Branches fixed (D23).** `feature/<name>`, `fix/<slug>`, base `develop`, via `gitflow` start and sync, as in the originals. The pipelines and batch skills are therefore exempt from the lint that no other skill mentions `gitflow`; they still never commit.
 - **Removed (D15 applied).** The gate phase and its detection, the configurable review phase, the batch list/report helpers, the REVIEWS/GATES/CLOSE_NEEDS_REGATE hand-backs and the tests that guarded them. The originals do these things in prose, and the batch skills had no scripts at all.
 - **Regression-test layer (D26).** `bug-fix` Phase 1 no longer lists the project's test layers; it says to follow the project's test conventions. With no phase files the pipeline warns and continues.
+
+## `gitflow` converted (0.2.14)
+
+`gitflow` follows the fidelity method (D27–D29). The first project's skill is the base; the only project-specific block, the release/hotfix version bump and e2e gate, moved to `.backlog-kit/release/` phase files run by the shared project-phase mechanism. The kit's earlier additions — a `commit` action with a yes before each write, a planning script, a branch-state script and the `[git]` settings — are gone: the originals never commit work (the user does) and ask before the first push, a tag and a deletion, which is what the skill does now.

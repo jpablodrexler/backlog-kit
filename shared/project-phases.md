@@ -1,19 +1,19 @@
 # Phases 3–5 — Project phases
 
-_Part of the `feature-development` and `bug-fix` skills — see `../SKILL.md` for the overview, Phase 0, placeholder substitution, final summary and the cross-phase guardrails. Read this file in full before starting this phase._
+_Part of the `feature-development`, `bug-fix` and `gitflow` skills — see `../SKILL.md` for the overview, Phase 0, placeholder substitution, final summary and the cross-phase guardrails. Read this file in full before starting this phase._
 
 ## Phases 3–5 — Project phases (one subagent per file)
 
-What a project verifies after the implementation — component and E2E tests, a build, a database or security review that only applies when certain files changed, a viewport check — differs from one project to the next, so it is not written in this skill. It lives in the project, as one markdown file per phase in `.backlog-kit/feature/` (for `feature-development`) or `.backlog-kit/bug/` (for `bug-fix`), named `NN-name.md` (e.g. `03-tests.md`, `04-e2e.md`, `05-build.md`). This phase runs them **in filename order**, each one fully (orchestrator step, subagent, hand-back) before the next starts.
+What a project verifies after the implementation — component and E2E tests, a build, a database or security review that only applies when certain files changed, a viewport check — differs from one project to the next, so it is not written in this skill. It lives in the project, as one markdown file per phase in `.backlog-kit/feature/` (for `feature-development`) or `.backlog-kit/bug/` (for `bug-fix`) or `.backlog-kit/release/` (for `gitflow`'s finish release/hotfix), named `NN-name.md` (e.g. `03-tests.md`, `04-e2e.md`, `05-build.md`). This phase runs them **in filename order**, each one fully (orchestrator step, subagent, hand-back) before the next starts.
 
-**If the folder does not exist or holds no `*.md` file:** tell the user `No project phases found in .backlog-kit/<feature|bug>/ — tests, reviews beyond the code review, and the build are not run`, and go straight to Phase 6. This is a warning, not a blocker.
+**If the folder does not exist or holds no `*.md` file:** tell the user `No project phases found in .backlog-kit/<feature|bug|release>/ — tests, reviews beyond the code review, and the build are not run`, and go straight to Phase 6. This is a warning, not a blocker.
 
 ### File format
 
 A phase file has a first-level heading (its title, used in the Final Summary) and up to two sections:
 
 - `## Orchestrator` *(optional)* — steps the **orchestrator itself** runs in its own context before spawning the subagent: reading the changed files to decide whether the phase applies, or any decision that needs `AskUserQuestion` (e.g. which credential source to use). Never delegate an `AskUserQuestion` to the subagent. If the orchestrator step concludes the phase does not apply, it records `PHASE: SKIPPED — <reason>` and moves to the next file without spawning anything. Anything it decides is passed to the subagent by substituting it into the `## Subagent` text.
-- `## Subagent` — the prompt for a **general-purpose subagent** (spawned via the Agent tool with `run_in_background: false`). It may use the placeholders `<CHANGED_FILES>` and — for `feature-development` — `<change-name>`, or — for `bug-fix` — `<bug-id>`, `<slug>`, `<repro-details>` and `<repro-test-path>`; see below.
+- `## Subagent` *(optional)* — the prompt for a **general-purpose subagent** (spawned via the Agent tool with `run_in_background: false`). If there is no `## Subagent` section, the orchestrator step is the whole phase (e.g. bumping a version and asking before committing it) and its outcome is recorded as `PHASE: PASS`, `SKIPPED` or `BLOCKED` directly. It may use the placeholders `<CHANGED_FILES>` and — for `feature-development` — `<change-name>`, or — for `bug-fix` — `<bug-id>`, `<slug>`, `<repro-details>` and `<repro-test-path>`, or — for `gitflow` — `<version>`, `<branch>` and `<kind>` (`release` or `hotfix`); see below.
 
 ### Running one file
 
@@ -30,6 +30,6 @@ A phase file has a first-level heading (its title, used in the Final Summary) an
 
 A phase that triggers on, or reviews, "the files this change touched" must use the same definition as Phase 2: run `git status --porcelain` and parse every path, including untracked (`??`) entries, recomputed fresh immediately before each use — never `git diff --name-only HEAD`, never a branch-to-branch diff (nothing is committed during this workflow, so it shows zero files). A review a project phase runs follows the same rules as Phase 2's Step 2: the skill's **Review** workflow, scoped to `CHANGED_FILES`, never its interactive Fix Workflow, findings fixed and checked off in the report, at most 3 rounds before `PHASE: BLOCKED`, and a final `code-reviewer` pass over fixes it applied.
 
-Do not start a project phase until the previous one reports `PASS` or `SKIPPED`, and do not start Phase 6 until the last one has. In `bug-fix`, the regression test at `<repro-test-path>` must keep passing throughout.
+Do not start a project phase until the previous one reports `PASS` or `SKIPPED`, and do not start Phase 6 until the last one has (in `gitflow`, the step after them is the push). In `bug-fix`, the regression test at `<repro-test-path>` must keep passing throughout.
 
 ---

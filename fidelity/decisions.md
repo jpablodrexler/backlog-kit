@@ -32,6 +32,9 @@ configurable, was removed, or was changed on purpose is recorded here with the o
 | D24 | Code review vs conditional reviews | **Code review (with its 3-round loop and `CHANGED_FILES`) stays in the kit's Phase 2**, verbatim; database/security/viewport reviews live in the project's phase files. | 2026-10-10 |
 | D25 | Phase-file format | **`## Orchestrator` (optional, main context) + `## Subagent` (prompt, placeholders substituted) ending in `PHASE: PASS\|SKIPPED\|BLOCKED — reason` and optional `SUMMARY: …`.** Final summary prints one line per phase file. | 2026-10-10 |
 | D26 | Regression-test layer (bug-fix Phase 1) and no phase files | **Generic text** (pick the layer where the bug lives, following the project's test conventions); with no phase files the pipeline warns and continues. | 2026-10-10 |
+| D27 | Topic branch types (`feature/`, `fix/`, `doc/`, `skill/`, `chore/`, plus `release/`, `hotfix/`) | **Fixed, as in the originals** — no `[git.topics]`. | 2026-10-10 |
+| D28 | The project-specific part of `finish release/hotfix` (version bump, e2e/regression gate) | **Project phase files** `.backlog-kit/release/NN-*.md`, same mechanism as feature/bug (D20–D25); a file may have only an `## Orchestrator` section. The kit keeps CHANGELOG, push, the two PRs and the tag. | 2026-10-10 |
+| D29 | `gitflow` `commit` action and a yes before every write | **Dropped, faithful to the originals**: no `commit` action (the work skills leave changes uncommitted and the user commits); `finish` pushes and opens the PR with the originals' own confirmations (first push, tag, delete, changelog/version commits). | 2026-10-10 |
 
 Not asked (not configurable, taken from the more complete original): order lists accept numbered and
 link forms (J's `bugs-next`); `features-next` reads `SDD Artifacts` from the cell only (no disk check).
