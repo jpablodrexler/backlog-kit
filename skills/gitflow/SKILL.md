@@ -52,7 +52,7 @@ On a topic branch (never on `<base>`) with changes. Run `python3 scripts/flow_pl
 1. Show the changed files grouped as code and backlog/reports (`kind`), the `diff_stat` (it includes new, untracked files), and `backlog_closed` (what this change finishes). **Files flagged `suspicious` are never staged** unless the user says yes to that specific file.
 2. Draft the commit message: a subject of at most 72 characters in the imperative, then a short body of the substantive changes (what changed and why, not a file list). Name backlog items as `feature 3` or `BUG-007`, never `#3`: GitHub turns `#<digits>` into a link to an unrelated issue.
 3. Ask: "Commit these N files with this message?" — yes / edit the message / change the file list / cancel.
-4. Stage by explicit path (`git add -- <paths>`, never `-A` or `.`), then `git commit` with the message. Never `--no-verify`. If a hook fails, show its output and stop; a fix gets a new commit, not an amend, and only if asked.
+4. Stage by explicit path (`git add -- <paths>`, never `-A` or `.`), then `git commit -m "<message>" -- <the same paths>` so the commit contains exactly those files. If `staged` lists files that are not in the confirmed set, say so and leave them out; never commit a bare index. Never `--no-verify`. If a hook fails, show its output and stop; a fix gets a new commit, not an amend, and only if asked.
 
 One commit by default; if the user asks for one commit per feature or per concern, split the staged paths accordingly and confirm each.
 
@@ -72,7 +72,7 @@ This opens the PR and nothing more. Review and merging are the human's. Say what
 
 Run `python3 scripts/flow_plan.py <repo-root> --action cleanup --fetch`. `candidates` are topic branches other than the current one and the protected branches (`protected_branches`: `<base>`, `main`, `master`, `develop`, `trunk`), which are never deleted, whatever anyone asks.
 
-- `merged_into_base: true` means the branch has diverged and everything on it is now in `<base>`.
+- `merged_into_base: true` means the branch has diverged and everything on it, including the `origin/<branch>` copy, is now in `<base>`. `remote_has_unmerged_commits: true` means the remote copy has a commit the base lacks: never offer to delete it, even if the local copy looks merged. A shallow-clone warning means these answers cannot be trusted until `git fetch --unshallow`.
 - `just_started: true` means the branch sits on the base tip: it has not diverged, so nothing says it is finished (someone may have just created it). Never list it as merged; offer it only if the user names it.
 - Otherwise the branch may have been squash-merged: check through GitHub (`gh pr list --state merged --head <branch> --base <base> --json number,mergedAt,headRefOid`, or the MCP equivalent with `head: "<owner>:<branch>"` and `state: "closed"`, counting only PRs with a `merged_at`). It counts as merged only if the PR's head commit equals the branch tip (`git rev-parse <branch>`); a branch that got commits after its PR merged holds unmerged work. No merged PR, or a tip that differs, means **unmerged work, never deleted**; list it as kept.
 - A branch that exists only on the remote is somebody's work until shown otherwise: show `last_author` and require a separate yes naming it.

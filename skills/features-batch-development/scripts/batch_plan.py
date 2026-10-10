@@ -16,14 +16,13 @@ Output is JSON:
             missing from the recommended order, a dependency cycle
   order_basis how `--all` was ordered
 
-Ordering for `--all`:
-  features  work already in progress first, then priority tier, with a hard prerequisite always
-            before its dependents; ties follow the Recommended implementation order, then table order
-  bugs      work already in progress first, then severity tier; ties follow the Recommended fix
-            order, then bug number
-            (the same ranking features-next / bugs-next apply, so `--all` agrees with them; the
-            order lists only break ties and a stale one never reorders a higher tier. A named
-            `--ids` list is always run exactly as given.)
+Ordering for `--all` (the same scoring features-next / bugs-next apply, from backlog_kit.score_*):
+  features  in-progress, priority tier, spec-ready, listed in the order list, smallest effort;
+            ties follow the order-list position, then table order; a hard prerequisite always
+            precedes its dependents
+  bugs      in-progress, severity tier, production environment, listed in the order list;
+            ties follow the order-list position, then bug number
+A named `--ids` list is always run exactly as given.
 
 Usage:
     python3 batch_plan.py <repo-root> --kind bugs|features (--ids "a,b,c" | --all)
@@ -83,9 +82,18 @@ def plan_bugs(root, cfg, ids, want_all):
 
         def key(r):
             bid = r["Bug ID"].strip()
-            return (0 if "In Progress" in r.get("Status", "") else 1,
-                    -bk.tier_score(r.get("Severity", "").strip(), b["severities"]),
-                    fix_order.get(bid, UNLISTED), bid)
+            score = bk.score_bug(cfg, r.get("Severity", "").strip(), r.get("Environment", "").strip(),
+                                 "In Progress" in r.get("Status", ""), bid in fix_order)
+            return (-score, fix_order.get(bid, UNLISTED), bk.id_number(bid))
+
+        seen_ids = set()
+        for r in list(rows):
+            bid = r["Bug ID"].strip()
+            if bid in seen_ids:
+                rows.remove(r)
+                problems.append({"input": bid, "kind": "duplicate",
+                                 "detail": f"{bid} appears more than once in bugs-open.md; it is listed once (run bugs-status)"})
+            seen_ids.add(bid)
 
         rows.sort(key=key)
         warnings += order_list_warning("Recommended fix order", fix_order, [r["Bug ID"].strip() for r in rows])
@@ -134,7 +142,7 @@ def order_list_warning(name, positions, run_order, label=lambda x: x):
     return out
 
 
-def rank_features(rows, deps, order, priorities):
+def rank_features(rows, deps, order, cfg):
     """In-progress first, then priority tier, then list position, then table order — except that a
     pending prerequisite always precedes its dependents. Returns (ordered rows, cycle_found)."""
     index = {r["number"]: n for n, r in enumerate(rows)}
@@ -144,8 +152,9 @@ def rank_features(rows, deps, order, priorities):
             before[a].add(bq)
 
     def key(r):
-        return (0 if r["in_progress"] else 1, -bk.tier_score(r["priority"], priorities),
-                order.get(r["number"], UNLISTED), index[r["number"]])
+        score = bk.score_feature(cfg, r["priority"], r["effort"], r["in_progress"], r["artifacts_ready"],
+                                 r["number"] in order)
+        return (-score, order.get(r["number"], UNLISTED), index[r["number"]])
 
     out, remaining, cycle = [], list(rows), False
     while remaining:
@@ -171,6 +180,10 @@ def plan_features(root, cfg, ids, want_all):
     def row(r):
         return {"number": r.get("#", "").strip(), "id": bk.strip_backticks(r.get("Change name", "")),
                 "summary": r.get("Summary", "").strip(), "priority": r.get("Priority", "").strip(),
+                "effort": r.get("Effort", "").strip(),
+                "artifacts_ready": cfg["spec"]["workflow"] == "openspec" and (
+                    "Created" in r.get("SDD Artifacts", "")
+                    or bk.spec_artifacts_ready(root, cfg, bk.strip_backticks(r.get("Change name", "")))),
                 "in_progress": "In Progress" in r.get("Implementation", "")}
 
     pending = [row(r) for r in planned_rows
@@ -183,7 +196,7 @@ def plan_features(root, cfg, ids, want_all):
     items, problems, warnings, basis, cycle = [], [], [], None, False
     if want_all:
         basis = "priority"
-        items, cycle = rank_features(pending, deps, order, cfg["features"]["priorities"])
+        items, cycle = rank_features(pending, deps, order, cfg)
         warnings += order_list_warning("Recommended implementation order", order, [r["number"] for r in items],
                                        label=lambda n: f"#{n}")
     else:

@@ -2,6 +2,11 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.7
+- Safety and correctness fixes from the second comparison round: globs no longer strip the leading dot of a name (`.github/**` matched nothing); `--fix-header` keeps escaped pipes in cells; `gitflow commit` commits explicit paths only and reports what is already staged; `gitflow cleanup` also checks the `origin/<branch>` tip, warns on shallow clones and rejects invalid branch names; non-ASCII paths are reported as they are; the `gitread` allowlist can no longer create a ref (`git branch <name>`) or write a file (`diff --output`).
+- `batch_plan --all` now ranks exactly like `features-next` / `bugs-next` (shared scoring in `lib/backlog_kit.py`), with prerequisites before dependents.
+- `bug-fix`: `ARCHIVE_BLOCKED` (tooling) and `CLOSE_BLOCKED` (the work) no longer share a signal.
+
 ## 0.2.6
 - Seven skills generalized from the source projects: `code-reviewer`, `security-reviewer`, `database-reviewer` (non-interactive review mode for `[[reviews]]`), `architecture-reviewer`, `product-scope-roaster`, `dependency-upgrade` and `docs-sync` (optional `[[docs.map]]`).
 

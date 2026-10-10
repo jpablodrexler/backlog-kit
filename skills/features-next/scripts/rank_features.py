@@ -113,18 +113,10 @@ def main():
 
     order = bk.order_list_positions(
         planned_lines, "### Recommended implementation order", r"^\s*-\s*`[^`]+`\s*\(#(\d+)\)")
-    smallest_effort = f_cfg["efforts"][0] if f_cfg["efforts"] else None
 
     def score(c):
-        s = 1000 if c["in_progress"] else 0
-        s += bk.tier_score(c["priority"], f_cfg["priorities"])
-        if c["artifacts_ready"]:
-            s += 20
-        if order.get(c["number"]) is not None:
-            s += 10
-        if smallest_effort and c["effort"] == smallest_effort:
-            s += 5
-        return s
+        return bk.score_feature(cfg, c["priority"], c["effort"], c["in_progress"], c["artifacts_ready"],
+                                order.get(c["number"]) is not None)
 
     if args.select:
         sel = args.select.strip().lstrip("#")

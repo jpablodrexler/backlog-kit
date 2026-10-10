@@ -215,3 +215,14 @@ From the comparison's step 5: `code-reviewer`, `security-reviewer`, `database-re
 - **`dependency-upgrade` gained a rollback the original lacked.** Manifests and lockfiles are copied into `<reports_dir>/dependency-upgrade/snapshots/` (inside the repository, because nothing in the kit may write outside it) before each group and copied back if the group fails; destructive git commands are forbidden. Yarn berry has no non-interactive outdated listing, so the skill asks.
 - **Additions that were not in the originals** (kept, but worth knowing): `database-reviewer`'s reversibility, deploy-order and lock-friendliness checks; `security-reviewer`'s secrets-in-history pass (interactive only); `dependency-upgrade`'s snapshot rollback.
 - Left out on purpose: `feature-gantt` (its generator is project-branded and large), `incident-response`, `quality-metrics`, the e2e skills, the stack-convention skills and the two projects' sync skills.
+
+## Safety and correctness round (0.2.7)
+
+The second comparison round (`plugin-vs-originals-comparison-round2.md`) listed defects; each one below was reproduced before being fixed and has a test in `tests/test_release_027.py`.
+
+- **One scoring, two entry points.** `rank_features.py`, `rank_bugs.py` and `batch_plan.py --all` each carried their own idea of the order, so an unattended batch could run in a different order than the interactive "what's next?". The point values now live once in `lib/backlog_kit.py` (`score_feature`, `score_bug`); the batch adds only the prerequisite-first rule on top.
+- **Allowlist by flag, not by subcommand.** `gitread` previously refused a list of destructive `branch` flags, which let `git branch <name>` (creates a ref) and `git diff --output=<file>` (writes a file) through. `branch` now accepts only listing flags, and any flag that writes a file or runs a configured program is refused for every subcommand. Paths are read with `core.quotepath=false` and `-z` where parsed.
+- **Commits name their paths.** A bare `git commit` takes the whole index, including files staged earlier by something else. `gitflow commit` now stages and commits the confirmed paths only (`git commit -- <paths>`), and the plan lists what was already staged.
+- **A merged local branch is not a merged branch.** Cleanup also requires the `origin/<branch>` tip to be merged (`remote_has_unmerged_commits`); shallow clones get a warning because ahead/behind and merged answers are unreliable there.
+- Not changed: the review-phase contract, the `dependency-upgrade` rework and Windows hardening are the next rounds (see the report's suggested order).
+

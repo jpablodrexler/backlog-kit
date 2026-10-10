@@ -16,11 +16,13 @@ Prints JSON. Common fields: current_branch, base_branch, base_ref, on_base, bran
            current_pushed, current_commits_ahead_of_base and dirty feed that question
   sync     behind_base: commits on base_ref that the branch lacks
   commit   files: every changed path (untracked included) with {kind: code|kit, suspicious},
+           staged (paths already in the index: commit with explicit paths, `git commit -- <paths>`),
            diff_stat, backlog_closed (rows this change adds to features-implemented / bugs-fixed)
   finish   commits (base_ref..HEAD), diff_stat, files, reports, backlog_closed, pushed, title
   cleanup  candidates: topic branches that are not current/base, with merged_into_base,
            just_started (the branch sits on the base tip: it has not diverged, so it is NOT
-           reported as merged), upstream_gone, ahead_of_base and last_author. A squash-merged
+           reported as merged), remote_has_unmerged_commits (origin/<branch> has a commit the base
+           lacks, so the branch is not merged even if the local copy is), upstream_gone, ahead_of_base and last_author. A squash-merged
            branch shows merged_into_base=false: confirm it through the PR before deleting it.
            Also `protected_branches`, which are never candidates.
 """
@@ -40,7 +42,7 @@ import branch_state as bs
 
 SUSPICIOUS = re.compile(
     r"(^|/)(\.env(\.[\w.-]+)?|id_(rsa|dsa|ecdsa|ed25519)|\.npmrc|\.pypirc|\.netrc|credentials(\.[\w.-]+)?"
-    r"|[\w.-]*secret[\w.-]*|[\w.-]*\.(pem|key|p12|pfx|jks|keystore)|[\w.-]*e2e-credentials[\w.-]*)$", re.I)
+    r"|\.htpasswd|[\w.-]*secret[\w.-]*|service[-_]account[\w.-]*\.json|[\w.-]*\.tfvars|[\w.-]*\.(pem|key|p8|p12|pfx|jks|keystore)|[\w.-]*e2e-credentials[\w.-]*)$", re.I)
 SAFE_SUFFIX = re.compile(r"\.(example|sample|template|dist)$", re.I)
 
 
@@ -63,7 +65,8 @@ def last_author(root, ref):
 
 
 def untracked(root):
-    return lines(root, "ls-files", "--others", "--exclude-standard")
+    out = gitread.git(root, "ls-files", "--others", "--exclude-standard", "-z", check=False)
+    return [p for p in out.split("\0") if p]
 
 
 def line_count(path):
@@ -133,12 +136,20 @@ def main():
             "behind_remote": bs.count(root, f"HEAD..origin/{cur}") if remote else None}
     if not cur:
         blockers.append("detached HEAD: switch to a branch first")
+    if not bs.ref_exists(root, base_ref):
+        blockers.append(f"base branch '{base}' was not found; set [git] base_branch")
+    if gitread.git(root, "rev-parse", "--is-shallow-repository", check=False).strip() == "true":
+        warnings.append("shallow clone: ahead/behind counts and 'merged' answers can be wrong; "
+                        "run `git fetch --unshallow` before relying on them")
     protected = {base, *bs.PROTECTED_FALLBACK}
     changed = gitread.changed_files(root)
 
     if a.action == "start":
         if not a.branch:
             sys.exit("--action start needs --branch")
+        if (a.branch.startswith("-") or re.search(r"[\s~^:?*\[\\]|\.\.|//|@\{|\.lock$|[./]$", a.branch)
+                or a.branch in (".", "@")):
+            blockers.append(f"'{a.branch}' is not a valid branch name")
         k_cur = kind != "other"
         info.update(target=a.branch, current_is_topic=k_cur, needs_question=k_cur and cur != a.branch,
                     current_pushed=remote,
@@ -161,6 +172,11 @@ def main():
         info["files"] = [{"path": f, "kind": "kit" if bk.glob_match(f, globs) else "code",
                           "suspicious": bool(SUSPICIOUS.search(f)) and not SAFE_SUFFIX.search(f)} for f in changed]
         new = untracked(root)
+        staged = gitread.staged_files(root)
+        info["staged"] = staged
+        if staged:
+            warnings.append(f"{len(staged)} file(s) are already staged ({', '.join(staged[:3])}"
+                            f"{'…' if len(staged) > 3 else ''}); commit with explicit paths so only the confirmed files go in")
         stat = gitread.git(root, "diff", "HEAD", "--stat", check=False).strip()
         new_lines = [f" {f} (new file, {n if n is not None else '?'} lines)" for f in new
                      for n in [line_count(Path(root) / f)]]
@@ -207,8 +223,12 @@ def main():
             fresh = same_commit(root, br, base_ref)
             # `git branch --merged` is also true for a branch that has not diverged yet. One that sits on
             # the base tip is a branch somebody just started: report it as such, never as merged.
+            # A local copy can be merged while origin/<br> carries a commit that is not: deleting
+            # the remote branch would then lose work, so the remote tip has to be merged as well.
+            remote_extra = br in remote_names and not fresh and br not in merged_remote
             cands.append({"branch": br, "local": True, "remote": br in remote_names,
-                          "merged_into_base": br in merged_local and not fresh, "just_started": fresh,
+                          "merged_into_base": br in merged_local and not fresh and not remote_extra,
+                          "remote_has_unmerged_commits": remote_extra, "just_started": fresh,
                           "upstream_gone": "gone" in track, "ahead_of_base": ahead,
                           "last_author": last_author(root, br)})
         for br in sorted(remote_names):
@@ -216,7 +236,8 @@ def main():
             if br not in {c["branch"] for c in cands} and br != cur and br not in protected and k != "other":
                 fresh = same_commit(root, f"origin/{br}", base_ref)
                 cands.append({"branch": br, "local": False, "remote": True,
-                              "merged_into_base": br in merged_remote and not fresh, "just_started": fresh,
+                              "merged_into_base": br in merged_remote and not fresh,
+                              "remote_has_unmerged_commits": False, "just_started": fresh,
                               "upstream_gone": False, "ahead_of_base": bs.count(root, f"{base_ref}..origin/{br}"),
                               "last_author": last_author(root, f"origin/{br}")})
         info["candidates"] = cands

@@ -78,13 +78,8 @@ def main():
         fail("no open or in-progress bugs in the backlog")
 
     def score(c):
-        s = 1000 if c["in_progress"] else 0
-        s += bk.tier_score(c["severity"], b_cfg["severities"])
-        if c["environment"] in b_cfg["prod_environments"]:
-            s += 20
-        if fix_order.get(c["id"]) is not None:
-            s += 10
-        return s
+        return bk.score_bug(cfg, c["severity"], c["environment"], c["in_progress"],
+                            fix_order.get(c["id"]) is not None)
 
     if args.select:
         sel = args.select.strip().upper()

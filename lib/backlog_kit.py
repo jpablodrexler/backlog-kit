@@ -189,7 +189,8 @@ def migrate_planned_header(path, cfg):
     else:
         return {"changed": False, "rows": 0, "skipped": [], "note": "headers differ in more than the SDD column"}
     def fmt(cells):
-        return "| " + " | ".join(cells) + " |"
+        # split_row unescapes `\|`; writing it back must re-escape or one cell becomes two.
+        return "| " + " | ".join(c.replace("|", "\\|") for c in cells) + " |"
     def convert(cells, fill="⬜ Pending"):
         return cells[:col] + [fill] + cells[col:] if adding else cells[:col] + cells[col + 1:]
     new_header = convert(old, "SDD Artifacts")
@@ -318,6 +319,37 @@ def table_rows(path, heading, id_column=None):
 
 # --- scoring -----------------------------------------------------------------
 
+# --- ranking, shared by features-next / bugs-next and the batch runners' --all ---------------------
+
+IN_PROGRESS_BONUS, PROD_BONUS, SPEC_BONUS, ORDER_BONUS, EFFORT_BONUS = 1000, 20, 20, 10, 5
+
+
+def score_feature(cfg, priority, effort, in_progress, artifacts_ready, in_order):
+    f = cfg["features"]
+    s = IN_PROGRESS_BONUS if in_progress else 0
+    s += tier_score(priority, f["priorities"])
+    s += SPEC_BONUS if artifacts_ready else 0
+    s += ORDER_BONUS if in_order else 0
+    if f["efforts"] and effort == f["efforts"][0]:
+        s += EFFORT_BONUS
+    return s
+
+
+def score_bug(cfg, severity, environment, in_progress, in_order):
+    b = cfg["bugs"]
+    s = IN_PROGRESS_BONUS if in_progress else 0
+    s += tier_score(severity, b["severities"])
+    s += PROD_BONUS if environment in b["prod_environments"] else 0
+    s += ORDER_BONUS if in_order else 0
+    return s
+
+
+def id_number(identifier):
+    """Numeric tail of `BUG-007` / `7` for ordering (so BUG-1000 sorts after BUG-999)."""
+    tail = str(identifier).rsplit("-", 1)[-1]
+    return int(tail) if tail.isdigit() else 10 ** 9
+
+
 def tier_score(value, ordered, step=100, untiered=50):
     """Score by position in `ordered` (first = highest): n*step ... 1*step.
 
@@ -443,7 +475,7 @@ def kit_globs(cfg):
     """
     pc = cfg["paths"]
     dirs = (pc["backlog_dir"], pc["reports_dir"], pc["decisions_dir"])
-    return [".backlog-kit.toml", ".claude/skills/**"] + [d.strip("/") + "/**" for d in dirs]
+    return [".backlog-kit.toml", ".claude/skills/**"] + [norm_path(d).strip("/") + "/**" for d in dirs]
 
 
 def glob_to_regex(pattern):
@@ -468,9 +500,21 @@ def glob_to_regex(pattern):
     return re.compile("^" + "".join(out) + "$")
 
 
+def norm_path(path):
+    """Forward slashes and no leading "./" or "/" — a prefix is removed, never a character set,
+    so a leading dot in `.github/...` or `.env` survives."""
+    p = str(path).replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p.lstrip("/")
+
+
 def glob_match(path, patterns):
-    """True if `path` matches any pattern. An empty pattern list matches everything."""
+    """True if `path` matches any pattern. An empty pattern list matches everything.
+    A single string is treated as one pattern (not iterated per character)."""
+    if isinstance(patterns, str):
+        patterns = [patterns]
     if not patterns:
         return True
-    p = path.replace("\\", "/").lstrip("./")
-    return any(glob_to_regex(g.lstrip("./")).match(p) for g in patterns)
+    p = norm_path(path)
+    return any(glob_to_regex(norm_path(g)).match(p) for g in patterns)

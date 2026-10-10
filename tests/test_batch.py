@@ -157,7 +157,7 @@ class PlanFeatures(Base):
     def test_all_table_order_breaks_ties(self):
         self.features()
         p = self.root / "docs/backlog/features-planned.md"
-        p.write_text(p.read_text().replace("| P1 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
+        p.write_text(p.read_text().replace("| S |", "| M |").replace("| L |", "| M |").replace("| P1 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
         out = self.plan("--all")
         self.assertEqual([i["id"] for i in out["items"]], ["alpha", "beta", "gamma"])
 
@@ -181,7 +181,7 @@ class PlanFeatures(Base):
     def test_all_order_list_breaks_ties_within_a_tier(self):
         self.features(order="- `gamma` (#3) — x\n- `alpha` (#1) — y\n- `beta` (#2) — z")
         p = self.root / "docs/backlog/features-planned.md"
-        p.write_text(p.read_text().replace("| P1 |", "| P2 |").replace("| P3 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
+        p.write_text(p.read_text().replace("| S |", "| M |").replace("| L |", "| M |").replace("| P1 |", "| P2 |").replace("| P3 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
         out = self.plan("--all")
         self.assertEqual([i["id"] for i in out["items"]], ["gamma", "alpha", "beta"])
         self.assertEqual(out["warnings"], [])
@@ -313,7 +313,7 @@ class PlanFeaturesBriefAndNumberedOrder(Base):
     def test_numbered_order_lists_are_read_like_bulleted_ones(self):
         self.features(order="1. `gamma` (#3) — x\n2. `alpha` (#1) — y\n3. `beta` (#2) — z")
         p = self.root / "docs/backlog/features-planned.md"
-        p.write_text(p.read_text().replace("| P1 |", "| P2 |").replace("| P3 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
+        p.write_text(p.read_text().replace("| S |", "| M |").replace("| L |", "| M |").replace("| P1 |", "| P2 |").replace("| P3 |", "| P2 |").replace("🔶 In Progress", "⬜ Pending"))
         out = self.plan("--all")
         self.assertEqual([i["id"] for i in out["items"]], ["gamma", "alpha", "beta"])
         self.assertEqual(out["warnings"], [])
