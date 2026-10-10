@@ -121,19 +121,6 @@ class ScriptsAgreeWithTheOriginals(unittest.TestCase):
             scores = {r["id"]: r["score"] for r in [kit["top"]] + kit["runners_up"]}
             self.assertEqual(scores["BUG-001"], scores["BUG-004"] - 5)       # same tier and order bonus, but no tier 4
 
-    def test_the_batch_runner_orders_like_the_selectors(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = project(d)
-            plan = run(KIT / "lib/batch_plan.py", root, "--kind", "features", "--all")
-            nxt = run(KIT / "skills/features-next/scripts/rank_features.py", root, "--json")
-            ranked = [nxt["top"]["name"]] + [r["name"] for r in nxt["runners_up"]]
-            blocked = {b["name"] for b in nxt["blocked"]}
-            # the batch keeps a blocked feature, right after its prerequisite; apart from that the order is the same
-            self.assertEqual([i["id"] for i in plan["items"] if i["id"] not in blocked][:len(ranked)], ranked)
-            self.assertLess([i["id"] for i in plan["items"]].index("beta"), [i["id"] for i in plan["items"]].index("eps"))
-            bplan = run(KIT / "lib/batch_plan.py", root, "--kind", "bugs", "--all")
-            bnext = run(KIT / "skills/bugs-next/scripts/rank_bugs.py", root, "--json")
-            self.assertEqual([i["id"] for i in bplan["items"]], [bnext["top"]["id"]] + [r["id"] for r in bnext["runners_up"]])
 
 
 if __name__ == "__main__":

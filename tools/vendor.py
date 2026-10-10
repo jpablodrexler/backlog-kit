@@ -20,16 +20,13 @@ SKILLS = KIT / "skills"
 
 CORE = ["feature-plan", "features-next", "features-status", "bug-report",
         "bugs-next", "bugs-status", "decision-record"]          # scripts need the config/table lib
-WORK = ["bug-fix", "feature-development"]                         # also need git helpers + shared phases
-BATCH = ["bugs-batch-fix", "features-batch-development"]          # loop over WORK skills; need list/report/branch helpers
+WORK = ["bug-fix", "feature-development"]                         # share the project-phase contract
 
 LIB_FOR = {
-    "backlog_kit.py": CORE + ["features-archive", "gitflow", "spec-compliance-check"] + BATCH,
-    "gitread.py": BATCH + ["gitflow", "spec-compliance-check"],
-    "branch_state.py": BATCH + ["gitflow"],
-    "work_scope.py": BATCH + ["spec-compliance-check"],
-    "batch_plan.py": BATCH,
-    "batch_report.py": BATCH,
+    "backlog_kit.py": CORE + ["features-archive", "gitflow", "spec-compliance-check"],
+    "gitread.py": ["gitflow", "spec-compliance-check"],
+    "branch_state.py": ["gitflow"],
+    "work_scope.py": ["spec-compliance-check"],
     "flow_plan.py": ["gitflow"],
     "task_state.py": ["spec-compliance-check"],
 }
@@ -37,8 +34,6 @@ LIB_FOR = {
 SHARED_FOR = {
     "project-phases.md": WORK,
     "spec-compliance.md": ["spec-compliance-check"],
-    "pipeline-guardrails.md": BATCH,
-    "batch-runner.md": BATCH,
 }
 
 

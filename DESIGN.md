@@ -272,3 +272,13 @@ Seven more skills moved to the fidelity method (see "Fidelity method" above). Ch
 - **Fewer moving parts.** With vocabularies fixed (D4), columns fixed (D1, D12), OpenSpec assumed (D11) and the folders derived (D19), the code that migrated headers between configurations, generated legends from the config and computed spec-link depth had nothing left to do and was deleted rather than kept "just in case".
 - **Interim inconsistency.** The pipelines (`feature-development`, `bug-fix`), the batch runners, `gitflow` and the reviewers are still the earlier rewrites and still read `[spec] workflow` and the old `reports_dir` style settings; they are converted next, family by family.
 
+
+## Pipelines converted (0.2.13)
+
+`feature-development`, `bug-fix` and the two batch skills follow the fidelity method: the first project's text is the base, the second project's variants are recorded in `fidelity/ledgers/`, and every difference has a reason (D20–D26 in `fidelity/decisions.md`).
+
+- **Project phases (D20, D21, D25).** The originals' Phases 3–5 (tests, E2E, build/deploy) and the conditional reviews inside Phase 2 differ completely between the two projects, so they cannot be generic text. They live in the project as `.backlog-kit/feature/NN-*.md` and `.backlog-kit/bug/NN-*.md`; the skill runs them in filename order, each as its own subagent, with an optional `## Orchestrator` section (run in the main context, for `AskUserQuestion` decisions such as an E2E credential source) and a `PHASE: PASS|SKIPPED|BLOCKED` hand-back. The format is `shared/project-phases.md`, vendored into both skills.
+- **What stays in the kit (D24).** Phase 0 select/confirm, Phase 1 propose (branch, in-progress mark, `openspec-propose`, dependency check), Phase 2 implement plus the code-review loop (`CHANGED_FILES`, 3 rounds), Phase 6 archive (`spec-compliance-check`, `docs-sync`, `openspec-archive-change`, `features-archive`), the guardrails, and for `bug-fix` the failing-test-first reproduction.
+- **Branches fixed (D23).** `feature/<name>`, `fix/<slug>`, base `develop`, via `gitflow` start and sync, as in the originals. The pipelines and batch skills are therefore exempt from the lint that no other skill mentions `gitflow`; they still never commit.
+- **Removed (D15 applied).** The gate phase and its detection, the configurable review phase, the batch list/report helpers, the REVIEWS/GATES/CLOSE_NEEDS_REGATE hand-backs and the tests that guarded them. The originals do these things in prose, and the batch skills had no scripts at all.
+- **Regression-test layer (D26).** `bug-fix` Phase 1 no longer lists the project's test layers; it says to follow the project's test conventions. With no phase files the pipeline warns and continues.

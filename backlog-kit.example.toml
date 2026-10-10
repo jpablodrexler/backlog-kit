@@ -20,7 +20,9 @@ changes_dir = "openspec/changes"
 # phase. Leave empty to use the plugin's `spec-compliance-check` procedure.
 compliance_skill = ""
 
-# ---- bug-fix / feature-development -----------------------------------------------------------
+# ---- Settings below are read only by skills not yet converted (gitflow, the three reviewers, ------
+# ---- spec-compliance-check, docs-sync, dependency-upgrade). feature-development, bug-fix and the ------
+# ---- batch skills ignore them: they run the project's phase files in .backlog-kit/feature|bug/. -----
 
 [git]
 # Empty = detect from origin/HEAD, then main / master / develop / trunk. The work skills only

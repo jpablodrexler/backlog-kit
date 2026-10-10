@@ -1,8 +1,16 @@
 {
   "name": "backlog-kit",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "Your backlog is plain markdown in the repo, and Claude works it to done through quality gates. Nothing is committed without you.",
-  "author": { "name": "Juan Pablo Drexler" },
+  "author": {
+    "name": "Juan Pablo Drexler"
+  },
   "license": "MIT",
-  "keywords": ["backlog", "skills", "workflow", "quality-gates", "markdown"]
+  "keywords": [
+    "backlog",
+    "skills",
+    "workflow",
+    "quality-gates",
+    "markdown"
+  ]
 }

@@ -2,6 +2,13 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.13
+- Fidelity method applied to the pipelines: `feature-development`, `bug-fix`, `features-batch-development` and `bugs-batch-fix` are now the projects' own skills (the first project's text; the second project's variants are in the ledgers), not a rewrite. The generic phases (select, propose, implement with the code review, archive/close) are verbatim; everything project-specific is out of the kit.
+- New: project phase files. Tests, E2E, build and conditional reviews (database, security, viewport) live in the project as `.backlog-kit/feature/NN-*.md` and `.backlog-kit/bug/NN-*.md`, run in filename order, one subagent each, with an optional `## Orchestrator` section for decisions that need the user (see `shared/project-phases.md`). `examples/pablo-web/` and `examples/jp-photo-manager/` hold the two source projects' phases converted to this format.
+- Removed the kit-only machinery the originals do not have: `[[gates]]`-driven gate phase, `[[reviews]]` review phase, `detect_gates.py`, `dep_scan.py` in `feature-development`, `batch_plan.py`, `batch_report.py`, the batch runner and pipeline guardrails shared files, the `REVIEWS:`/`GATES:`/`CLOSE_NEEDS_REGATE` hand-backs and their tests. The batch skills are plain skills again. Branches are fixed as in the originals (`feature/`, `fix/`, base `develop`, through `gitflow`'s start and sync).
+- `tools/fidelity.py` gains `FILE | project/skill/path | reason` ledger lines for a whole original file that moved out of the kit.
+- Still to convert (their `[[gates]]`, `[[reviews]]`, `[docs] sync_skill` and `[spec] compliance_skill` settings are kept until then): `gitflow`, the three reviewers, `spec-compliance-check`, `docs-sync`, `dependency-upgrade`.
+
 ## 0.2.12
 - Fidelity pilot complete for the planning family: `feature-plan`, `features-status`, `features-archive`, `bug-report`, `bugs-status`, `bugs-archive` and `decision-record` are now rebuilt from the source projects' skills and scripts (60–84% of the original paragraphs verbatim; every other difference recorded in `fidelity/ledgers/` and tied to a decision in `fidelity/decisions.md`, D1–D19).
 - Simpler configuration: `[paths]` has the single `backlog_dir` (the decisions, explorations and reports folders sit next to it); the priority, effort, severity, area and environment vocabularies and the `Schema Change` column are fixed or defined by the backlog's own legend; `(prerequisite already implemented)` is the one resolved annotation; the bug id prefix is `BUG`.

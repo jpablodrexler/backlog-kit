@@ -177,10 +177,6 @@ class PreviouslyUnverifiedFindings(unittest.TestCase):
         self.assertIn("`IMPLEMENTED_SET`", t)
         self.assertIn("non-directional", t)
 
-    def test_resume_asks_when_the_list_differs_and_skipped_items_stay_skipped(self):
-        t = self.read("shared/batch-runner.md")
-        self.assertIn("**`exact`** (the same set of ids)", t)
-        self.assertIn("items already `skipped` or `left-open` are not run again", t)
 
     def test_status_describes_its_checks(self):
         t = self.read("skills/features-status/SKILL.md")

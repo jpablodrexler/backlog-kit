@@ -68,10 +68,6 @@ class PipelineText(unittest.TestCase):
         self.assertIn("<m> manual", t)
 
 
-    def test_guardrails_define_reentry_after_a_blocker(self):
-        t = text("shared/pipeline-guardrails.md")
-        self.assertIn("Re-entry after a `*_BLOCKED`", t)
-        self.assertIn("never from the start and never at the next phase", t)
 
 
 if __name__ == "__main__":

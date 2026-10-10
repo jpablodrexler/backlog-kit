@@ -24,12 +24,12 @@ The middle of the loop (`feature-development`, `bug-fix`, the batch runners) nev
 | Area | Skills |
 | --- | --- |
 | Plan and track | `feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`, `decision-record` |
-| Work one item | `feature-development`, `bug-fix` (reproduce with a failing test first, then fix), `spec-compliance-check` (proves each scenario with a test it ran and writes the evidence) |
+| Work one item | `feature-development`, `bug-fix` (reproduce with a failing test first, then fix), `spec-compliance-check` (proves each scenario with a test it ran and writes the evidence). Both run your own phase files from `.backlog-kit/feature/` and `.backlog-kit/bug/` for everything project-specific: tests, E2E, build, conditional reviews |
 | Review a change | `code-reviewer`, `security-reviewer`, `database-reviewer` — each has a non-interactive mode the review phase calls through `[[reviews]] skill = "…"`, and interactive audit and fix-the-findings modes |
 | Review the whole | `architecture-reviewer` (qualitative, grounded system health check), `product-scope-roaster` (harsh product-owner critique of the whole backlog) |
 | Keep things current | `docs-sync` (docs follow the code; optional `[[docs.map]]`; plugs into `[docs] sync_skill`), `dependency-upgrade` (grouped, gated, rolled back on failure) |
 | Branch, commit, PR, clean up | `gitflow` — `start`, `sync`, `commit`, `finish` (push and open the PR), `cleanup`; only when you ask, and it asks before every write |
-| Work a list unattended | `features-batch-development`, `bugs-batch-fix` — one shared branch, zero commits, a dated report updated after each item, resumable after a crash |
+| Work a list unattended | `features-batch-development`, `bugs-batch-fix` — one shared branch, zero commits, a dated report updated after each item, resumable after a crash (plain skills, no helper scripts) |
 
 ## Quick start
 
@@ -38,13 +38,7 @@ The middle of the loop (`feature-development`, `bug-fix`, the batch runners) nev
    /plugin marketplace add jpablodrexler/backlog-kit
    /plugin install backlog-kit@backlog-kit
    ```
-2. **Configure** — copy [`backlog-kit.example.toml`](backlog-kit.example.toml) to `.backlog-kit.toml` in your repo and list your gates:
-   ```toml
-   [[gates]]
-   name = "tests"
-   run  = "npm test"
-   ```
-   With no file the defaults apply (`docs/backlog`, no gates; the first run proposes gates and asks before saving them).
+2. **Configure** — with no file the defaults apply (`docs/backlog`). To change the backlog folder, copy [`backlog-kit.example.toml`](backlog-kit.example.toml) to `.backlog-kit.toml`. To say what "verified" means in your project, add phase files: one markdown file per step in `.backlog-kit/feature/` (for `feature-development`) and `.backlog-kit/bug/` (for `bug-fix`), run in filename order — see [`shared/project-phases.md`](shared/project-phases.md) for the format and [`examples/`](examples/) for the two projects the kit comes from.
 3. **Talk to Claude** — the skills trigger on intent:
    - "Plan a feature: dark-mode toggle" → `feature-plan` drafts the row and the brief and asks before writing.
    - "What should I work on next?" → `features-next` / `bugs-next`.
@@ -57,7 +51,7 @@ Each work run ends by saying plainly that nothing was committed, what to review,
 ## Principles
 
 - **Nothing is committed, pushed or opened as a PR unless you ask for it.** The work skills' only git writes are branch switching and fast-forward merges. Only `gitflow` can commit, push or open a PR, only when you invoke it, and only after showing the exact commit message, files or PR text and getting a yes for each write. It never merges a PR, force-pushes or rewrites history. Lint tests enforce all of this.
-- **Gates are yours.** `[[gates]]` lists the commands to run. Failures are reported as they are: known failures, environment problems and files no gate covers are named, never folded into "pass".
+- **Verification is yours.** What counts as tested, built or reviewed is written by you as project phase files; the kit runs them in order and stops on a `PHASE: BLOCKED`. A phase that did not apply says `SKIPPED`, and one that could not check everything says `PARTIAL` — neither is folded into "pass".
 - **Evidence over claims.** Work done by subagents is spot-checked before it is reported; a scenario is verified only by a test that was actually run.
 - **Mechanics are code, judgment is Claude.** Ranking, ordering, ids, dependency detection, table checks, branch decisions and PR facts come from small, tested, read-only Python scripts; Claude is asked only for what needs judgment.
 - **OpenSpec is optional and never bundled.** Set `[spec] workflow = "openspec"` to use it; the kit only depends on it being installed.
