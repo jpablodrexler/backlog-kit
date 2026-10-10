@@ -34,43 +34,6 @@ DEFAULTS = {
     "paths": {
         "backlog_dir": "docs/backlog",
     },
-    "work": {
-        # Rounds of review-and-fix per review before the run stops and asks a human.
-        "review_max_rounds": 3,
-        "gate_max_rounds": 3,
-    },
-    "guidance": {
-        # Free text handed to the subagent that writes a bug's failing regression
-        # test: where tests live, how to run a single one, what to prefer.
-        "regression_tests": "",
-    },
-    "docs": {
-        # Optional skill name to invoke (best-effort) in the close phase to keep
-        # reference docs in step with what shipped. Empty = skip.
-        "sync_skill": "",
-        # Optional [[docs.map]] entries read by the `docs-sync` skill: {doc, section, source, check}.
-        "map": [],
-    },
-    # Verification commands, run in order after implementation. Each entry:
-    #   name, run, cwd (default "."), when (path globs; default ["**"]),
-    #   ask_before (a question to put to the user before running, e.g. a gate that
-    #   hits a live service), timeout_minutes (default 10).
-    "gates": [],
-    # Reviews run on the changed files. Each entry: name, focus (what to look for),
-    # skill (optional: delegate to a project review skill instead of the built-in
-    # reviewer), when (path globs; default ["**"]).
-    "reviews": [
-        {"name": "code",
-         "focus": "correctness, regressions, missing or weak tests, unintended changes, anything surprising in the diff",
-         "skill": "", "when": ["**"]},
-    ],
-    "spec": {
-        "compliance_skill": "",
-        # "none" or "openspec". With "openspec", the planned-features table gains
-        # an `SDD Artifacts` column and implemented rows link the archived spec.
-        "workflow": "none",
-        "changes_dir": "openspec/changes",
-    },
 }
 
 
@@ -289,47 +252,6 @@ def emit(obj):
     print(json.dumps(obj, indent=2))
 
 
-# --- path globs --------------------------------------------------------------
-
-def kit_globs(cfg):
-    """Paths backlog-kit itself writes. They never count as "the change" or as a dirty tree.
-
-    Filing a bug or installing the kit leaves these uncommitted; they carry over to a new
-    branch untouched. Treating them as work would block every first run, and would make a
-    `when = ["**"]` gate or review match 150 files of bookkeeping.
-    """
-    pc = cfg["paths"]
-    dirs = [pc["backlog_dir"], pc["reports_dir"], pc["decisions_dir"]]
-    if cfg["spec"]["workflow"] == "openspec":
-        # The change folder and the main specs are spec markdown, not code: gates and reviews
-        # have nothing to say about them, and they would read as "NOT VERIFIED BY ANY GATE".
-        changes = norm_path(cfg["spec"]["changes_dir"]).strip("/")
-        dirs += [changes, changes.rsplit("/", 1)[0] + "/specs" if "/" in changes else "specs"]
-    return [".backlog-kit.toml", ".claude/skills/**"] + [norm_path(d).strip("/") + "/**" for d in dirs]
-
-
-def glob_to_regex(pattern):
-    """`**` spans directories, `*` and `?` stay within one path segment."""
-    out, i = [], 0
-    while i < len(pattern):
-        if pattern.startswith("**/", i):
-            out.append("(?:.*/)?")
-            i += 3
-        elif pattern.startswith("**", i):
-            out.append(".*")
-            i += 2
-        elif pattern[i] == "*":
-            out.append("[^/]*")
-            i += 1
-        elif pattern[i] == "?":
-            out.append("[^/]")
-            i += 1
-        else:
-            out.append(re.escape(pattern[i]))
-            i += 1
-    return re.compile("^" + "".join(out) + "$")
-
-
 def norm_path(path):
     """Forward slashes and no leading "./" or "/" — a prefix is removed, never a character set,
     so a leading dot in `.github/...` or `.env` survives."""
@@ -337,14 +259,3 @@ def norm_path(path):
     while p.startswith("./"):
         p = p[2:]
     return p.lstrip("/")
-
-
-def glob_match(path, patterns):
-    """True if `path` matches any pattern. An empty pattern list matches everything.
-    A single string is treated as one pattern (not iterated per character)."""
-    if isinstance(patterns, str):
-        patterns = [patterns]
-    if not patterns:
-        return True
-    p = norm_path(path)
-    return any(glob_to_regex(norm_path(g)).match(p) for g in patterns)

@@ -23,15 +23,12 @@ CORE = ["feature-plan", "features-next", "features-status", "bug-report",
 WORK = ["bug-fix", "feature-development"]                         # share the project-phase contract
 
 LIB_FOR = {
-    "backlog_kit.py": CORE + ["features-archive", "spec-compliance-check"],
-    "gitread.py": ["gitflow", "spec-compliance-check"],
-    "work_scope.py": ["spec-compliance-check"],
-    "task_state.py": ["spec-compliance-check"],
+    "backlog_kit.py": CORE + ["features-archive"],
+    "gitread.py": ["gitflow"],
 }
 
 SHARED_FOR = {
     "project-phases.md": WORK + ["gitflow"],
-    "spec-compliance.md": ["spec-compliance-check"],
 }
 
 

@@ -290,3 +290,7 @@ Seven more skills moved to the fidelity method (see "Fidelity method" above). Ch
 ## Reviewers converted (0.2.15)
 
 The three reviewers follow D30–D31. Each original mixes a reusable frame with long stack-specific checklists (about 5,000 lines for the two projects). The frame stays in the kit, de-stacked; the checklists become project files found by their `Read when:` line, so a project keeps its conventions where they belong and the kit names no stack. Sections the two projects word differently are not merged: the first project's wording is the kit's, the second's stays in its own project files.
+
+## Last three skills converted (0.2.16)
+
+`spec-compliance-check`, `docs-sync` and `dependency-upgrade` follow D32: generic frame in the kit, project knowledge in `.backlog-kit/<skill>/` files. With them, every skill of the kit is now derived from the projects' own text and has a ledger. The settings that only these skills and the old pipeline read (`[[gates]]`, `[[reviews]]`, `[work]`, `[guidance]`, `[docs]`, `[spec]`) are gone: the configuration file has a single setting, the backlog folder. The helpers behind them (`work_scope.py`, `task_state.py`) are gone too.

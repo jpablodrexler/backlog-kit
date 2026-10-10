@@ -1,6 +1,6 @@
 # Installing backlog-kit
 
-Requirements: Claude Code, Python 3.11+ on `PATH` as `python3`, git. [OpenSpec](https://github.com/Fission-AI/OpenSpec) only if you set `[spec] workflow = "openspec"`.
+Requirements: Claude Code, Python 3.11+ on `PATH` as `python3`, git. [OpenSpec](https://github.com/Fission-AI/OpenSpec) for `feature-development`.
 
 ## Option A: Claude Code plugin (recommended)
 
@@ -27,7 +27,7 @@ This copies every skill to `<repo>/.claude/skills/`. It refuses to overwrite a s
 
 ## After installing
 
-1. Copy `backlog-kit.example.toml` to `<repo>/.backlog-kit.toml`; set at least `[[gates]]` for your build and tests.
+1. Write your project's phases as markdown files in `<repo>/.backlog-kit/feature/` and `.backlog-kit/bug/` (tests, build, ...); `examples/` shows two. `.backlog-kit.toml` is only needed to move the backlog folder.
 2. Ask Claude to plan your first feature or file a bug; the backlog files are created on first use.
 3. Add `docs/reports/` to `.gitignore` if you don't want batch reports committed (your choice).
 

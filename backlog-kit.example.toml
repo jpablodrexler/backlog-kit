@@ -1,94 +1,21 @@
-# Copy to <your-repo>/.backlog-kit.toml. Every key is optional — anything you
-# leave out falls back to the default shown here. Requires Python 3.11+ to be read.
+# Copy to <your-repo>/.backlog-kit.toml. The file is optional: with none, the defaults below apply.
+# Requires Python 3.11+ to be read.
 
 [paths]
 # The one folder setting. The decisions, explorations and reports folders sit next to it
 # (<docs>/decisions, <docs>/explorations, <docs>/reports, where <docs> contains the backlog folder).
 backlog_dir = "docs/backlog"        # features-*.md, bugs-*.md, features/, bugs/
 
-# Priorities (P0-P3), efforts (S/M/L), severities (S1-S4), the bug id prefix (BUG) and the Schema Change
-# column are fixed, as in the projects the kit comes from; the Area and Environment values are whatever the
-# legend of your backlog files says.
-
-[spec]
-# "none" (default) or "openspec". backlog-kit never bundles OpenSpec; with
-# "openspec" the planned table gains an `SDD Artifacts` column and archived rows
-# link the archived change's proposal.md. Install OpenSpec separately.
-workflow    = "none"
-changes_dir = "openspec/changes"
-# Optional: a skill to use instead of the built-in spec / acceptance check in feature-development's close
-# phase. Leave empty to use the plugin's `spec-compliance-check` procedure.
-compliance_skill = ""
-
-# ---- Settings below are read only by skills not yet converted (the three reviewers, ------------
-# ---- spec-compliance-check, docs-sync, dependency-upgrade). feature-development, bug-fix, the batch
-# ---- skills and gitflow ignore them: they run the project's phase files in .backlog-kit/feature|bug|release/.
-
-
-[work]
-review_max_rounds = 3     # review-and-fix rounds before the run stops and asks a human
-gate_max_rounds   = 3     # fix-and-rerun rounds for ONE failing gate before the run stops (GATES_BLOCKED)
-
-[guidance]
-# Free text for the subagent that writes a bug's failing regression test.
-regression_tests = ""
-
-[docs]
-# Optional skill invoked best-effort when closing work, to keep reference docs current.
-# The plugin ships `docs-sync` for this ("" = skip).
-sync_skill = ""
-
-# Optional map the `docs-sync` skill uses to know which code each documented section describes.
-# Without any entry it still checks the facts a change can invalidate (commands, layout,
-# configuration keys, public interfaces, setup steps). Each entry: doc (file), section (optional
-# heading), source (globs of the code it documents), check (what "in sync" means).
+# Everything else the skills need to know about your project is written as markdown files in the
+# project, not configured here:
+#   .backlog-kit/feature/NN-*.md          phases feature-development runs after implementing (tests, build, ...)
+#   .backlog-kit/bug/NN-*.md              the same for bug-fix
+#   .backlog-kit/release/NN-*.md          what gitflow runs before pushing a release or hotfix
+#   .backlog-kit/review/<code|security|database>/*.md   the reviewers' checklists
+#   .backlog-kit/spec-compliance/*.md, .backlog-kit/docs/*.md, .backlog-kit/dependency-upgrade/*.md
+# See examples/ for the two projects the kit comes from.
 #
-# [[docs.map]]
-# doc     = "docs/api.md"
-# section = "Endpoints"
-# source  = ["src/routes/**"]
-# check   = "every route has an entry with its method, path and auth requirement"
-
-# Verification gates, run in order after the work and its reviews. With none configured, the
-# first run sniffs the repo (package.json scripts, pytest, mvn/gradle, dotnet, go, cargo,
-# `make test`), proposes some, and asks before saving them here. Each entry:
-#   name, run, cwd = ".", when = ["**"] (globs on changed files), ask_before = "" (a question to
-#   put to the user first, e.g. for a gate that touches a live service), timeout_minutes = 10,
-#   known_failures = [] (test names or patterns that already fail for reasons unrelated to your
-#   changes — reported as KNOWN FAILURE and not fixed, instead of blocking every run).
-# Leave `when` OFF a smoke or build gate that must catch a change that looks unrelated; a gate with
-# `when` is skipped when no changed file matches it.
-#
-# [[gates]]
-# name = "tests"
-# run  = "npm test"
-#
-# [[gates]]
-# name = "build"
-# run  = "npm run build"
-
-# Reviews run on the changed files. With none configured, one built-in "code" review applies.
-# Each entry: name, focus (what to look for), skill (optional: delegate to a project review
-# skill instead of the built-in reviewer), when = ["**"].
-#
-# The plugin ships review skills you can point at: `code-reviewer`, `security-reviewer`,
-# `database-reviewer` (each has a non-interactive mode that takes the changed files).
-#
-# [[reviews]]
-# name  = "code"
-# focus = "correctness, regressions, missing or weak tests"
-# skill = "code-reviewer"
-#
-# [[reviews]]
-# name  = "security"
-# focus = "auth, input handling, secrets, dependency changes"
-# skill = "security-reviewer"
-# when  = ["**/auth/**", "**/package.json"]
-#
-# [[reviews]]
-# name  = "database"
-# focus = "schema and migration safety, index coverage, access policies"
-# skill = "database-reviewer"
-# when  = ["**/migrations/**", "**/*.sql"]
-
-# See examples/angular-supabase.toml for a complete worked configuration.
+# Priorities (P0-P3), efforts (S/M/L), severities (S1-S4), the bug id prefix (BUG), the Schema Change
+# column, the branch names (feature/, fix/, base develop) and OpenSpec's location (openspec/changes) are
+# fixed, as in the projects the kit comes from; the Area and Environment values are whatever the legend
+# of your backlog files says.

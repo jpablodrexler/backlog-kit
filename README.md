@@ -4,9 +4,9 @@
 
 **Your backlog is plain markdown in the repo, and Claude works it to done through quality gates. Nothing is committed without you.**
 
-A pack of [Claude Code](https://claude.com/claude-code) skills. Features and bugs live as markdown tables, one file per item, under `docs/backlog/`. Claude plans them, picks the next one, branches, implements with tests, runs *your* gates (tests, lint, build) and reviews, and archives the result. Publishing it (commit, push, PR) happens only when you ask, and only after Claude shows you exactly what it is about to do.
+A pack of [Claude Code](https://claude.com/claude-code) skills. Features and bugs live as markdown tables, one file per item, under `docs/backlog/`. Claude plans them, picks the next one, branches, implements with tests, runs *your* phases (tests, lint, build, E2E) and reviews, and archives the result. Publishing it (push, PR, tag) happens only when you ask; you commit your own work.
 
-There is no server, no database and no service: the markdown files are the state, so they diff, review and merge like code. It works on any stack because gates and reviews are declared in a config file, not baked into the skills.
+There is no server, no database and no service: the markdown files are the state, so they diff, review and merge like code. It works on any stack because what "verified" and "reviewed" mean is written by you as markdown files in the project, not baked into the skills.
 
 ## The loop
 
@@ -24,10 +24,10 @@ The middle of the loop (`feature-development`, `bug-fix`, the batch runners) nev
 | Area | Skills |
 | --- | --- |
 | Plan and track | `feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`, `decision-record` |
-| Work one item | `feature-development`, `bug-fix` (reproduce with a failing test first, then fix), `spec-compliance-check` (proves each scenario with a test it ran and writes the evidence). Both run your own phase files from `.backlog-kit/feature/` and `.backlog-kit/bug/` for everything project-specific: tests, E2E, build, conditional reviews |
+| Work one item | `feature-development`, `bug-fix` (reproduce with a failing test first, then fix), `spec-compliance-check` (read-only: matches each spec scenario to a passing test or a manual check and reports Verified, Failing or Unverified). Both run your own phase files from `.backlog-kit/feature/` and `.backlog-kit/bug/` for everything project-specific: tests, E2E, build, conditional reviews |
 | Review a change | `code-reviewer`, `security-reviewer`, `database-reviewer` — the frame (workflow, severities, dated report, fix workflow) is the kit's; the stack-specific checklists are yours, as files in `.backlog-kit/review/<code\|security\|database>/` that each start with a `Read when:` line. `examples/` has the two source projects' |
 | Review the whole | `architecture-reviewer` (qualitative, grounded system health check), `product-scope-roaster` (harsh product-owner critique of the whole backlog) |
-| Keep things current | `docs-sync` (docs follow the code; optional `[[docs.map]]`; plugs into `[docs] sync_skill`), `dependency-upgrade` (grouped, gated, rolled back on failure) |
+| Keep things current | `docs-sync` (docs follow the code; the map of doc sections to their source of truth is a project file in `.backlog-kit/docs/`), `dependency-upgrade` (grouped, tested after each group; the ecosystem's commands and rules are project files in `.backlog-kit/dependency-upgrade/`) |
 | Branch, PR, release, clean up | `gitflow` — start and sync `feature/`, `fix/`, `doc/`, `skill/`, `chore/` branches, `finish` (push and open the PR), `release`/`hotfix` (changelog, your own release phases from `.backlog-kit/release/`, two PRs, tag), `cleanup`; only when you ask, with the confirmations of the original skills (first push, tag, delete) |
 | Work a list unattended | `features-batch-development`, `bugs-batch-fix` — one shared branch, zero commits, a dated report updated after each item, resumable after a crash (plain skills, no helper scripts) |
 
@@ -54,21 +54,20 @@ Each work run ends by saying plainly that nothing was committed, what to review,
 - **Verification is yours.** What counts as tested, built or reviewed is written by you as project phase files; the kit runs them in order and stops on a `PHASE: BLOCKED`. A phase that did not apply says `SKIPPED`, and one that could not check everything says `PARTIAL` — neither is folded into "pass".
 - **Evidence over claims.** Work done by subagents is spot-checked before it is reported; a scenario is verified only by a test that was actually run.
 - **Mechanics are code, judgment is Claude.** Ranking, ordering, ids, dependency detection, table checks, branch decisions and PR facts come from small, tested, read-only Python scripts; Claude is asked only for what needs judgment.
-- **OpenSpec is optional and never bundled.** Set `[spec] workflow = "openspec"` to use it; the kit only depends on it being installed.
+- **OpenSpec is required and never bundled.** `feature-development` expects the `openspec` CLI and `openspec/changes`; install it separately.
 
 ## Configuration
 
-Everything is optional; see [`backlog-kit.example.toml`](backlog-kit.example.toml) for every key. The ones most projects set:
+There is one setting, `[paths] backlog_dir` (default `docs/backlog`; the decisions, explorations and reports folders sit next to it), and the whole `.backlog-kit.toml` is optional — see [`backlog-kit.example.toml`](backlog-kit.example.toml). Everything else about your project is markdown in `.backlog-kit/`:
 
-| Section | Keys |
+| Folder | Read by |
 | --- | --- |
-| `[paths]` | `backlog_dir` (the decisions, explorations and reports folders sit next to it) |
-| `[spec]` | `workflow` (`none` or `openspec`), `changes_dir`, `compliance_skill` |
-| `[work]` | `review_max_rounds`, `gate_max_rounds` |
-| `[[gates]]` | `name`, `run`, `cwd`, `when`, `ask_before`, `timeout_minutes`, `known_failures` |
-| `[docs]`, `[[docs.map]]` | `sync_skill`, and per entry `doc`, `section`, `source`, `check` |
+| `feature/NN-*.md`, `bug/NN-*.md` | `feature-development`, `bug-fix`: the phases after implementing (tests, E2E, build, conditional reviews), in filename order |
+| `release/NN-*.md` | `gitflow`: what runs before a release or hotfix is pushed |
+| `review/code/`, `review/security/`, `review/database/` | the reviewers' checklists, each file with a `Read when:` line |
+| `spec-compliance/`, `docs/`, `dependency-upgrade/` | the project's knowledge for those skills, same file shape |
 
-A worked example for an Angular project: [`examples/angular-supabase.toml`](examples/angular-supabase.toml).
+[`examples/`](examples/) holds the two projects the kit comes from, converted.
 
 ## Requirements
 

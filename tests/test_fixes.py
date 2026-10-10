@@ -130,25 +130,6 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class SpecComplianceRigor(unittest.TestCase):
-    """The folded-in check had lost the original's evidence rules; they live in one shared procedure now."""
-
-    def proc(self):
-        return (KIT / "shared/spec-compliance.md").read_text()
-
-    def test_procedure_demands_running_tests_evidence_and_a_report(self):
-        t = self.proc()
-        for needle in ("Read the test body", "**Run it.**", "exact command", "Never infer verification from reading the implementation alone",
-                       "TASKS_INCOMPLETE", "SPEC_COMPLIANCE_<change-name>_<YYYY-MM-DD>.md", "prose conflict", "NO_ACCEPTANCE_CRITERIA"):
-            self.assertIn(needle, t)
-
-
-
-    def test_standalone_skill_is_read_only_and_can_find_the_gates(self):
-        t = (S / "spec-compliance-check/SKILL.md").read_text()
-        self.assertIn("**Never run `git commit`, `git push` or open a PR.**", t)
-        self.assertIn("never tick a task", t)
-        self.assertTrue((S / "spec-compliance-check/scripts/work_scope.py").is_file())
 
 
 class PreviouslyUnverifiedFindings(unittest.TestCase):

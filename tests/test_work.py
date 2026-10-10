@@ -65,88 +65,12 @@ class GitRead(unittest.TestCase):
             self.assertEqual(gitread.changed_files(d), ["new file.txt", "sub/a.py", "tracked.txt"])
 
 
-class KitFiles(unittest.TestCase):
-    def test_work_scope_ignores_backlog_kit_bookkeeping(self):
-        with tempfile.TemporaryDirectory() as d:
-            init_repo(d)
-            for rel in ("docs/backlog/bugs-open.md", "docs/reports/bug-batch/R.md", "docs/decisions/0001-x.md",
-                        ".backlog-kit.toml", ".claude/skills/bug-fix/SKILL.md", "src/Real.java"):
-                f = Path(d) / rel
-                f.parent.mkdir(parents=True, exist_ok=True)
-                f.write_text("[git]\n" if rel == ".backlog-kit.toml" else "x")   # a valid, empty-ish config
-            out = run("work_scope.py", d)
-            self.assertEqual(out["changed_files"], ["src/Real.java"])
-            self.assertEqual(out["kit_files_ignored"], 5)
-
-    def test_explicit_files_are_never_filtered(self):
-        with tempfile.TemporaryDirectory() as d:
-            out = run("work_scope.py", d, "--files", "docs/backlog/x.md")
-            self.assertEqual(out["changed_files"], ["docs/backlog/x.md"])
-
-    def test_known_failures_pass_through(self):
-        with tempfile.TemporaryDirectory() as d:
-            (Path(d) / ".backlog-kit.toml").write_text(
-                '[[gates]]\nname = "unit"\nrun = "mvn test"\nknown_failures = ["HealthIndicatorTest"]\n')
-            out = run("work_scope.py", d, "--files", "a.java")
-            self.assertEqual(out["gates"][0]["known_failures"], ["HealthIndicatorTest"])
 
 
-class GateCoverage(unittest.TestCase):
-    def scope(self, toml, *files):
-        with tempfile.TemporaryDirectory() as d:
-            (Path(d) / ".backlog-kit.toml").write_text(toml)
-            return run("work_scope.py", d, "--files", *files)
-
-    def test_changed_files_outside_every_gate_are_reported(self):
-        out = self.scope('[[gates]]\nname = "be"\nrun = "mvn test"\ncwd = "backend"\n',
-                         "backend/src/A.java", "frontend/src/x.ts", "README.md")
-        self.assertEqual(sorted(out["uncovered_files"]), ["README.md", "frontend/src/x.ts"])
-
-    def test_a_gate_at_the_root_covers_everything_its_when_matches(self):
-        out = self.scope('[[gates]]\nname = "all"\nrun = "make test"\n', "a/b.py", "c.py")
-        self.assertEqual(out["uncovered_files"], [])
-
-    def test_when_globs_narrow_coverage(self):
-        out = self.scope('[[gates]]\nname = "sql"\nrun = "x"\nwhen = ["db/**"]\n', "db/m.sql", "src/a.py")
-        self.assertEqual(out["uncovered_files"], ["src/a.py"])
-
-    def test_no_gates_configured_reports_nothing_uncovered(self):
-        self.assertEqual(self.scope("", "a.py")["uncovered_files"], [])
 
 
-class Globs(unittest.TestCase):
-    def test_matching(self):
-        m = bk.glob_match
-        self.assertTrue(m("src/app/x.ts", ["src/**"]))
-        self.assertTrue(m("db/migrations/001.sql", ["**/migrations/**"]))
-        self.assertTrue(m("c.sql", ["**/*.sql"]))
-        self.assertFalse(m("a/b/c.sql", ["*.sql"]))
-        self.assertTrue(m("anything", []))
-        self.assertTrue(m("anything/at/all", ["**"]))
 
 
-class WorkScope(unittest.TestCase):
-    def test_gates_and_reviews_follow_when_globs(self):
-        with tempfile.TemporaryDirectory() as d:
-            (Path(d) / ".backlog-kit.toml").write_text(
-                '[[gates]]\nname = "unit"\nrun = "echo u"\n\n'
-                '[[gates]]\nname = "migrations"\nrun = "echo m"\nwhen = ["db/**"]\nask_before = "Hit staging?"\n\n'
-                '[[reviews]]\nname = "security"\nfocus = "auth"\nwhen = ["**/auth/**"]\n')
-            out = run("work_scope.py", d, "--files", "src/app.py", "web/auth/login.py")
-            gates = {g["name"]: g for g in out["gates"]}
-            self.assertTrue(gates["unit"]["applies"])
-            self.assertFalse(gates["migrations"]["applies"])
-            self.assertEqual(gates["migrations"]["ask_before"], "Hit staging?")
-            self.assertEqual([r["name"] for r in out["reviews"] if r["applies"]], ["security"])
-            # configured reviews replace the built-in default entirely
-            self.assertEqual([r["name"] for r in out["reviews"]], ["security"])
-
-    def test_default_has_a_general_review_and_no_gates(self):
-        with tempfile.TemporaryDirectory() as d:
-            out = run("work_scope.py", d, "--files", "a.txt")
-            self.assertFalse(out["gates_configured"])
-            self.assertEqual([r["name"] for r in out["reviews"]], ["code"])
-            self.assertTrue(out["reviews"][0]["applies"])
 
 
 
@@ -186,37 +110,3 @@ class ConfirmedModeSafety(unittest.TestCase):
             self.assertIn("error", sel("ghost"))    # unknown
 
 
-class ExampleConfig(unittest.TestCase):
-    """The shipped example must parse, and its `when` globs must select what its comments claim."""
-
-    def scope(self, *files):
-        with tempfile.TemporaryDirectory() as d:
-            (Path(d) / ".backlog-kit.toml").write_bytes((LIB.parent / "examples/angular-supabase.toml").read_bytes())
-            out = run("work_scope.py", d, "--files", *files)
-        return ({g["name"] for g in out["gates"] if g["applies"]},
-                {r["name"] for r in out["reviews"] if r["applies"]}, out)
-
-    def test_plain_component_change(self):
-        gates, reviews, _ = self.scope("frontend/src/app/expenses/expenses.ts")
-        self.assertEqual(gates, {"component tests", "mocked e2e", "production build"})
-        self.assertEqual(reviews, {"code"})
-
-    def test_template_change_adds_layout_review(self):
-        _, reviews, _ = self.scope("frontend/src/app/expenses/expenses.html")
-        self.assertEqual(reviews, {"code", "layout"})
-
-    def test_migration_adds_database_security_reviews_and_live_e2e(self):
-        gates, reviews, out = self.scope("supabase/migrations/20260101_x.sql")
-        self.assertIn("live e2e", gates)
-        self.assertEqual(reviews, {"code", "database", "security"})
-        self.assertTrue(next(g for g in out["gates"] if g["name"] == "live e2e")["ask_before"])
-
-    def test_auth_change_triggers_security_and_live_e2e(self):
-        gates, reviews, _ = self.scope("frontend/src/app/core/auth.service.ts")
-        self.assertIn("live e2e", gates)
-        self.assertIn("security", reviews)
-
-    def test_dependency_manifest_triggers_security_only(self):
-        gates, reviews, _ = self.scope("frontend/package.json")
-        self.assertNotIn("live e2e", gates)
-        self.assertIn("security", reviews)

@@ -2,6 +2,11 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.16
+- `spec-compliance-check`, `docs-sync` and `dependency-upgrade` rebuilt from the projects' own skills (the first project's text; the second's variants are in the ledgers). Each keeps the generic frame and names no stack; the project's own knowledge is read from markdown files, found by their `Read when:` line, in `.backlog-kit/spec-compliance/`, `.backlog-kit/docs/` and `.backlog-kit/dependency-upgrade/` (D32). `examples/` has both projects' files, moved from their originals without changes.
+- Configuration is down to `[paths] backlog_dir`. Removed `[[gates]]`, `[[reviews]]`, `[work]`, `[guidance]`, `[docs]` / `[[docs.map]]` and `[spec]` (OpenSpec lives at `openspec/changes`, fixed as in the originals), together with `work_scope.py`, `task_state.py`, `shared/spec-compliance.md`, the helper scripts of `spec-compliance-check`, `examples/angular-supabase.toml` and the tests that guarded them.
+- `docs-sync` is the kit name of the projects' `web-docs-sync`; the old `[[docs.map]]` is replaced by a project file.
+
 ## 0.2.15
 - `code-reviewer`, `security-reviewer` and `database-reviewer` rebuilt from the projects' own skills (the first project's text is the base; the second's variants are in the ledgers). The kit carries the frame — workflow, scoped review, severity legend, dated report, fix workflow, full-codebase sweep process — with no stack named (D30).
 - The stack-specific checklists, pitfalls tables, metrics sections and the sweep layer tables are the project's: files in `.backlog-kit/review/<code|security|database>/`, each starting with `# Title` and a `Read when:` line; the reviewer loads only what the change touches, and says so in the report when there is no project checklist (D31). `examples/` holds both projects' files, moved from their originals without changes (the `Read when` lines were written for the database and security files, which had no index).

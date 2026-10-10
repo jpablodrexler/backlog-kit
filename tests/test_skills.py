@@ -78,7 +78,7 @@ class SkillLint(unittest.TestCase):
                 continue
             body = (d / "SKILL.md").read_text()
             for ln in [l for l in body.splitlines() if "`gitflow`" in l]:
-                if d.name in ("feature-development", "bug-fix", "features-batch-development", "bugs-batch-fix"):
+                if d.name in ("feature-development", "bug-fix", "features-batch-development", "bugs-batch-fix", "dependency-upgrade", "spec-compliance-check"):
                     continue        # D23: the pipelines call gitflow's start and sync as the originals do
                 self.assertRegex(ln, r"never invoke it|[Dd]o not invoke", f"{d.name}: {ln[:80]}")
 
@@ -228,75 +228,14 @@ class GeneralizedSkillsTest(unittest.TestCase):
     def test_architecture_follow_ups_can_record_decisions(self):
         self.assertIn("`decision-record`", self.text("architecture-reviewer"))
 
-    def test_dependency_upgrade_never_writes_outside_the_repo_or_uses_destructive_git(self):
-        t = self.text("dependency-upgrade")
-        self.assertIn("snapshots/", t)
-        self.assertNotIn("outside the repo (not a git operation)", t)
-        self.assertRegex(t, r"Never run a destructive git command")
-        self.assertIn("never switches branches", t)
 
-    def test_dependency_upgrade_snapshots_stay_out_of_git_status_and_cover_edited_files(self):
-        t = self.text("dependency-upgrade")
-        self.assertIn("git rev-parse --git-dir", t)
-        self.assertIn("<git-dir>/backlog-kit/dependency-upgrade/snapshots/", t)
-        self.assertNotIn("<reports_dir>/dependency-upgrade/snapshots", t)
-        self.assertIn("before editing any file, copy it into the group's snapshot folder", t)
 
-    def test_dependency_upgrade_declares_groups_that_cannot_be_rolled_back(self):
-        t = self.text("dependency-upgrade")
-        self.assertIn("Declare source-rewriting groups", t)
-        self.assertIn("NOT ROLLED BACK", t)
-        self.assertIn("do not attempt a partial restore", t)
 
-    def test_dependency_upgrade_rechecks_vulnerabilities_and_never_says_clean_unchecked(self):
-        t = self.text("dependency-upgrade")
-        self.assertIn("## 6. Re-check vulnerabilities", t)
-        self.assertIn('"not checked", never "clean"', t)
-        self.assertIn("Vulnerability check (read-only)", t)
 
-    def test_dependency_upgrade_table_has_the_corrected_commands(self):
-        t = self.text("dependency-upgrade")
-        self.assertIn("Do not use `versions:use-latest-versions`", t)
-        self.assertIn("-DgenerateBackupPoms=false", t)
-        self.assertIn("dotnet restore --locked-mode", t)
-        self.assertIn("`--save-exact`", t)
-        self.assertIn("a major needs the constraint edited", t)
-        self.assertIn("a major needs `Cargo.toml` edited first", t)
-        self.assertIn("**Yarn flavour**", t)
-        self.assertIn("**Workspaces**", t)
 
-    def test_dependency_upgrade_restores_the_originals_levers(self):
-        t = self.text("dependency-upgrade")
-        for needle in ("**Version-managing parents come first.**", "ask_before", "Say \"candidate\", never \"unused\"",
-                       "current branch is the base branch"):
-            self.assertIn(needle, t)
 
-    def test_docs_sync_edits_docs_only_and_documents_the_map(self):
-        t = self.text("docs-sync")
-        for key in ("[[docs.map]]", "doc", "section", "source", "check"):
-            self.assertIn(key, t)
-        self.assertIn("DOCS: nothing to sync", t)
-        sys.path.insert(0, str(self.ROOT / "lib"))
-        import backlog_kit
-        self.assertEqual(backlog_kit.load_config(self.ROOT)["docs"]["map"], [])
-        example = (self.ROOT / "backlog-kit.example.toml").read_text(encoding="utf-8")
-        self.assertIn("[[docs.map]]", example)
 
-    def test_docs_map_entries_load_from_toml(self):
-        import tempfile
-        sys.path.insert(0, str(self.ROOT / "lib"))
-        import backlog_kit
-        with tempfile.TemporaryDirectory() as d:
-            (Path(d) / ".backlog-kit.toml").write_text('[[docs.map]]\ndoc = "docs/a.md"\nsource = ["src/**"]\ncheck = "x"\n')
-            cfg = backlog_kit.load_config(d)
-            self.assertEqual(cfg["docs"]["map"][0]["doc"], "docs/a.md")
-            self.assertEqual(cfg["docs"]["sync_skill"], "")
 
-    def test_example_config_points_reviews_at_shipped_skills(self):
-        example = (self.ROOT / "backlog-kit.example.toml").read_text(encoding="utf-8")
-        for name in self.REVIEWERS:
-            self.assertIn(f'skill = "{name}"', example)
-            self.assertTrue((self.ROOT / "skills" / name / "SKILL.md").is_file())
 
 
 class ListMergeCandidates(unittest.TestCase):
