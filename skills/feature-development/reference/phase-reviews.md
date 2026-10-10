@@ -25,6 +25,6 @@ When any later fix touches files a finished review covered, recompute the scope 
 
 ## Re-review of specific files
 
-The orchestrator uses this when a later phase changed files no review covered (for example `PROD_CODE_FIXED` changes made to get a gate green). Spawn a **fresh reviewer** subagent (foreground) whose prompt names exactly those files, the applicable reviews' `focus` text (from `python3 <scripts>/work_scope.py <repo-root> --files <those files>`), and the finding format above; it writes the usual report, you apply steps 2 and 3 to its findings (fixing in the orchestrator's own context or in a new subagent), and the gates phase then runs again over the final tree.
+The orchestrator uses this when a later phase changed files no review covered (for example `PROD_CODE_FIXED` changes made to get a gate green). Take `python3 <scripts>/work_scope.py <repo-root> --files <those files>` and, for each review it says applies, run it exactly as in step 1: a review that names a `skill` goes through that skill with the contract above (`changed_files` = the review's `matched_files`), any other through a **fresh reviewer** subagent (foreground) whose prompt names exactly those files, the review's `focus` text and the finding format above; each writes the usual report, you apply steps 2 and 3 to its findings (fixing in the orchestrator's own context or in a new subagent), and the gates phase then runs again over the final tree.
 
 Review reports are working files left uncommitted like everything else; the human decides whether they belong in the PR.

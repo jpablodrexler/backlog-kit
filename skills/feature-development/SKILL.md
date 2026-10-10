@@ -73,13 +73,15 @@ After it returns:
 >
 > Never edit a file that records history already applied elsewhere (an applied database migration, a released changelog entry, a published schema) — add a new one instead.
 >
-> Never print or write a generated secret's raw value; leave any task needing one unchecked with the manual command named.
+> Never print or write a generated secret's raw value. A task that needs one (or any other step only a person can do: a deploy, a device) stays unchecked, with `(manual: <the exact command or step for the person>)` appended to its line in `tasks.md`; that marker is what tells the close phase it is not unfinished work.
+>
+> **Step 1b — All tasks done.** With OpenSpec, run `python3 <scripts>/task_state.py <repo-root> --change <change-name>`. Anything in `blocking` is unfinished: do it, or end with `IMPLEMENT_BLOCKED — <n> task(s) unchecked: <titles>`. Do not hand back `IMPLEMENT: DONE` with a blocking task left.
 >
 > **Step 2 — Review.** Follow `reference/phase-reviews.md` over the current diff: recompute scope with `python3 <scripts>/work_scope.py <repo-root>` before each review, fix every 🔴/🟡 finding, re-review until clean or the round cap.
 >
-> End with exactly `IMPLEMENT: DONE`, then one line `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review that did not go through a fresh reviewer subagent — every review run through a configured `skill` counts, since it runs in your own context — or `REVIEWS: none applied`) — or `IMPLEMENT_BLOCKED — …` / `REVIEW_BLOCKED — …`.
+> End with exactly `IMPLEMENT: DONE`, then one line `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review that did not go through a fresh reviewer subagent — every review run through a configured `skill` counts, since it runs in your own context — or `REVIEWS: none applied`) — or `IMPLEMENT_BLOCKED — …` / `REVIEW_BLOCKED — …`. After the `REVIEWS:` line, one line per manual task: `MANUAL: <title> — run: <command>`.
 
-Do not start Phase 4 until it returns `IMPLEMENT: DONE` with its `REVIEWS:` line; on any `*_BLOCKED`, surface and wait. Use the `REVIEWS:` line for the final summary, and say plainly in it when a review was self-reviewed.
+Do not start Phase 4 until it returns `IMPLEMENT: DONE` with its `REVIEWS:` line; on any `*_BLOCKED`, surface and wait. With OpenSpec, run `python3 <scripts>/task_state.py <repo-root> --change <change-name>` yourself: a non-empty `blocking` is an `IMPLEMENT_BLOCKED` whatever the subagent said. Use the `REVIEWS:` line for the final summary, and say plainly in it when a review was self-reviewed. Keep the `MANUAL:` lines for the final summary.
 
 ## Phase 4 — Gates
 
@@ -90,25 +92,30 @@ Follow `reference/phase-gates.md` with `<id>` = `<change-name>`. It runs on **ev
 > Perform these steps in order.
 >
 > **Step 1 — Verify the work against its spec (or its brief) and close every gap.** With OpenSpec this checks the change's scenarios; without it, the acceptance statements in `<brief-path>`. If `[spec] compliance_skill` names a skill, invoke it for `<change-name>` instead of the procedure below and apply the same rules to what it reports; otherwise read `reference/spec-compliance.md` in full and follow it (`<reports_dir>` is `[paths] reports_dir`, default `docs/reports`; it writes a dated report there). It checks the task list, reads each matching test, **runs it**, classifies every scenario Verified / Unverified / Failing from that evidence, and lists prose conflicts. Then act on its hand-back:
-> - **`TASKS_INCOMPLETE`** → stop: `CLOSE_BLOCKED — <n> task(s) unchecked: <titles>`. Unfinished work belongs back in Phase 3.
+> - **`TASKS_INCOMPLETE`** → stop: `CLOSE_BLOCKED — <n> task(s) unchecked: <titles>`. Unfinished work belongs back in Phase 3. (Tasks marked `(manual: …)` are not unfinished work; they are reported, not blocked on.)
 > - **`COMPLIANCE: NO_ACCEPTANCE_CRITERIA`** (no OpenSpec, and the brief states none) → note it for the final summary and continue; don't invent criteria.
 > - **Any Failing** → stop: `CLOSE_BLOCKED — <N> failing scenario(s): <summary>`. That is a real behavioural gap and belongs back in Phase 3, not fixed here.
+> - **Manual** rows (a scenario no automated test can express, with the reason given) do not block the archive and are never counted as verified; they go to the user in the final summary.
 > - **Any Unverified** → close every one; never carry one forward as a caveat. Add the missing test coverage (extend an existing test file where you can), then re-run the procedure for those scenarios. If a new test fails because the scenario is actually broken, treat it as Failing — never weaken the test. After 3 rounds with a scenario still unverifiable, stop: `CLOSE_BLOCKED — repeated spec-compliance cycles, <N> scenario(s) still unverified`.
 > - **Prose conflicts** (a requirement that says the behaviour is "unchanged", "exactly as before" or "no visible change" next to scenarios or a proposal that declare a user-visible change; scenarios can all be Verified and the requirement text still false):
 >   - The proposal **declares** the change as intentional → reword that requirement in the change's delta spec (`<changes-dir>/<change-name>/specs/**/spec.md`) so it states the declared change, re-read it, and note the rewording in your hand-back. Change only the requirement statement; never edit a scenario's expected behaviour to match the code.
 >   - The behaviour change is **not** declared anywhere → that is a Failing scenario in disguise: `CLOSE_BLOCKED — requirement "<title>" contradicts shipped behaviour: <summary>`.
 >   - Never archive a change with a known prose conflict.
-> - Once everything is Verified, tests you added in this step changed the tree: run `python3 <scripts>/work_scope.py <repo-root>` and re-run every gate it says applies to the changed files (not only the test gates: a new test file can fail lint or type checks), and re-run the reviews whose `when` now matches (`phase-reviews.md`). Say in your hand-back which report holds the evidence.
+> - Once everything is Verified or Manual, check whether this step changed the tree (tests you added, a reworded requirement): if so, **stop before archiving** and end with `CLOSE_NEEDS_REGATE — <the files you added or changed>`. You do not run gates or reviews yourself; the orchestrator does (it must ask about gated gates, which a subagent cannot). If nothing changed, continue.
 >
 > **Step 2 — Docs (best-effort).** If `<docs-skill>` is non-empty, invoke it for the current branch's changes. "Nothing to sync" is fine; only stop if it errors and leaves files broken. Skip if empty.
 >
-> **Step 3 — Archive the spec change (OpenSpec only).** Invoke `openspec-archive-change <change-name>` with the Skill tool and respond to any prompts about delta-spec sync or incomplete tasks normally. Wait for it to finish.
+> **Step 3 — Archive the spec change (OpenSpec only).** Invoke `openspec-archive-change <change-name>` with the Skill tool and answer its delta-spec sync prompt with the option that syncs (that is what archiving a change means). Any other prompt — about incomplete tasks, a conflict, anything else — is a human decision: do not answer it, end with `ARCHIVE_NEEDS_DECISION — <the prompt text and its options>` (naming which of Steps 3–4 are already done) and change nothing further. Wait for it to finish.
 >
 > **Step 4 — Archive the feature.** Invoke `features-archive <change-name>` with the Skill tool and wait until the row has moved from `features-planned.md` to `features-implemented.md`.
 >
 > **Never hand-edit the backlog or spec files, or re-implement an archive skill with an ad-hoc script, to get the same effect** — `features-archive` writes the destination before touching the source so an interruption never loses a row, and a hand edit loses that guarantee. If the Skill tool is unavailable to you or an archive skill errors, do not work around it: end with `ARCHIVE_BLOCKED — <skill> could not be run: <reason>` (naming which of Steps 3–4 are already done) and change nothing further.
 >
-> End with exactly `CLOSE: DONE`.
+> End with exactly `CLOSE: DONE`, then the lines the summary needs, each exactly: `COMPLIANCE: <the procedure's hand-back line>` (or `COMPLIANCE: N/A`), `DOCS: <the docs skill's hand-back line>` (or `DOCS: none`).
+
+If it returns `CLOSE_NEEDS_REGATE — <files>`: follow `reference/phase-gates.md` again in your own context (including its questions), then `reference/phase-reviews.md` → "Re-review of specific files" for those files, and then spawn Phase 5 again. Do this at most twice; a third time is `CLOSE_BLOCKED — the spec check keeps changing the tree`, surfaced to the user.
+
+If it returns `ARCHIVE_NEEDS_DECISION — …`: put the prompt and its options to the user with **AskUserQuestion** in your own context, then run the remaining archive step yourself with their answer. Never choose for them.
 
 Do not show the final summary until the feature is archived. After `CLOSE: DONE`, spot-check in your own context that the `<change-name>` row is gone from `features-planned.md` and present in `features-implemented.md` (and, with OpenSpec, that the change now sits under `<changes-dir>/archive/`) — a hand-back is a claim, not evidence. On `ARCHIVE_BLOCKED` (or a failed spot-check), run the remaining archive step(s) yourself: invoke `openspec-archive-change` / `features-archive <change-name>` with the Skill tool in your own context, then spot-check again. Never archive by editing the backlog files directly.
 
@@ -127,10 +134,11 @@ A `CLOSE_BLOCKED` means the feature is implemented and tested but **not archived
 **Reviews:** <name> ✓ clean [(self-reviewed)] …  (or "none applied")
 **Gates:** <name> ✓ …  [if `uncovered_files`: ⚠ NOT VERIFIED BY ANY GATE: <n> files (<areas>)]  (or ⚠ NOT RUN: <gate> — <why>; or ⚠ FAILED (environment): <gate> — <tests>; or KNOWN FAILURE: <test>; or "none configured — nothing was verified")
 [if UNREVIEWED_PROD_FIXES:] **⚠ Unreviewed production changes:** <the PROD_CODE_FIXED lines> — made while fixing gate failures; you chose to proceed without re-review.
-**Spec compliance:** <✓ N/N verified — report <path> | N/A (brief states no acceptance criteria)>
+**Spec compliance:** <✓ N/N verified — report <path> | N/A (brief states no acceptance criteria)>  [if Manual rows: ⚠ <n> scenario(s) need a person: <steps>]
+[if MANUAL: lines or manual tasks:] **⚠ For you to run:** <each `MANUAL:` line — the work is done but these steps are not>
 **Dependencies:** <recorded: …; dismissed: #n — reason, … | none found>
 [if the branch phase reported the base ahead:] **Base:** <base> has <n> commit(s) this branch lacks (information; syncing the branch with the base brings them in)
-**Docs:** <one line, or "nothing to sync" / "no sync skill configured">
+**Docs:** <the `DOCS:` line, or "no sync skill configured">
 **Archive:** ✓ <spec change archived;> feature marked implemented
 
 Nothing was committed. The work is on `<branch>`, uncommitted. Review with `git status` / `git diff`, then ask for `gitflow` — the skill named by `[git] finish_skill` (default `gitflow`; empty means do it by hand): its `commit` and `finish` actions commit the work and open the PR after asking you. Say so by name; never invoke it yourself.

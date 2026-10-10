@@ -242,7 +242,7 @@ class PreviouslyUnverifiedFindings(unittest.TestCase):
         self.assertIn("DEPS_DISMISSED", fd)
         self.assertIn("**Dependencies:**", fd)
         self.assertIn("`BUG_ID:` echo equals `<id>`", bf)
-        self.assertIn("run `<repro-test-path>` yourself", bf)
+        self.assertIn("run `<repro-command>` yourself", bf)
         self.assertIn("ORIGINAL SCENARIO", bf)
         self.assertIn("fall back to the row's Summary", bf)
         self.assertIn("Never edit a file that records history already applied elsewhere", fd)

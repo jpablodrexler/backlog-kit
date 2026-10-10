@@ -21,6 +21,7 @@ Then show the user the result and what is left to close:
 Report: <path>
 
 Failing: <scenarios with the failing evidence>
+Manual: <scenarios no test can express, with the steps a person follows>, and tasks marked `(manual: …)`
 Unverified: <scenarios and why>
 Prose conflicts: <requirement titles>
 ```

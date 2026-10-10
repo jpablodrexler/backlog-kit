@@ -12,7 +12,9 @@ Inputs: `<change-name>`, `<repo-root>`, `<scripts>` (the calling skill's `script
 
 ## 1. Tasks gate (openspec mode)
 
-Read `tasks.md`. Any task still unchecked (`- [ ]`) means the work is not finished: list them and hand back `TASKS_INCOMPLETE — <n> unchecked: <task titles>`, then stop. Don't tick tasks yourself to get past this.
+Run `python3 <scripts>/task_state.py <repo-root> --change <change-name>`. Any title in `blocking` means the work is not finished: list them and hand back `TASKS_INCOMPLETE — <n> unchecked: <task titles>`, then stop. Don't tick tasks yourself to get past this.
+
+A task that needs a person (a generated secret, a deploy, a device) is left unchecked with a `(manual: <what to run>)` marker; `task_state.py` lists those under `manual`, not `blocking`. They do not stop the check: record them in the report under "Manual tasks" and hand back the count (below), and the caller puts them in front of the user.
 
 ## 2. Build the checklist
 
@@ -30,6 +32,7 @@ For each row:
 
 - **Verified** — a test whose body asserts exactly the scenario ran and passed, and you recorded the command and output.
 - **Failing** — the test that pins the scenario ran and failed, or running the program shows it contradicts the scenario.
+- **Manual** — only for a scenario no automated test can express here (it needs a person, a physical device, a real third-party service, a visual judgement). Use it only after you tried to write or find a test and can say in one sentence why none can exist; record that reason and the exact steps a person should follow. A Manual row is never counted as Verified and is never a way out of a gap you could close with a test. The caller lists every Manual row in front of the user.
 - **Unverified** — no test covers it, the test asserts something weaker, it could not be run, or the only support is that the code looks right. **Never infer verification from reading the implementation alone.**
 
 ## 5. Check the requirement prose
@@ -43,15 +46,19 @@ Write `<reports_dir>/spec-compliance/SPEC_COMPLIANCE_<change-name>_<YYYY-MM-DD>.
 ```markdown
 # Spec compliance — <change-name> (<date>)
 
-Mode: openspec | brief   Result: <verified>/<total> verified, <n> unverified, <n> failing, <n> prose conflict(s)
+Mode: openspec | brief   Result: <verified>/<total> verified, <n> manual, <n> unverified, <n> failing, <n> prose conflict(s)
 
 ## Tasks
 <n>/<n> complete (openspec mode) — list anything unchecked.
+
+## Manual tasks
+- <task title> — run: `<command>` (none, if there are none)
 
 ## Scenarios
 | Requirement | Scenario | Status | Evidence |
 | --- | --- | --- | --- |
 | <title> | <scenario> | Verified | `<test path>:<line>` — `<command>` — 12 passed |
+| <title> | <scenario> | Manual | why no test can exist — the steps a person follows |
 
 ## Prose conflicts
 - <requirement title>: "<claim>" vs "<scenario or proposal text>"
@@ -59,4 +66,4 @@ Mode: openspec | brief   Result: <verified>/<total> verified, <n> unverified, <n
 
 ## 7. Hand back
 
-End with exactly one line: `COMPLIANCE: <verified>/<total> verified, <u> unverified, <f> failing, <p> prose conflict(s) — report <path>` (or `TASKS_INCOMPLETE …` / `COMPLIANCE: NO_ACCEPTANCE_CRITERIA`). Never report a count you did not compute from the table.
+End with exactly one line: `COMPLIANCE: <verified>/<total> verified, <m> manual, <u> unverified, <f> failing, <p> prose conflict(s), <t> manual task(s) — report <path>` (or `TASKS_INCOMPLETE …` / `COMPLIANCE: NO_ACCEPTANCE_CRITERIA`). Never report a count you did not compute from the table.

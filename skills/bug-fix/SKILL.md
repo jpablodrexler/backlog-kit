@@ -37,7 +37,7 @@ Which bug gets fixed is the user's decision; a spawned subagent can't reliably s
 
 **Branch**: `<slug>` = `<id lowercased>-<2–4 kebab words from the title>` (e.g. `bug-004-report-total-wrong`); `<branch>` = the `[git] fix_prefix` (default `fix/`) + `<slug>`.
 
-Before spawning any subagent, substitute `<id>`, `<slug>`, `<branch>`, `<repro-details>`, `<scripts>` (this skill's `scripts/` folder, absolute), `<repo-root>` and `<docs-skill>` (the `[docs] sync_skill` value, possibly empty) in its prompt; from Phase 3 also `<repro-test-path>`.
+Before spawning any subagent, substitute `<id>`, `<slug>`, `<branch>`, `<repro-details>`, `<scripts>` (this skill's `scripts/` folder, absolute), `<repo-root>` and `<docs-skill>` (the `[docs] sync_skill` value, possibly empty) in its prompt; from Phase 3 also `<repro-test-path>` and `<repro-command>`.
 
 **Begin every subagent prompt with:** "Work in `<repo-root>` (cd there first). Never run `git commit`, `git push`, `git add`, `git stash`, `git reset` or any other git write. Never install system packages or change anything outside the repository."
 
@@ -57,32 +57,32 @@ Follow `reference/phase-branch.md`, with `<backlog-row>` = "Open `<backlog>/bugs
 >
 > **If you cannot make it fail** — the behaviour looks correct, or the recorded steps are too vague — do not invent a fix and do not widen the bug. End with `FIX_BLOCKED — cannot reproduce <id>: <what you tried and what you observed>` and stop. Change nothing else.
 >
-> End with exactly: `REPRO: DONE — test: <path to the test file>` then `BUG_ID: <id>`.
+> End with exactly: `REPRO: DONE — test: <path to the test file> — run: <the exact command that runs just that test>` then `BUG_ID: <id>`.
 
 `<test-guidance>` = the `[guidance] regression_tests` text from `.backlog-kit.toml` if set, else omit.
 
 After it returns:
 - `FIX_BLOCKED — cannot reproduce` → in your own context ask with **AskUserQuestion**: "Mark `<id>` as ❓ Cannot reproduce?" — "Yes, mark it Cannot reproduce" (invoke `bugs-archive <id> cannot-repro "<the subagent's note>"` and stop), "Keep it open — I'll add repro detail" (stop; leave the row `🔶 In Progress`), "Cancel". Do not go on to Phase 3.
 - Any other `*_BLOCKED` → surface and stop.
-- Otherwise capture the `REPRO: DONE — test: <path>` line as `<repro-test-path>`, check that the `BUG_ID:` echo equals `<id>` (anything else: blocked), and **run `<repro-test-path>` yourself** to confirm it fails, for the reason in the report, before going on — a hand-back is a claim, not evidence.
+- Otherwise capture the `REPRO: DONE` line: `<repro-test-path>` is its test path and `<repro-command>` its `run:` command. Check that the `BUG_ID:` echo equals `<id>` (anything else: blocked), and **run `<repro-command>` yourself** to confirm it fails, for the reason in the report, before going on — a hand-back is a claim, not evidence.
 
 ## Phase 3 — Fix & review (subagent, foreground)
 
-> The bug `<id>` has a failing regression test at `<repro-test-path>`. Recorded report:
+> The bug `<id>` has a failing regression test at `<repro-test-path>` (run it with `<repro-command>`). Recorded report:
 >
 > `<repro-details>`
 >
-> **Step 1 — Fix.** Fix the **root cause**, not the symptom, with the narrowest change that does it. Never edit a file that records history already applied elsewhere (an applied database migration, a released changelog entry, a published schema) — add a new one instead. Then run `<repro-test-path>` and confirm it now **passes**. A blocker needing a human decision → end with `FIX_BLOCKED — <reason>` and stop.
+> **Step 1 — Fix.** Fix the **root cause**, not the symptom, with the narrowest change that does it. Never edit a file that records history already applied elsewhere (an applied database migration, a released changelog entry, a published schema) — add a new one instead. Then run `<repro-command>` and confirm it now **passes**. A blocker needing a human decision → end with `FIX_BLOCKED — <reason>` and stop.
 >
 > **Step 1b — The reported scenario.** The regression test pins the logic; also exercise the scenario the report describes (run the program or command, call the endpoint, drive the flow) as far as the project allows without installing anything, and quote what you observed against the expected result. If it cannot be run here, say `ORIGINAL SCENARIO: not verified — <why>`.
 >
 > **Step 2 — Review.** Follow `reference/phase-reviews.md` over the current diff: recompute scope with `python3 <scripts>/work_scope.py <repo-root>` before each review, fix every 🔴/🟡 finding, re-review until clean or the round cap.
 >
-> Never print or write a generated secret's raw value; leave any task needing one unchecked with the manual command named.
+> Never print or write a generated secret's raw value. A step that needs one (or that only a person can do) stays undone: name it in your hand-back as `MANUAL: <what> — run: <command>`, after the `ORIGINAL SCENARIO:` line.
 >
 > End with exactly `FIX_IMPLEMENTED: DONE`, then `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review that did not go through a fresh reviewer subagent — every review run through a configured `skill` counts, since it runs in your own context — or `REVIEWS: none applied`), then `ORIGINAL SCENARIO: confirmed — <observed>` or `ORIGINAL SCENARIO: not verified — <why>` — or `REVIEW_BLOCKED — …` / `FIX_BLOCKED — …`.
 
-Do not start Phase 4 until it returns `FIX_IMPLEMENTED: DONE`; on any `*_BLOCKED`, surface and wait. Then **run `<repro-test-path>` yourself** and confirm it passes. Keep the `REVIEWS:` and `ORIGINAL SCENARIO:` lines for the final summary.
+Do not start Phase 4 until it returns `FIX_IMPLEMENTED: DONE`; on any `*_BLOCKED`, surface and wait. Then **run `<repro-command>` yourself** and confirm it passes. Keep the `REVIEWS:` and `ORIGINAL SCENARIO:` lines for the final summary.
 
 ## Phase 4 — Gates
 
@@ -94,7 +94,7 @@ Follow `reference/phase-gates.md` with `<id>` = the bug id. It runs on **every**
 >
 > **Step 2 — Close the bug.** Invoke the `bugs-archive` skill with the Skill tool: `bugs-archive <id> fixed "<one line: the root cause, what changed, and the regression test path>"`. Wait for it to move the row to `bugs-fixed.md` and append the Resolution line to `<backlog>/bugs/<id>.md`. **Never hand-edit the backlog files, or re-implement the skill with an ad-hoc script, to get the same effect** — `bugs-archive` writes the destination before touching the source so an interruption never loses a row, and a hand edit loses that guarantee. If the Skill tool is unavailable to you or the skill errors, do not work around it: end with `ARCHIVE_BLOCKED — bugs-archive could not be run: <reason>` and change nothing.
 >
-> End with exactly `CLOSE: DONE`.
+> End with exactly `CLOSE: DONE`, then `DOCS: <the docs skill's hand-back line>` (or `DOCS: none`).
 
 Do not show the final summary until the bug is closed. After `CLOSE: DONE`, spot-check in your own context that the `<id>` row is gone from `bugs-open.md`, present in `bugs-fixed.md`, and that `<backlog>/bugs/<id>.md` ends with a Resolution line — a hand-back is a claim, not evidence. On `ARCHIVE_BLOCKED` (or a failed spot-check), do the close yourself: invoke `bugs-archive <id> fixed "<resolution>"` with the Skill tool in your own context, then spot-check again. On `CLOSE_BLOCKED` (the work itself is not acceptable) surface the reason and wait; do not retry. Never close the bug by editing the backlog files directly.
 
@@ -113,7 +113,8 @@ Do not show the final summary until the bug is closed. After `CLOSE: DONE`, spot
 [if the branch phase reported the base ahead:] **Base:** <base> has <n> commit(s) this branch lacks (information; syncing the branch with the base brings them in)
 **Gates:** <name> ✓ …  [if `uncovered_files`: ⚠ NOT VERIFIED BY ANY GATE: <n> files (<areas>)]  (or ⚠ NOT RUN: <gate> — <why>; or ⚠ FAILED (environment): <gate> — <tests>; or KNOWN FAILURE: <test>; or "none configured — nothing was verified beyond the regression test")
 [if UNREVIEWED_PROD_FIXES:] **⚠ Unreviewed production changes:** <the PROD_CODE_FIXED lines> — made while fixing gate failures; you chose to proceed without re-review.
-**Docs:** <one line, or "nothing to sync" / "no sync skill configured">
+**Docs:** <the `DOCS:` line, or "no sync skill configured">
+[if MANUAL: lines:] **⚠ For you to run:** <each `MANUAL:` line>
 **Bug:** ✓ closed — moved to bugs-fixed.md
 
 Nothing was committed. The fix and its regression test are on `<branch>`, uncommitted. Review with `git status` / `git diff`, then ask for `gitflow` — the skill named by `[git] finish_skill` (default `gitflow`; empty means do it by hand): its `commit` and `finish` actions commit the work and open the PR after asking you. Say so by name; never invoke it yourself.

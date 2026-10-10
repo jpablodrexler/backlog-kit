@@ -35,6 +35,7 @@ LIB_FOR = {
     "flow_plan.py": ["gitflow"],
     "spec_link.py": ["features-archive"],
     "dep_scan.py": ["feature-plan", "features-status", "feature-development"],
+    "task_state.py": ["feature-development", "spec-compliance-check"],
 }
 
 SHARED_FOR = {

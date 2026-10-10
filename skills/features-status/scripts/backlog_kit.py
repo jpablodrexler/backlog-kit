@@ -475,7 +475,12 @@ def kit_globs(cfg):
     `when = ["**"]` gate or review match 150 files of bookkeeping.
     """
     pc = cfg["paths"]
-    dirs = (pc["backlog_dir"], pc["reports_dir"], pc["decisions_dir"])
+    dirs = [pc["backlog_dir"], pc["reports_dir"], pc["decisions_dir"]]
+    if cfg["spec"]["workflow"] == "openspec":
+        # The change folder and the main specs are spec markdown, not code: gates and reviews
+        # have nothing to say about them, and they would read as "NOT VERIFIED BY ANY GATE".
+        changes = norm_path(cfg["spec"]["changes_dir"]).strip("/")
+        dirs += [changes, changes.rsplit("/", 1)[0] + "/specs" if "/" in changes else "specs"]
     return [".backlog-kit.toml", ".claude/skills/**"] + [norm_path(d).strip("/") + "/**" for d in dirs]
 
 

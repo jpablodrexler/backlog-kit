@@ -2,6 +2,11 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.9
+- Work pipelines: a task that needs a person (a generated secret, a deploy) is marked `(manual: <command>)`, reported to the user and no longer makes `TASKS_INCOMPLETE` / `CLOSE_BLOCKED` certain; `IMPLEMENT: DONE` is checked against the task list (new `task_state.py`) by the subagent and again by the orchestrator.
+- The close phase no longer re-runs gates inside a subagent (which ignored `ask_before`): it hands back `CLOSE_NEEDS_REGATE` and the orchestrator re-gates and re-reviews. The archive prompts of OpenSpec are no longer answered by the subagent (`ARCHIVE_NEEDS_DECISION`). Close hands back `COMPLIANCE:` and `DOCS:` lines for the summary.
+- Spec compliance gains a guarded `Manual` class; spec markdown (`openspec/changes`, `openspec/specs`) no longer counts as changed code; a `PROD_CODE_FIXED` re-review uses the configured review skill; a blocker has a defined re-entry protocol; `bug-fix` hands back the exact command of its regression test.
+
 ## 0.2.8
 - The review phase and the three reviewer skills now share one input contract: each review gets only its own matching files (the list is no longer cut at 20), plus `deleted_files`, `bulk_files`, `id` (default `adhoc`), `focus` and `self_review`. A file list alone selects the non-interactive mode, and a skill-run review is always marked self-reviewed.
 - Reviewers judge the change (`git diff HEAD -- <file>`), not pre-existing lines; findings may omit `:<line>` (missing test, lockfile not updated); a deleted or edited applied migration is still reviewed and still 🔴.
