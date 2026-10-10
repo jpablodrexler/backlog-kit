@@ -17,6 +17,7 @@ itself writes (the backlog, reports and decisions folders, `.backlog-kit.toml`, 
 skills) are left out of `changed_files` and counted in `kit_files_ignored`.
 """
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -27,6 +28,12 @@ for _cand in (_here.parent, _here.parents[3] / "lib"):
         break
 import backlog_kit as bk
 import gitread
+
+
+BULK = re.compile(
+    r"(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Pipfile\.lock|Cargo\.lock|Gemfile\.lock|"
+    r"composer\.lock|go\.sum|uv\.lock|(dist|build|node_modules|vendor|__generated__|\.next)/.*)$"
+    r"|\.(min\.(js|css)|map|snap|png|jpe?g|gif|webp|ico|pdf|zip|gz|tgz|woff2?|ttf|eot|mp[34]|wasm|jar|class)$", re.I)
 
 
 def covers(gate, path):
@@ -76,9 +83,14 @@ def main():
     reviews = []
     for r in cfg["reviews"]:
         ok, hits = applies(r, files)
+        # The complete list: a review's scope is exactly these files, so it is never truncated.
+        # Deleted files are listed too (a review must see what a deletion removed); bulk files
+        # (lockfiles, generated, minified, binary) are named so a reviewer does not read them in full.
         reviews.append({
             "name": r.get("name", ""), "focus": r.get("focus", ""), "skill": r.get("skill", ""),
-            "applies": ok, "matched_files": hits[:20],
+            "applies": ok, "matched_files": hits,
+            "deleted_files": [f for f in hits if not (Path(args.repo_root) / f).exists()],
+            "bulk_files": [f for f in hits if BULK.search(f)],
         })
     bk.emit({
         "changed_files": files,

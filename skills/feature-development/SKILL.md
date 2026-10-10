@@ -77,7 +77,7 @@ After it returns:
 >
 > **Step 2 — Review.** Follow `reference/phase-reviews.md` over the current diff: recompute scope with `python3 <scripts>/work_scope.py <repo-root>` before each review, fix every 🔴/🟡 finding, re-review until clean or the round cap.
 >
-> End with exactly `IMPLEMENT: DONE`, then one line `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review you ran yourself rather than through a fresh reviewer, or `REVIEWS: none applied`) — or `IMPLEMENT_BLOCKED — …` / `REVIEW_BLOCKED — …`.
+> End with exactly `IMPLEMENT: DONE`, then one line `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review that did not go through a fresh reviewer subagent — every review run through a configured `skill` counts, since it runs in your own context — or `REVIEWS: none applied`) — or `IMPLEMENT_BLOCKED — …` / `REVIEW_BLOCKED — …`.
 
 Do not start Phase 4 until it returns `IMPLEMENT: DONE` with its `REVIEWS:` line; on any `*_BLOCKED`, surface and wait. Use the `REVIEWS:` line for the final summary, and say plainly in it when a review was self-reviewed.
 

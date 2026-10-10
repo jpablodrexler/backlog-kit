@@ -80,7 +80,7 @@ After it returns:
 >
 > Never print or write a generated secret's raw value; leave any task needing one unchecked with the manual command named.
 >
-> End with exactly `FIX_IMPLEMENTED: DONE`, then `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review you ran yourself rather than through a fresh reviewer, or `REVIEWS: none applied`), then `ORIGINAL SCENARIO: confirmed — <observed>` or `ORIGINAL SCENARIO: not verified — <why>` — or `REVIEW_BLOCKED — …` / `FIX_BLOCKED — …`.
+> End with exactly `FIX_IMPLEMENTED: DONE`, then `REVIEWS: <name> clean[, <name> clean …]` (adding ` (self-reviewed)` after any review that did not go through a fresh reviewer subagent — every review run through a configured `skill` counts, since it runs in your own context — or `REVIEWS: none applied`), then `ORIGINAL SCENARIO: confirmed — <observed>` or `ORIGINAL SCENARIO: not verified — <why>` — or `REVIEW_BLOCKED — …` / `FIX_BLOCKED — …`.
 
 Do not start Phase 4 until it returns `FIX_IMPLEMENTED: DONE`; on any `*_BLOCKED`, surface and wait. Then **run `<repro-test-path>` yourself** and confirm it passes. Keep the `REVIEWS:` and `ORIGINAL SCENARIO:` lines for the final summary.
 

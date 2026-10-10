@@ -30,13 +30,22 @@ when  = ["**/migrations/**", "**/*.sql", "db/schema*"]
 
 ## Non-interactive review mode
 
-Input: a list of changed files (passed verbatim), an id (the backlog item or change name), and optional focus text. Ask nothing.
+Input (ask nothing):
+- `changed_files`: the files to review, taken verbatim. These are the entire scope.
+- `deleted_files` (optional): the subset of `changed_files` that no longer exists. Review what the deletion removes (`git show HEAD:<file>`); do not route it to "Not reviewed".
+- `bulk_files` (optional): the subset that is a lockfile, generated, minified or binary file. Do not read these in full; check only what the change implies (a manifest changed with no lockfile change, an unexpected new dependency in a lockfile hunk).
+- `id`: the bug id or change name, used in the report filename. Default `adhoc` when absent.
+- `focus` (optional): extra text from the review's `focus`; give it extra weight, it does not narrow the scope.
+- `self_review` (optional): `yes` when the caller runs you inside its own context, which is always so from the review phase. The report then starts with `Self-reviewed: yes`.
+- Review the change, not the files: see the changed lines with `git diff HEAD -- <file>` (an untracked file is new in full). A defect on a line the change did not touch is not a finding; mention it, if at all, in a plain (non-checkbox) "Pre-existing, not counted" bullet in the header.
+- A finding cites `<file>[:<line>]`; leave out the line when it has none (a missing test, a lockfile not updated).
+- A deleted or edited migration that is already applied (present on the base branch) is 🔴 even though a deleted file has no lines to point at: cite `<file>`.
 
 1. Review **exactly the listed files**: migrations, schema files, and queries or model definitions that touch the schema. No full-history audit, no fix workflow, no files outside the list except as read-only context (§0).
-2. Gather context by reading (§0), then apply the checklist (§1-§7) to the changed lines. Report only real problems, not a restatement of the diff. A finding must point at a real `<file>:<line>` in the listed files; if the cause is in an unlisted file, cite the listed file that triggers it.
-3. Write `<reports_dir>/review/database-<id>-<YYYY-MM-DD>.md` (create the folders; if the file exists append `-2`, `-3`). Start with one line naming the scope and the focus text if any. Every finding is a checkbox line, with no other finding format:
+2. Gather context by reading (§0), then apply the checklist (§1-§7) to the changed lines. Report only real problems, not a restatement of the diff. A finding must point at a real file (and line, where it has one) in the listed files; if the cause is in an unlisted file, cite the listed file that triggers it.
+3. Write `<reports_dir>/review/database-<id>-<YYYY-MM-DD>.md` (create the folders; if the file exists append `-2`, `-3`). Start with one line naming the scope and the focus text if any, and `Self-reviewed: yes` when `self_review` is `yes`. Every finding is a checkbox line, with no other finding format:
 
-   `- [ ] 🔴|🟡|🔵 <file>:<line> — <what is wrong and why it matters>`
+   `- [ ] 🔴|🟡|🔵 <file>[:<line>] — <what is wrong and why it matters>`
 
    Group by severity, omit empty groups, and write only what this run found.
 4. Hand back exactly one line and nothing else:

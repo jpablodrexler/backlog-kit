@@ -142,14 +142,22 @@ skill = "security-reviewer"
 when  = ["**/auth/**", "**/*.env*", "**/package.json", "**/requirements*.txt", "**/pom.xml"]
 ```
 
-**Input**: the `changed_files` list passed verbatim; an `id` (the work item id, such as the bug or feature id); optional focus text from the review entry. If the id is missing, use `adhoc`.
+**Input**
+- `changed_files`: the files to review, taken verbatim. These are the entire scope.
+- `deleted_files` (optional): the subset of `changed_files` that no longer exists. Review what the deletion removes (`git show HEAD:<file>`); do not route it to "Not reviewed".
+- `bulk_files` (optional): the subset that is a lockfile, generated, minified or binary file. Do not read these in full; check only what the change implies (a manifest changed with no lockfile change, an unexpected new dependency in a lockfile hunk).
+- `id`: the bug id or change name, used in the report filename. Default `adhoc` when absent.
+- `focus` (optional): extra text from the review's `focus`; give it extra weight, it does not narrow the scope.
+- `self_review` (optional): `yes` when the caller runs you inside its own context, which is always so from the review phase. The report then starts with `Self-reviewed: yes`.
+- Review the change, not the files: see the changed lines with `git diff HEAD -- <file>` (an untracked file is new in full). A defect on a line the change did not touch is not a finding; mention it, if at all, in a plain (non-checkbox) "Pre-existing, not counted" bullet in the header.
+- A finding cites `<file>[:<line>]`; leave out the line when it has none (a missing test, a lockfile not updated).
 
-1. Review exactly the listed files. Read each one fully, plus the minimum surrounding code needed to judge a finding (a caller, a config it reads). Treat lockfiles and manifests as in scope only if they are in the list. Do not widen the scope to the rest of the repository and do not review files that are not listed.
+1. Review exactly the listed files. Read each one fully, plus the minimum surrounding code needed to judge a finding (a caller, a config it reads). Lockfiles and manifests are in scope only if they are in the list. Do not widen the scope to the rest of the repository and do not review files that are not listed.
 2. Load the project context (see "Project context first"); apply the checklist sections that fit the files, and weight the optional focus text. In this mode, project facts you cannot determine without asking become a stated assumption in the report header, not a question.
-3. Write `<reports_dir>/review/security-<id>-<YYYY-MM-DD>.md` (create the folder if needed; if the name exists, append `-2`, `-3`). Start with a header line naming the scope (the files reviewed, the focus) and the assumptions made. If the caller reviewed its own diff rather than being independent, the report starts with `Self-reviewed: yes`. Then one checkbox line per finding, and nothing else per finding:
+3. Write `<reports_dir>/review/security-<id>-<YYYY-MM-DD>.md` (create the folder if needed; if the name exists, append `-2`, `-3`). Start with a header line naming the scope (the files reviewed, the focus) and the assumptions made. When `self_review` is `yes`, the report starts with `Self-reviewed: yes`. Then one checkbox line per finding, and nothing else per finding:
 
    ```
-   - [ ] 🔴|🟡|🔵 <file>:<line> — <what is wrong and why it matters>
+   - [ ] 🔴|🟡|🔵 <file>[:<line>] — <what is wrong and why it matters>
    ```
 
    Group by severity, Critical first. No findings: write the header and the line `No findings.` Never include a secret's actual value, only its file:line and kind.

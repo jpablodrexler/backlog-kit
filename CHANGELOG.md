@@ -2,6 +2,10 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.8
+- The review phase and the three reviewer skills now share one input contract: each review gets only its own matching files (the list is no longer cut at 20), plus `deleted_files`, `bulk_files`, `id` (default `adhoc`), `focus` and `self_review`. A file list alone selects the non-interactive mode, and a skill-run review is always marked self-reviewed.
+- Reviewers judge the change (`git diff HEAD -- <file>`), not pre-existing lines; findings may omit `:<line>` (missing test, lockfile not updated); a deleted or edited applied migration is still reviewed and still 🔴.
+
 ## 0.2.7
 - Safety and correctness fixes from the second comparison round: globs no longer strip the leading dot of a name (`.github/**` matched nothing); `--fix-header` keeps escaped pipes in cells; `gitflow commit` commits explicit paths only and reports what is already staged; `gitflow cleanup` also checks the `origin/<branch>` tip, warns on shallow clones and rejects invalid branch names; non-ASCII paths are reported as they are; the `gitread` allowlist can no longer create a ref (`git branch <name>`) or write a file (`diff --output`).
 - `batch_plan --all` now ranks exactly like `features-next` / `bugs-next` (shared scoring in `lib/backlog_kit.py`), with prerequisites before dependents.

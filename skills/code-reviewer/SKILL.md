@@ -14,11 +14,11 @@ This skill reviews a change. For the health of a whole system's shape (layering,
 
 | Mode | How it starts | Interactive? |
 | --- | --- | --- |
-| **Non-interactive review** | The backlog-kit review phase (or any caller) passes `changed_files`, an `id` and optional `focus` | **No.** Never asks a question, never edits source |
+| **Non-interactive review** | The backlog-kit review phase (or any caller) passes `changed_files` (with an `id` and optional `focus`) | **No.** Never asks a question, never edits source |
 | **Standalone review** | A person asks to review a PR, branch, file or feature | Yes |
 | **Fix workflow** | A person asks to fix / address / work through findings of an existing report | Yes |
 
-If the caller gave a file list and an id, it is the non-interactive mode, whatever else the request says. The other two modes are never entered from the review phase.
+If the caller gave a file list, it is the non-interactive mode, whatever else the request says (a missing `id` becomes `adhoc`). The other two modes are never entered from the review phase.
 
 ---
 
@@ -35,9 +35,14 @@ when  = ["**"]
 ```
 
 **Input**
-- `changed_files`: a list of files, taken verbatim. These are the entire scope.
-- `id`: the bug id or change name, used in the report filename.
+- `changed_files`: the files to review, taken verbatim. These are the entire scope.
+- `deleted_files` (optional): the subset of `changed_files` that no longer exists. Review what the deletion removes (`git show HEAD:<file>`); do not route it to "Not reviewed".
+- `bulk_files` (optional): the subset that is a lockfile, generated, minified or binary file. Do not read these in full; check only what the change implies (a manifest changed with no lockfile change, an unexpected new dependency in a lockfile hunk).
+- `id`: the bug id or change name, used in the report filename. Default `adhoc` when absent.
 - `focus` (optional): extra text from the review's `focus`; give it extra weight, it does not narrow the scope.
+- `self_review` (optional): `yes` when the caller runs you inside its own context, which is always so from the review phase. The report then starts with `Self-reviewed: yes`.
+- Review the change, not the files: see the changed lines with `git diff HEAD -- <file>` (an untracked file is new in full). A defect on a line the change did not touch is not a finding; mention it, if at all, in a plain (non-checkbox) "Pre-existing, not counted" bullet in the header.
+- A finding cites `<file>[:<line>]`; leave out the line when it has none (a missing test, a lockfile not updated).
 
 **Rules**
 1. Review exactly the listed files. No full-codebase sweep, no widening to "related" files except to read a caller, callee, interface or test that is needed to judge a listed file (read it, do not report on it unless the listed change broke it).
@@ -45,10 +50,11 @@ when  = ["**"]
 3. Do not edit source, tests or docs. Do not run the fix workflow.
 4. Follow "The review method" below, then write the report and hand back one line.
 
-**Report**: `<reports_dir>/review/code-<id>-<YYYY-MM-DD>.md`. Create the directory if needed; if the file exists, append `-2`, `-3` and so on rather than overwrite. Start with a header (scope = the file list, `focus`, and `Self-reviewed: yes` only if the caller told you this is a self-review), then one checkbox line per finding, no other format:
+**Report**: `<reports_dir>/review/code-<id>-<YYYY-MM-DD>.md`. Create the directory if needed; if the file exists, append `-2`, `-3` and so on rather than overwrite. Start with a header (scope = the file list, `focus`, and `Self-reviewed: yes` when `self_review` is `yes`), then one checkbox line per finding, no other format:
 
 ```
 - [ ] 🔴 src/orders/total.py:42 — <what is wrong and why it matters>
+- [ ] 🟡 src/orders/total.py — <a finding with no line, such as a missing test>
 - [ ] 🟡 src/orders/total.py:77 — <what is wrong and why it matters>
 - [ ] 🔵 src/orders/total.py:90 — <what is wrong and why it matters>
 ```
@@ -73,11 +79,11 @@ REVIEW: <n> critical, <n> warning, <n> suggestion — report <path>
 
 ## The review method (all modes)
 
-1. **Read every file in scope in full** before forming an opinion. For a diff, read the whole file around each hunk, not the hunk alone.
+1. **Read every file in scope in full** before forming an opinion (bulk files excepted). For a diff, read the whole file around each hunk, not the hunk alone, but report only what the change introduced or made worse.
 2. **Load the project's own conventions**, and judge against those, not against rules of your own: `CLAUDE.md`, `CONTRIBUTING.md`, `docs/architecture*`, `docs/decisions/` or other decision records, lint and formatter configuration, the test conventions document, and existing code near the change (how its neighbours name, layer, handle errors and write tests). A convention you cannot point to in one of those places is at most a 🔵 Suggestion.
 3. **Work through the checklist** below for what the change touches. Skip headings that do not apply; do not pad.
 4. **Scan the known-pitfalls list** the project documents (a "pitfalls", "gotchas" or "lessons learned" section, past bug reports and their regression tests, review reports from earlier runs). Finish every review with this pass.
-5. **Run the project's own checks if they are cheap and read-only** and the lint or analysis commands are documented (complexity, type or lint report, coverage threshold). Quote the command and the offending location in the finding. Never install anything to do it; if a tool is missing, note it under "Not reviewed".
+5. **Run the project's own checks if they are cheap and read-only** and the lint or analysis commands are documented (complexity, type or lint report, coverage threshold). A check qualifies only if it reports and writes nothing tracked: never an auto-fix, formatter-in-place or snapshot-update flag, and not in the non-interactive mode if you cannot tell. Quote the command and the offending location in the finding. Never install anything to do it; if a tool is missing, note it under "Not reviewed".
 6. **Write the report** and, in an interactive mode, summarise it.
 
 ### Checklist (apply what the change touches)
