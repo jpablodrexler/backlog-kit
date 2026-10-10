@@ -25,6 +25,9 @@ The middle of the loop (`feature-development`, `bug-fix`, the batch runners) nev
 | --- | --- |
 | Plan and track | `feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`, `decision-record` |
 | Work one item | `feature-development`, `bug-fix` (reproduce with a failing test first, then fix), `spec-compliance-check` (proves each scenario with a test it ran and writes the evidence) |
+| Review a change | `code-reviewer`, `security-reviewer`, `database-reviewer` — each has a non-interactive mode the review phase calls through `[[reviews]] skill = "…"`, and interactive audit and fix-the-findings modes |
+| Review the whole | `architecture-reviewer` (qualitative, grounded system health check), `product-scope-roaster` (harsh product-owner critique of the whole backlog) |
+| Keep things current | `docs-sync` (docs follow the code; optional `[[docs.map]]`; plugs into `[docs] sync_skill`), `dependency-upgrade` (grouped, gated, rolled back on failure) |
 | Branch, commit, PR, clean up | `gitflow` — `start`, `sync`, `commit`, `finish` (push and open the PR), `cleanup`; only when you ask, and it asks before every write |
 | Work a list unattended | `features-batch-development`, `bugs-batch-fix` — one shared branch, zero commits, a dated report updated after each item, resumable after a crash |
 
@@ -72,6 +75,7 @@ Everything is optional; see [`backlog-kit.example.toml`](backlog-kit.example.tom
 | `[work]` | `review_max_rounds`, `gate_max_rounds` |
 | `[[gates]]` | `name`, `run`, `cwd`, `when`, `ask_before`, `timeout_minutes`, `known_failures` |
 | `[[reviews]]` | `name`, `focus`, `skill`, `when` |
+| `[docs]`, `[[docs.map]]` | `sync_skill`, and per entry `doc`, `section`, `source`, `check` |
 
 A worked example for an Angular project: [`examples/angular-supabase.toml`](examples/angular-supabase.toml).
 
@@ -88,6 +92,7 @@ Early software (0.2), exercised live on real repositories but not exhaustively. 
 - **Windows and macOS are exercised only in CI as non-blocking jobs.** The scripts force UTF-8 output, but expect rough edges.
 - **A review can be a self-review.** Where the implementing subagent cannot spawn another agent, it reviews its own diff after re-reading it cold. The report and the final summary say so; it is not an independent review.
 - **Subagent hand-backs are claims.** The orchestrator spot-checks the important ones, but not every statement a subagent makes.
+- **The review, docs and upgrade skills are first versions.** They are generalized from two projects' skills, covered by structural tests only, and not yet run live: expect to tune their checklists to your stack through the project's own conventions documents.
 - **Dependency detection is a heuristic.** It finds briefs that name another pending feature or use a symbol that only another brief introduces; it cannot see a dependency described in prose with no named thing.
 - **GitHub only for PRs.** No GitLab, Bitbucket or Azure DevOps integration.
 - **No release, hotfix, tag or changelog actions.** They are project-specific; point `[git] finish_skill` at your own skill if you need them.

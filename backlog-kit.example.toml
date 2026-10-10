@@ -68,7 +68,19 @@ regression_tests = ""
 
 [docs]
 # Optional skill invoked best-effort when closing work, to keep reference docs current.
+# The plugin ships `docs-sync` for this ("" = skip).
 sync_skill = ""
+
+# Optional map the `docs-sync` skill uses to know which code each documented section describes.
+# Without any entry it still checks the facts a change can invalidate (commands, layout,
+# configuration keys, public interfaces, setup steps). Each entry: doc (file), section (optional
+# heading), source (globs of the code it documents), check (what "in sync" means).
+#
+# [[docs.map]]
+# doc     = "docs/api.md"
+# section = "Endpoints"
+# source  = ["src/routes/**"]
+# check   = "every route has an entry with its method, path and auth requirement"
 
 # Verification gates, run in order after the work and its reviews. With none configured, the
 # first run sniffs the repo (package.json scripts, pytest, mvn/gradle, dotnet, go, cargo,
@@ -92,9 +104,24 @@ sync_skill = ""
 # Each entry: name, focus (what to look for), skill (optional: delegate to a project review
 # skill instead of the built-in reviewer), when = ["**"].
 #
+# The plugin ships review skills you can point at: `code-reviewer`, `security-reviewer`,
+# `database-reviewer` (each has a non-interactive mode that takes the changed files).
+#
+# [[reviews]]
+# name  = "code"
+# focus = "correctness, regressions, missing or weak tests"
+# skill = "code-reviewer"
+#
 # [[reviews]]
 # name  = "security"
 # focus = "auth, input handling, secrets, dependency changes"
+# skill = "security-reviewer"
 # when  = ["**/auth/**", "**/package.json"]
+#
+# [[reviews]]
+# name  = "database"
+# focus = "schema and migration safety, index coverage, access policies"
+# skill = "database-reviewer"
+# when  = ["**/migrations/**", "**/*.sql"]
 
 # See examples/angular-supabase.toml for a complete worked configuration.

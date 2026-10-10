@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.6
+- Seven skills generalized from the source projects: `code-reviewer`, `security-reviewer`, `database-reviewer` (non-interactive review mode for `[[reviews]]`), `architecture-reviewer`, `product-scope-roaster`, `dependency-upgrade` and `docs-sync` (optional `[[docs.map]]`).
+
 ## 0.2.5
 - CI workflow (tests on Linux, non-blocking Windows and macOS, vendor drift check, manifest and changelog consistency); README rewritten with the full loop, configuration table and an honest limitations section; this changelog.
 

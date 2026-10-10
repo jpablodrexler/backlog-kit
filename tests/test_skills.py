@@ -253,3 +253,83 @@ class ReleaseHygieneTest(unittest.TestCase):
         self.assertIn("## Limitations", readme)
         self.assertIn("has been tested against real git repositories, not yet against GitHub", readme)
         self.assertIn("## The loop", readme)
+
+
+class GeneralizedSkillsTest(unittest.TestCase):
+    """The seven skills generalized from the source projects (0.2.6)."""
+    ROOT = Path(__file__).resolve().parents[1]
+    REVIEWERS = ("code-reviewer", "security-reviewer", "database-reviewer")
+    STANDALONE = ("architecture-reviewer", "product-scope-roaster", "dependency-upgrade", "docs-sync")
+
+    def text(self, name):
+        parts = [(self.ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")]
+        for ref in sorted((self.ROOT / "skills" / name / "reference").glob("*.md")) if (self.ROOT / "skills" / name / "reference").is_dir() else []:
+            parts.append(ref.read_text(encoding="utf-8"))
+        return "\n".join(parts)
+
+    def test_reviewers_have_a_non_interactive_mode_that_matches_the_review_phase(self):
+        for name in self.REVIEWERS:
+            with self.subTest(skill=name):
+                t = self.text(name)
+                self.assertIn("REVIEW: <n> critical, <n> warning, <n> suggestion", t)
+                self.assertRegex(t, r"(?i)non-interactive")
+                self.assertIn("- [ ]", t)
+                self.assertIn("🔴", t)
+                self.assertRegex(t, r"\[\[reviews\]\][^`]*skill\s*=\s*\"" + re.escape(name) + r"\"|skill = \"" + re.escape(name) + r"\"")
+                self.assertIn("reports_dir", t)
+                self.assertIn("<reports_dir>/review/", t)
+
+    def test_reviewers_show_a_reviews_block_a_project_can_paste(self):
+        for name in self.REVIEWERS:
+            with self.subTest(skill=name):
+                self.assertRegex(self.text(name), r"```toml\n\[\[reviews\]\]\nname\s*=")
+
+    def test_every_new_skill_writes_only_where_it_says_and_never_commits(self):
+        for name in self.REVIEWERS + self.STANDALONE:
+            with self.subTest(skill=name):
+                self.assertIn("**Never run `git commit`, `git push` or open a PR.**", self.text(name))
+                self.assertFalse((self.ROOT / "skills" / name / "scripts").exists(), "no scripts: nothing here may shell out")
+
+    def test_whole_system_skills_only_advise(self):
+        for name in ("architecture-reviewer", "product-scope-roaster"):
+            with self.subTest(skill=name):
+                t = self.text(name)
+                self.assertRegex(t, r"(?i)never (file|apply|edit)")
+                self.assertIn("reports_dir", t)
+
+    def test_architecture_follow_ups_can_record_decisions(self):
+        self.assertIn("`decision-record`", self.text("architecture-reviewer"))
+
+    def test_dependency_upgrade_never_writes_outside_the_repo_or_uses_destructive_git(self):
+        t = self.text("dependency-upgrade")
+        self.assertIn("snapshots/", t)
+        self.assertNotIn("outside the repo (not a git operation)", t)
+        self.assertRegex(t, r"Never run a destructive git command")
+        self.assertIn("never switches branches", t)
+
+    def test_docs_sync_edits_docs_only_and_documents_the_map(self):
+        t = self.text("docs-sync")
+        for key in ("[[docs.map]]", "doc", "section", "source", "check"):
+            self.assertIn(key, t)
+        self.assertIn("DOCS: nothing to sync", t)
+        sys.path.insert(0, str(self.ROOT / "lib"))
+        import backlog_kit
+        self.assertEqual(backlog_kit.load_config(self.ROOT)["docs"]["map"], [])
+        example = (self.ROOT / "backlog-kit.example.toml").read_text(encoding="utf-8")
+        self.assertIn("[[docs.map]]", example)
+
+    def test_docs_map_entries_load_from_toml(self):
+        import tempfile
+        sys.path.insert(0, str(self.ROOT / "lib"))
+        import backlog_kit
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / ".backlog-kit.toml").write_text('[[docs.map]]\ndoc = "docs/a.md"\nsource = ["src/**"]\ncheck = "x"\n')
+            cfg = backlog_kit.load_config(d)
+            self.assertEqual(cfg["docs"]["map"][0]["doc"], "docs/a.md")
+            self.assertEqual(cfg["docs"]["sync_skill"], "")
+
+    def test_example_config_points_reviews_at_shipped_skills(self):
+        example = (self.ROOT / "backlog-kit.example.toml").read_text(encoding="utf-8")
+        for name in self.REVIEWERS:
+            self.assertIn(f'skill = "{name}"', example)
+            self.assertTrue((self.ROOT / "skills" / name / "SKILL.md").is_file())

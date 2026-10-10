@@ -83,6 +83,8 @@ DEFAULTS = {
         # Optional skill name to invoke (best-effort) in the close phase to keep
         # reference docs in step with what shipped. Empty = skip.
         "sync_skill": "",
+        # Optional [[docs.map]] entries read by the `docs-sync` skill: {doc, section, source, check}.
+        "map": [],
     },
     # Verification commands, run in order after implementation. Each entry:
     #   name, run, cwd (default "."), when (path globs; default ["**"]),
