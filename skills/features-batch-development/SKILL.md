@@ -40,7 +40,7 @@ A feature that depends on one *later* in the list, or on one that isn't in the r
 
 ## Final report
 
-When the run ends, show the counts from `batch_report.py finish` plus, for each feature, its status and summary. Then say plainly: **nothing was committed**; every completed feature's code, tests and review reports sit uncommitted on the shared branch — review with `git status` / `git diff`, then commit and open the PR yourself.
+When the run ends, show the counts from `batch_report.py finish` plus, for each feature, its status and summary. Then say plainly: **nothing was committed**; every completed feature's code, tests and review reports sit uncommitted on the shared branch — review with `git status` / `git diff`, then commit and open the PR yourself (or, if `[git] finish_skill` is set in `.backlog-kit.toml`, say the branch can be handed to that skill; never invoke it yourself).
 
 ## Guardrails (feature-specific; the rest are in `reference/batch-runner.md`)
 

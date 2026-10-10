@@ -173,3 +173,11 @@ Spotting a hard dependency used to depend on a model noticing it while reading a
 - **symbol**: the brief uses a backticked identifier or file that exists nowhere in the repository, and exactly one other pending brief introduces it (named within a few words after a defining verb, in a sentence that is not about tests).
 
 It is wired in three places: `feature-plan` shows candidates in the draft and records one only if the user confirms; `feature-development` Phase 2 must confirm or dismiss every candidate (`DEPS_DISMISSED: #n — reason`, never silently); `features-status` lists them as information. Candidates are proposals, never blockers: only recorded dependencies make `features-next` refuse a feature. Known limits: it cannot see a dependency on something described only in prose with no backticked name, and a symbol defined in two briefs is ignored as ambiguous.
+
+## Archiving and "finish" (0.1.7)
+
+Question raised: by the time the user says "finish a feature", `feature-development` has already archived the OpenSpec change and moved the row to implemented, so archiving feels like it belongs to finishing. Decision (the user's): keep the behaviour of the two source projects, pablo-web and jp-photo-manager. `feature-development` / `bug-fix` end with the work verified, spec-compliance checked, the change archived and the row implemented, all uncommitted on the branch; committing and opening the PR is a separate, project-specific step (in those repos the `gitflow` skill's finish action, which refuses to run on a dirty tree and only opens the PR). backlog-kit does not ship that step, because it would have to commit and push, which the kit promises never to do.
+
+What changed: an optional `[git] finish_skill` in `.backlog-kit.toml`. When set, the hand-off message names that skill ("hand the branch to `gitflow`'s finish action") instead of the generic "commit and open the PR yourself". The kit only names it; it never invokes it.
+
+Open trade-off, deliberately accepted: a spec change archived before human review is already synced into `openspec/specs/` if the review then rejects the work. The archive can be reverted with plain git before anything is committed.

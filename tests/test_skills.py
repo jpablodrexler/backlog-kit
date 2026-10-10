@@ -195,3 +195,20 @@ class SpecComplianceProseTest(unittest.TestCase):
         self.assertIn("prose conflict", text)
         self.assertIn("never edit a scenario's expected behaviour to match the code", text.replace("Never edit", "never edit"))
         self.assertIn("Never archive a change with a known prose conflict", text)
+
+
+class FinishSkillPointerTest(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parents[1]
+
+    def test_hand_off_can_name_the_projects_finish_skill_but_never_runs_it(self):
+        for rel in ("skills/feature-development/SKILL.md", "skills/bug-fix/SKILL.md",
+                    "skills/bugs-batch-fix/SKILL.md", "skills/features-batch-development/SKILL.md", "shared/batch-runner.md"):
+            text = (self.ROOT / rel).read_text(encoding="utf-8")
+            self.assertIn("[git] finish_skill", text, rel)
+            self.assertRegex(text, r"never invoke it( yourself)?", rel)
+
+    def test_finish_skill_is_a_documented_default(self):
+        sys.path.insert(0, str(self.ROOT / "lib"))
+        import backlog_kit
+        self.assertEqual(backlog_kit.load_config(self.ROOT)["git"]["finish_skill"], "")
+        self.assertIn("finish_skill", (self.ROOT / "backlog-kit.example.toml").read_text(encoding="utf-8"))

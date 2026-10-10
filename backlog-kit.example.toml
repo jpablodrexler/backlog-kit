@@ -50,6 +50,9 @@ changes_dir = "openspec/changes"
 base_branch    = ""
 feature_prefix = "feature/"
 fix_prefix     = "fix/"
+# Optional: the project's own skill for finishing a branch (commit and open the PR), e.g. "gitflow".
+# Only ever *named* in the hand-off message; backlog-kit never runs it, never commits and never opens a PR.
+finish_skill   = ""
 
 [work]
 review_max_rounds = 3     # review-and-fix rounds before the run stops and asks a human
