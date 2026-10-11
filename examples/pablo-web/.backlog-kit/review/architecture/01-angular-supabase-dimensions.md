@@ -1,5 +1,5 @@
 # Architecture Reviewer — this project's dimensions (Angular frontend, Supabase)
-Read when: every architecture review, and any deep-dive on one of these dimensions
+Read when: every architecture review
 
 Maps to: P1→D1, P2→D2, P3→D3, P4→D4 (browser storage), P5→D4 (state and coordination), P6→D8, P7→D5, P8→D7
 
@@ -14,7 +14,7 @@ Maps to: P1→D1, P2→D2, P3→D3, P4→D4 (browser storage), P5→D4 (state an
    injectable `core/` service, never a direct Supabase call from a
    component), and how components talk to each other absent that direct
    parent/child relationship (an `@Input`/`@Output`, a shared service, or
-   — see dimension 5 — an implicit shared signal).
+   — see P5 — an implicit shared signal).
 3. **API / data-access patterns** — the no-`HttpClient`/no-REST-layer
    model (`@supabase/supabase-js` as the sole transport, RLS as the
    actual authorization boundary rather than a server-side authz layer),

@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.27
+- `architecture-reviewer`, fourth real run, wording only: `Maps to:` accepts a list or free text and a note without one is assigned by the reviewer; P-numbers belong to the skill; a note's `Read when` may list several conditions; `[docs]` tag for documentation findings; documented deliberate exceptions and documented idempotent writes are strengths, undocumented ones are not; Coverage markers are `[x]`/`[~]`/`[ ]`, a rule is one bullet or one technique, and Not verified names the dimension and what was skipped.
+
 ## 0.2.26
 - `architecture-reviewer`, third real run: notes declare `Maps to:` between their dimensions and the skill's; a note rule without its own dimension applies under the one it names; healthy and documented-unused channels go under Strengths; finding IDs run continuously across severities; searches are cited inline; and the report gains a `### Coverage` checklist (per dimension and per note rule: covered, partial or not covered, with files opened and searches run) so runs can be compared on what each looked at. Non-atomic writes of any kind (create, update, delete, retried by a wrapper) are one class in pablo-web's notes.
 

@@ -1,5 +1,5 @@
 # Architecture Reviewer — multi-step writes without a transaction
-Read when: every architecture review, and any deep-dive on data access
+Read when: every architecture review
 Maps to: applies under D3 (data access)
 
 The app has no `.rpc()` calls, so a write made of several client calls is not atomic. The project's stance is recorded in `docs/decisions/0034-multi-step-writes-sequential-or-rpc.md` (status: Proposed; read its current status first).

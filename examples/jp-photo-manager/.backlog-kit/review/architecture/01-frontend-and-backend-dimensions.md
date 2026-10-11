@@ -1,5 +1,5 @@
 # Architecture Reviewer — this project's dimensions (Angular frontend, Spring backend)
-Read when: every architecture review, and any deep-dive on one of these dimensions
+Read when: every architecture review
 
 Maps to: frontend 1→D1, 2→D2, 3→D3, 4→D4, 5→D4, 6→D8, 7→D5, 8→D7; backend B1→D2, B2→D2, B3→D3, B4→D3, B5→D4, B6→D3, B7→D8, B8→D6
 
