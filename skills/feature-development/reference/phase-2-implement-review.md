@@ -196,11 +196,14 @@ summary of what changed>` note appended to the same line. Then (recompute
 > stylesheet.
 >
 > - If **none**: skip this step.
-> - If **any**: verify the affected view at **both** a phone-sized viewport
->   (about 390×844) **and** a desktop viewport (1920×1080) — with a browser
+> - If **any**: verify the affected view at **every phone viewport and the desktop
+>   viewport** from the `[viewports]` table of `.backlog-kit.toml` at the
+>   repository root (read the file yourself; with no file or no table, the
+>   defaults are phone `Galaxy S23 Ultra 384x824` and desktop `1920x1080`,
+>   entries written `Name WIDTHxHEIGHT` in CSS pixels) — with a browser
 >   tool, a browser's device emulation, or a component/E2E test that sets the
 >   viewport, whichever the project has. If the project has no way to render
->   the view, skip this step and say so in the Final Summary. At the phone
+>   the view, skip this step and say so in the Final Summary. At each phone
 >   size, confirm no text overlap between elements, no clipped/cropped
 >   content, and no forced horizontal scroll. At desktop, confirm no
 >   field/dialog/container collapses to a narrow, phone-sized width while

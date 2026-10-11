@@ -6,6 +6,16 @@
 # (<docs>/decisions, <docs>/explorations, <docs>/reports, where <docs> contains the backlog folder).
 backlog_dir = "docs/backlog"        # features-*.md, bugs-*.md, features/, bugs/
 
+[viewports]
+# Devices the viewport check of feature-development and bug-fix verifies when a change touches the UI
+# (it runs only if the project can render the view). Entries are "Name WIDTHxHEIGHT" in CSS pixels.
+# These are the defaults; delete the section to keep them.
+phones = ["Galaxy S23 Ultra 384x824"]
+desktop = "1920x1080"
+# Popular phones you may add (sizes are approximate, check them against your own device list):
+#   "iPhone 17 402x874", "iPhone 16 390x844", "Galaxy S26 Ultra 412x915",
+#   "Galaxy A16 384x854", "Pixel 9 412x915"
+
 # Nothing else is configured: the skills ask you when they need to know something about your project.
 #
 # Priorities (P0-P3), efforts (S/M/L), severities (S1-S4), the bug id prefix (BUG), the Schema Change

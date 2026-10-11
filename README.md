@@ -56,7 +56,7 @@ The middle of the loop (`feature-development`, `bug-fix`) never commits: it leav
 
 ## Extras (optional)
 
-Install them when you want them: `python3 tools/install.py <repo> --extras` (or `--all`).
+Install them when you want them: `python3 tools/install.py <repo> --extras` (or `--all`). The reviewers, `docs-sync`, `spec-compliance-check` and `dependency-upgrade` work out of the box from your `CLAUDE.md` and docs, and get sharper if you add project notes under `.backlog-kit/` — see [docs/extras.md](docs/extras.md).
 
 `code-reviewer`, `security-reviewer`, `database-reviewer`, `architecture-reviewer`, `product-scope-roaster`, `docs-sync`, `dependency-upgrade`, `spec-compliance-check`, `features-batch-development`, `bugs-batch-fix`.
 
@@ -64,7 +64,7 @@ Install them when you want them: `python3 tools/install.py <repo> --extras` (or 
 
 If your project fits the workflow, use it as is. If not, take ideas from the skills: fork the repo, or copy the `SKILL.md` files into `.claude/skills/` and edit them. They are plain markdown.
 
-The only setting is the backlog folder (default `docs/backlog`); see [`backlog-kit.example.toml`](backlog-kit.example.toml).
+Everything is optional. `.backlog-kit.toml` at the repo root has two settings, both documented in [`backlog-kit.example.toml`](backlog-kit.example.toml): the backlog folder (`[paths] backlog_dir`, default `docs/backlog`) and the devices the UI viewport check uses (`[viewports]`, default Galaxy S23 Ultra 384×824 and desktop 1920×1080).
 
 ## Requirements
 

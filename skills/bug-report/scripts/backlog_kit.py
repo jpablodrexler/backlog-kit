@@ -35,6 +35,12 @@ DEFAULTS = {
     "paths": {
         "backlog_dir": "docs/backlog",
     },
+    # Devices the viewport check of feature-development / bug-fix verifies, as "Name WIDTHxHEIGHT"
+    # (CSS pixels). The skills read this table themselves; no script uses it.
+    "viewports": {
+        "phones": ["Galaxy S23 Ultra 384x824"],
+        "desktop": "1920x1080",
+    },
 }
 
 

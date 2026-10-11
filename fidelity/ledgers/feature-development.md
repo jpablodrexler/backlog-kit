@@ -324,3 +324,4 @@ DROPPED | > need to pass a file list). This keeps `CLAUDE.md` and `docs/*.md` fr
 DROPPED | > drifting behind whatever this feature just shipped (a new Supabase t | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
 DROPPED | > policy, a frontend route, a config/env var). This step is **best-eff | project-specific content (D20, D22, D24): the test, build, E2E, database, security and viewport phases are the project's own phase files; the kit text names no tool or stack
 PARAM | 1. Run `openspec --version` yourself. If it fails or is not found, tel | OpenSpec is optional (owner decision): the check runs only when an `openspec/` folder exists
+PARAM | **Desktop viewport check:** ✓ Verified at 1920×1080 — <what was checke | the viewports come from the optional [viewports] table of .backlog-kit.toml (default S23 Ultra / 1920x1080)
