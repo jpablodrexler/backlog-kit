@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.37
+- `architecture-reviewer` reads the project's own checks from an `Architecture review checks` section of `docs/architecture.md` instead of `.backlog-kit/review/architecture/` (a kit convention: that doc holds diagrams, structure and what the review checks). Without the section it works from `CLAUDE.md` and the docs and offers to write it. The conventions table and the architecture example notes were updated or removed.
+
 ## 0.2.36
 - Replaces the 0.2.35 `Sources of truth:` line in every doc with a "Checked against" column in the `Kit conventions` table that `CLAUDE.md` must carry: one phrase per doc, with defaults in `shared/conventions.md`; `docs-sync` also searches the docs for the path, folder and names of each changed file. New `docs/conventions.md` explains the section and shows pablo-web's table as an example; the README links it.
 

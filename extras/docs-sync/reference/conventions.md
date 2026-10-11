@@ -11,7 +11,7 @@ Where the backlog-kit skills read and write. Every project that uses the kit loo
 | `docs/decisions/` | architecture decision records, numbered and append-only (`decision-record`) | — |
 | `docs/explorations/` | notes of ideas still being explored, offered by `features-next` | — |
 | `docs/reports/` | dated reports of the reviewers and the batch runs; usually gitignored | — |
-| `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure | the directory tree, the data schema and the routes or entry points |
+| `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure, and an `Architecture review checks` section (what `architecture-reviewer` checks in this project) | the directory tree, the data schema and the routes or entry points |
 | `docs/features.md` | what a user can actually reach today (never the planned backlog) | what is really reachable: the routes, screens and endpoints |
 | `docs/product.md` | optional: what the product is for and who uses it | — |
 | `docs/frontend.md`, `docs/backend.md` | per side the project has: technologies, structure, routing or endpoints, data flow, running, building, testing and deploying | the code of that side, its manifests and its build configuration |

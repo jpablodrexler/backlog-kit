@@ -15,7 +15,7 @@ Eight of them are stack-neutral in their *frame* (workflow, severities, report f
 | `docs-sync` | `.backlog-kit/docs/` | which doc section follows which source of truth |
 | `spec-compliance-check` | `.backlog-kit/spec-compliance/` | where the tests live, how a scenario is verified by hand |
 | `dependency-upgrade` | `.backlog-kit/dependency-upgrade/` | package manager commands, packages never bumped without approval |
-| `architecture-reviewer` | `.backlog-kit/review/architecture/` | the project's stack-specific dimensions and greps, files that look cross-cutting, the case that motivated the review |
+| `architecture-reviewer` | the `Architecture review checks` section of `docs/architecture.md` | the project's own dimensions and checks, the files that look cross-cutting, the case that motivated the review |
 | `product-scope-roaster` | `.backlog-kit/review/product/` | the project's own examples of merge / split / gap / inconsistency to test on their merits |
 
 The batch runners need no notes: `features-batch-development`, `bugs-batch-fix`.

@@ -26,7 +26,7 @@ Where the backlog-kit skills read and write. This project keeps the files it nee
 | `docs/decisions/` | architecture decision records, numbered and append-only | — |
 | `docs/explorations/` | notes of ideas still being explored | — |
 | `docs/reports/` | dated reports of the reviewers and the batch runs (gitignored) | — |
-| `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure | `supabase/migrations/**`, `frontend/src/app/app.routes.ts`, the top-level directory tree |
+| `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure, and an `Architecture review checks` section (what `architecture-reviewer` checks in this project) | `supabase/migrations/**`, `frontend/src/app/app.routes.ts`, the top-level directory tree |
 | `docs/features.md` | what a user can actually reach today (never the planned backlog) | the routes and components under `frontend/src/app/` |
 | `docs/frontend.md` | technologies, structure, routing, data flow, running, building, testing and deploying | `frontend/src/app/**`, `frontend/angular.json`, `frontend/package.json` |
 | `docs/database.md` | tables, RLS policies, migration history, the Supabase CLI workflow | every migration in `supabase/migrations/**` in order, and `supabase/config.toml` |
