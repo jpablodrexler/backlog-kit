@@ -1,6 +1,8 @@
 # Architecture Reviewer — this project's dimensions (Angular frontend, Supabase)
 Read when: every architecture review, and any deep-dive on one of these dimensions
 
+Maps to: P1→D1, P2→D2, P3→D3, P4→D4 (browser storage), P5→D4 (state and coordination), P6→D8, P7→D5, P8→D7
+
 ## The dimensions
 
 1. **File/folder organization & naming** — `core → features ← shared`

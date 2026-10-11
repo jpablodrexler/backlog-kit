@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.26
+- `architecture-reviewer`, third real run: notes declare `Maps to:` between their dimensions and the skill's; a note rule without its own dimension applies under the one it names; healthy and documented-unused channels go under Strengths; finding IDs run continuously across severities; searches are cited inline; and the report gains a `### Coverage` checklist (per dimension and per note rule: covered, partial or not covered, with files opened and searches run) so runs can be compared on what each looked at. Non-atomic writes of any kind (create, update, delete, retried by a wrapper) are one class in pablo-web's notes.
+
 ## 0.2.25
 - `architecture-reviewer`, second real run: overlapping dimensions are tagged `[D4/P5]` with the mapping in the header, the branch is read from `.git/HEAD`, healthy channels need one line of counts. pablo-web's notes lose the duplicated text and gain a note on non-atomic writes that cites its ADR.
 
