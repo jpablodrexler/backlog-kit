@@ -17,6 +17,11 @@ from pathlib import Path
 
 KIT = Path(__file__).resolve().parents[1]
 SKILLS = KIT / "skills"
+EXTRAS = KIT / "extras"
+
+
+def skill_dir(name):
+    return EXTRAS / name if (EXTRAS / name).is_dir() else SKILLS / name
 
 CORE = ["feature-plan", "features-next", "features-status", "bug-report",
         "bugs-next", "bugs-status", "decision-record"]          # scripts need the config/table lib
@@ -47,11 +52,11 @@ def expected():
     for name, skills in LIB_FOR.items():
         text = (KIT / "lib" / name).read_text(encoding="utf-8")
         for s in skills:
-            out[SKILLS / s / "scripts" / name] = marked(f"lib/{name}", text)
+            out[skill_dir(s) / "scripts" / name] = marked(f"lib/{name}", text)
     for md in sorted((KIT / "shared").glob("*.md")):
         text = md.read_text(encoding="utf-8")
         for s in SHARED_FOR[md.name]:
-            out[SKILLS / s / "reference" / md.name] = marked(f"shared/{md.name}", text)
+            out[skill_dir(s) / "reference" / md.name] = marked(f"shared/{md.name}", text)
     return out
 
 

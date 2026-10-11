@@ -1,4 +1,4 @@
-kit: skills/features-batch-development
+kit: extras/features-batch-development
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>

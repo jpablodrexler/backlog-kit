@@ -1,4 +1,4 @@
-kit: skills/database-reviewer
+kit: extras/database-reviewer
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>

@@ -1,4 +1,4 @@
-kit: skills/bugs-batch-fix
+kit: extras/bugs-batch-fix
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>

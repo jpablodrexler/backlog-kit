@@ -9,7 +9,12 @@ import unittest
 from pathlib import Path
 
 KIT = Path(__file__).resolve().parents[1]
-SKILLS = sorted((KIT / "skills").iterdir())
+def sdir(name):
+    """A skill's folder, whether it is core (skills/) or an extra (extras/)."""
+    return KIT / "extras" / name if (KIT / "extras" / name).is_dir() else KIT / "skills" / name
+
+
+SKILLS = sorted(list((KIT / "skills").iterdir()) + list((KIT / "extras").iterdir()))
 # Terms that mean a skill has leaked the project it was extracted from.
 LEAK = re.compile(r"supabase|angular|vercel|optimus|pablo|cypress|\bRLS\b|\.cy\.ts|drexler|jp-photo", re.I)
 FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.S)
@@ -85,7 +90,7 @@ class SkillLint(unittest.TestCase):
     def test_only_gitread_may_shell_out(self):
         # Scripts that can shell out could run git write commands and break the promise.
         # Exactly one module is allowed to, and its allowlist is checked below.
-        files = list((KIT / "skills").rglob("*.py")) + list((KIT / "lib").glob("*.py")) + list((KIT / "tools").glob("*.py"))
+        files = list(list((KIT / "skills").rglob("*.py")) + list((KIT / "extras").rglob("*.py"))) + list((KIT / "lib").glob("*.py")) + list((KIT / "tools").glob("*.py"))
         for f in files:
             with self.subTest(file=str(f.relative_to(KIT))):
                 body = f.read_text()
@@ -109,7 +114,7 @@ class SkillLint(unittest.TestCase):
 
     def test_there_is_no_confirmed_mode(self):
         # decision D8: the source projects confirm every item, also inside a batch.
-        for path in list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "shared").glob("*.md")):
+        for path in list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "extras").glob("*/SKILL.md")) + list((KIT / "shared").glob("*.md")):
             with self.subTest(file=str(path.relative_to(KIT))):
                 self.assertNotIn("--confirmed", path.read_text())
 
@@ -129,7 +134,7 @@ class SkillLint(unittest.TestCase):
                     self.assertTrue((d / rel).is_file())
 
     def test_no_stack_leakage(self):
-        for f in list((KIT / "skills").rglob("*")) + list((KIT / "lib").glob("*")) + list((KIT / "shared").glob("*")) + list((KIT / "tools").glob("*")):
+        for f in list((KIT / "skills").rglob("*")) + list((KIT / "extras").rglob("*")) + list((KIT / "lib").glob("*")) + list((KIT / "shared").glob("*")) + list((KIT / "tools").glob("*")):
             if f.is_file() and f.suffix in {".md", ".py"}:
                 with self.subTest(file=str(f.relative_to(KIT))):
                     # the author line of the frontmatter names the owner; nothing else may
@@ -140,7 +145,7 @@ class SkillLint(unittest.TestCase):
         stdlib_ok = {"argparse", "json", "re", "sys", "pathlib", "copy", "tomllib", "subprocess",
                      "datetime", "os",
                      "backlog_kit", "gitread", "work_scope", "branch_state", "detect_gates", "batch_plan", "batch_report"}
-        for f in (KIT / "skills").rglob("*.py"):
+        for f in list((KIT / "skills").rglob("*.py")) + list((KIT / "extras").rglob("*.py")):
             with self.subTest(file=str(f.relative_to(KIT))):
                 mods = set(re.findall(r"^(?:import|from)\s+(\w+)", f.read_text(), re.M))
                 self.assertLessEqual(mods, stdlib_ok, f"non-stdlib import: {mods - stdlib_ok}")
@@ -206,8 +211,8 @@ class GeneralizedSkillsTest(unittest.TestCase):
     STANDALONE = ("architecture-reviewer", "product-scope-roaster", "dependency-upgrade", "docs-sync")
 
     def text(self, name):
-        parts = [(self.ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")]
-        for ref in sorted((self.ROOT / "skills" / name / "reference").glob("*.md")) if (self.ROOT / "skills" / name / "reference").is_dir() else []:
+        parts = [(sdir(name) / "SKILL.md").read_text(encoding="utf-8")]
+        for ref in sorted((sdir(name) / "reference").glob("*.md")) if (sdir(name) / "reference").is_dir() else []:
             parts.append(ref.read_text(encoding="utf-8"))
         return "\n".join(parts)
 
@@ -217,7 +222,7 @@ class GeneralizedSkillsTest(unittest.TestCase):
         for name in self.REVIEWERS + self.STANDALONE:
             with self.subTest(skill=name):
                 self.assertIn("**Never run `git commit`, `git push` or open a PR.**", self.text(name))
-                self.assertFalse((self.ROOT / "skills" / name / "scripts").exists(), "no scripts: nothing here may shell out")
+                self.assertFalse((sdir(name) / "scripts").exists(), "no scripts: nothing here may shell out")
 
     def test_whole_system_skills_only_advise(self):
         for name in ("architecture-reviewer", "product-scope-roaster"):
@@ -264,7 +269,7 @@ class ReviewerFrames(unittest.TestCase):
     def test_each_reviewer_reads_the_project_checklists_and_warns_when_there_are_none(self):
         for name, kind in (("code-reviewer", "code"), ("security-reviewer", "security"), ("database-reviewer", "database")):
             with self.subTest(skill=name):
-                text = (KIT / "skills" / name / "SKILL.md").read_text()
+                text = (sdir(name) / "SKILL.md").read_text()
                 self.assertIn(f".backlog-kit/review/{kind}/", text)
                 self.assertIn("Read when:", text)
                 self.assertIn("no project checklist", " ".join(text.lower().split()))
@@ -328,17 +333,17 @@ class HandBackContract(unittest.TestCase):
         self.assertIn("never send placeholder text", shared)
         for name in ("feature-development", "bug-fix", "gitflow"):
             with self.subTest(skill=name):
-                text = (KIT / "skills" / name / "SKILL.md").read_text()
+                text = (sdir(name) / "SKILL.md").read_text()
                 self.assertIn("hand-back paragraph", text)
-                self.assertIn("**Hand-back.** Your hand-back", (KIT / "skills" / name / "reference/project-phases.md").read_text())
+                self.assertIn("**Hand-back.** Your hand-back", (sdir(name) / "reference/project-phases.md").read_text())
         for name in ("feature-development", "bug-fix"):
-            text = " ".join((KIT / "skills" / name / "SKILL.md").read_text().split())
+            text = " ".join((sdir(name) / "SKILL.md").read_text().split())
             self.assertIn("look at the working tree for what the subagent actually did", text)
 
 
 class SkillAuthor(unittest.TestCase):
     def test_every_skill_names_its_author(self):
-        for f in sorted((KIT / "skills").glob("*/SKILL.md")):
+        for f in sorted(list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "extras").glob("*/SKILL.md"))):
             with self.subTest(skill=f.parent.name):
                 head = f.read_text().split("\n---\n", 1)[0]
                 self.assertIn("  author: Juan Pablo Drexler", head)

@@ -1,4 +1,4 @@
-kit: skills/docs-sync
+kit: extras/docs-sync
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>

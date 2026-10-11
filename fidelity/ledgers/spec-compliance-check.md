@@ -1,4 +1,4 @@
-kit: skills/spec-compliance-check
+kit: extras/spec-compliance-check
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>

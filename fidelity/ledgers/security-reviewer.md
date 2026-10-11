@@ -1,4 +1,4 @@
-kit: skills/security-reviewer
+kit: extras/security-reviewer
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>

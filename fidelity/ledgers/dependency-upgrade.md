@@ -1,4 +1,4 @@
-kit: skills/dependency-upgrade
+kit: extras/dependency-upgrade
 sub: JPPhotoManagerWeb/docs/backlog => <backlog>
 sub: docs/backlog => <backlog>
 sub: JPPhotoManagerWeb/docs/reports => <reports>
