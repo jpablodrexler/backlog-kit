@@ -60,6 +60,18 @@ Install them when you want them: `python3 tools/install.py <repo> --extras` (or 
 
 `code-reviewer`, `security-reviewer`, `database-reviewer`, `architecture-reviewer`, `product-scope-roaster`, `docs-sync`, `dependency-upgrade`, `spec-compliance-check`, `features-batch-development`, `bugs-batch-fix`.
 
+## Where things live
+
+The skills share a few fixed locations, so every project that uses the kit looks the same:
+
+| Path | What |
+| --- | --- |
+| `docs/backlog/` | the backlog: `features-planned.md`, `features-implemented.md`, `bugs-open.md`, `bugs-fixed.md`, a brief per item in `features/` and `bugs/` |
+| `docs/decisions/` | architecture decision records |
+| `docs/reports/` | dated reports of the reviewers and batch runs (usually gitignored) |
+| `docs/*.md` | reference docs: `architecture.md`, `features.md`, `frontend.md`, `backend.md`, `database.md`, `authentication.md` — only the ones the project needs (see `docs-sync`) |
+| `CLAUDE.md`, `README.md` | the lean quick-start and the documentation index |
+
 ## Adapting it
 
 If your project fits the workflow, use it as is. If not, take ideas from the skills: fork the repo, or copy the `SKILL.md` files into `.claude/skills/` and edit them. They are plain markdown.

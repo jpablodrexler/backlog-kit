@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.32
+- Standard locations are now a convention of the kit: `docs-sync` carries a table of where each kind of reference doc lives (`docs/architecture.md`, `features.md`, `frontend.md`, `backend.md`, `database.md`, `authentication.md`, `decisions/`, `backlog/`, `reports/`), moved from the per-project tiers note, and the README gains a "Where things live" table. A project keeps only the files it needs and its notes can say where it differs.
+
 ## 0.2.31
 - `docs-sync`: the three documentation tiers (lean `CLAUDE.md`, reference `docs/*.md`, `README.md` index) are now a fixed section of the skill instead of a project note, so a project no longer needs a `.backlog-kit/docs/` file to describe them. The notes keep only what is specific to the project: the section-to-source table and its scope. The example tiers files were removed.
 

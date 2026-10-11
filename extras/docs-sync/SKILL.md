@@ -38,10 +38,24 @@ automatically; that's this skill's job.
   inline — those belong in `docs/`. If you find one growing back in
   `CLAUDE.md`, move it out: detail left inline drifts silently for a long
   time before anyone re-derives it from the code.
-- **`docs/*.md`** — the actual reference material, indexed from `README.md`:
-  architecture and diagrams, the data model, routing, running, building and
-  testing, the list of what is really reachable. This is comprehensive; the
-  project notes (§1) say which file covers what.
+- **`docs/*.md`** — the actual reference material, indexed from `README.md`.
+  This is comprehensive: diagrams, full tables, provenance notes. The kit
+  has a convention for where each kind of content lives, so every project
+  that uses it looks the same; a project keeps only the files it needs:
+
+  | File | What it holds |
+  | ---- | ------------- |
+  | `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure |
+  | `docs/features.md` | what a user can actually reach today (never the planned backlog) |
+  | `docs/frontend.md`, `docs/backend.md` | per side the project has: technologies, structure, routing or endpoints, data flow, running, building, testing and deploying |
+  | `docs/database.md` | tables, access rules, migration history, the database workflow |
+  | `docs/authentication.md` | the authentication flow, guards or filters, the session model |
+  | `docs/decisions/` | architecture decision records (`decision-record`) |
+  | `docs/backlog/`, `docs/reports/` | the backlog and the dated reports of the other skills (not documentation to keep in sync) |
+
+  Another topic gets its own `docs/<topic>.md`. This is a convention, not a
+  requirement: where a project already uses other names, its notes (§1) say
+  so and the skill follows them.
 - **`README.md`** — a short intro plus the documentation index table
   pointing into `docs/`. It should stay an index, not regrow the runbook
   content that lives in `docs/`.
