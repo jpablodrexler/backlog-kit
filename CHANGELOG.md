@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.38
+- `database-reviewer` reads the project's checks from a `Database review checks` section of `docs/database.md` instead of `.backlog-kit/review/database/` (same convention as the architecture review): it works through the subsections that apply to the change, with the context and access-control ones always. The conventions table and `docs/extras.md` were updated; the example database notes were removed.
+
 ## 0.2.37
 - `architecture-reviewer` reads the project's own checks from an `Architecture review checks` section of `docs/architecture.md` instead of `.backlog-kit/review/architecture/` (a kit convention: that doc holds diagrams, structure and what the review checks). Without the section it works from `CLAUDE.md` and the docs and offers to write it. The conventions table and the architecture example notes were updated or removed.
 

@@ -52,14 +52,16 @@ This skill covers two distinct workflows:
 3. For each table touched, find every query in the application code that
    reads or writes it, and check whether the query's filter/sort columns
    are covered by an actual index (§3) — not just plausible-looking ones.
-4. **Project checklists:** list `.backlog-kit/review/database/` (relative to
-   the repository root); each file's second line is `Read when: …`; read
-   every file marked `every review` and every file whose `Read when` matches
-   what changed; work through their checklist sections one by one. If the
-   folder does not exist or is empty, review with the frame above plus what
-   the project's CLAUDE.md and docs say, and state in the report that no
-   project checklist was found. A `§N` inside a project file refers to that
-   file's own numbering; a `§N` in this file refers to this file.
+4. **Project checklists:** read the project's `docs/database.md` and, in it,
+   the section named `Database review checks` (the kit convention: that doc
+   holds the tables, access rules, migration history and database workflow,
+   and what this review checks in the project). Work through the subsections
+   that apply to what changed, one by one; the context and workflow
+   subsection and the access-control one apply to every review. If the doc
+   has no such section, review with the frame above plus what the project's
+   CLAUDE.md and docs say, and state in the report that no project checklist
+   was found. A `§N` inside the project's section refers to that section's
+   own numbering; a `§N` in this file refers to this file.
 5. Work through the checklist below, section by section.
 6. Report findings grouped by **severity**, then by file.
 7. Summarise with a short verdict and the top action items, then write the

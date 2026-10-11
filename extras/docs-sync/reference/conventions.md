@@ -15,7 +15,7 @@ Where the backlog-kit skills read and write. Every project that uses the kit loo
 | `docs/features.md` | what a user can actually reach today (never the planned backlog) | what is really reachable: the routes, screens and endpoints |
 | `docs/product.md` | optional: what the product is for and who uses it | — |
 | `docs/frontend.md`, `docs/backend.md` | per side the project has: technologies, structure, routing or endpoints, data flow, running, building, testing and deploying | the code of that side, its manifests and its build configuration |
-| `docs/database.md` | tables, access rules, migration history, the database workflow | the migrations and the database configuration, read in order |
+| `docs/database.md` | tables, access rules, migration history, the database workflow, and a `Database review checks` section (what `database-reviewer` checks in this project) | the migrations and the database configuration, read in order |
 | `docs/authentication.md` | the authentication flow, guards or filters, the session model | the authentication code and its configuration |
 | `docs/<topic>.md` | any other reference topic gets its own file | the code the topic describes |
 | `CLAUDE.md` | the lean quick-start for an agent: commands, repo layout, short fixed-pointer subsections into `docs/`, and this section | its commands against the manifests and task files, its layout against the real top-level directories, its documentation paragraph against which `docs/*.md` exist |

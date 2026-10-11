@@ -11,7 +11,7 @@ Eight of them are stack-neutral in their *frame* (workflow, severities, report f
 | --- | --- | --- |
 | `code-reviewer` | `.backlog-kit/review/code/` | checklists: layering, naming, state, tests, known pitfalls |
 | `security-reviewer` | `.backlog-kit/review/security/` | checklists: auth, authorization, secrets, input handling |
-| `database-reviewer` | `.backlog-kit/review/database/` | checklists: migrations, indexes, naming, safety |
+| `database-reviewer` | the `Database review checks` section of `docs/database.md` | checklists: naming, data types, indexes, access rules, migrations, the fix workflow |
 | `docs-sync` | `.backlog-kit/docs/` | which doc section follows which source of truth |
 | `spec-compliance-check` | `.backlog-kit/spec-compliance/` | where the tests live, how a scenario is verified by hand |
 | `dependency-upgrade` | `.backlog-kit/dependency-upgrade/` | package manager commands, packages never bumped without approval |

@@ -29,7 +29,7 @@ Where the backlog-kit skills read and write. This project keeps the files it nee
 | `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure, and an `Architecture review checks` section (what `architecture-reviewer` checks in this project) | `supabase/migrations/**`, `frontend/src/app/app.routes.ts`, the top-level directory tree |
 | `docs/features.md` | what a user can actually reach today (never the planned backlog) | the routes and components under `frontend/src/app/` |
 | `docs/frontend.md` | technologies, structure, routing, data flow, running, building, testing and deploying | `frontend/src/app/**`, `frontend/angular.json`, `frontend/package.json` |
-| `docs/database.md` | tables, RLS policies, migration history, the Supabase CLI workflow | every migration in `supabase/migrations/**` in order, and `supabase/config.toml` |
+| `docs/database.md` | tables, RLS policies, migration history, the Supabase CLI workflow, and the `Database review checks` section | every migration in `supabase/migrations/**` in order, and `supabase/config.toml` |
 | `docs/authentication.md` | the Supabase Auth flow, guards, the session model | `frontend/src/app/core/auth.service.ts`, `auth.guard.ts` and `app.config.ts` |
 | `CLAUDE.md` | this file: the lean quick-start for an agent | its commands against both `package.json` scripts, its layout against the real top-level directories |
 | `README.md` | a short intro and the documentation index into `docs/` | which `docs/*.md` exist and what each covers |
