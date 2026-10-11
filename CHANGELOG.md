@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.34
+- `docs-sync`: the guardrails that every project repeated in its notes are now fixed text in the skill: what a fixed-pointer subsection of `CLAUDE.md` is and when to touch it, and the scope (`CLAUDE.md`, `README.md` and the reference docs of the kit conventions; never the backlog, decisions, explorations or reports). A project's notes keep only what is specific to it. The pablo-web example of that note was removed.
+
 ## 0.2.33
 - The standard locations now have one source in the kit, `shared/conventions.md`, vendored only into `docs-sync` (the other skills keep their own defaults, and a new test checks that every `docs/` path any skill mentions is in the table). A project carries the table as a `## Kit conventions` section of its `CLAUDE.md`; `docs-sync`'s full sweep checks it and offers to add it. `docs-sync`'s tiers section points to the table instead of embedding it.
 

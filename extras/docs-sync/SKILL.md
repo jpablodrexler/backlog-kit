@@ -75,9 +75,8 @@ above plus what the project's CLAUDE.md and docs say, and tell the user that
 no project notes were found.
 
 The notes hold the project's doc-section table (doc section → files →
-source of truth), any fixed-pointer subsections of `CLAUDE.md`, and which files and directories
-are in or out of this skill's scope. The workflows below refer to that
-table as "§1".
+source of truth) and anything specific to the project's scope. The workflows
+below refer to that table as "§1".
 
 ---
 
@@ -151,15 +150,24 @@ table as "§1".
   `security-reviewer`/`database-reviewer` do — the corrected `CLAUDE.md`/
   `docs/*.md`/`README.md` files *are* the artifact. The chat summary is
   enough of a record for this session.
-- The project notes name the fixed-pointer subsections of `CLAUDE.md` (if
-  any) and the exact files this skill may edit. Respect them: a feature
-  that changes what a pointer subsection describes updates the linked
-  `docs/*.md` file only; do not add narrative detail back into `CLAUDE.md`.
-- Stay within the scope the project notes define. Regardless, this skill
-  does not touch `<backlog>/` files (owned by `feature-plan`/
-  `features-archive`), `docs/decisions/*.md` (owned by `decision-record` —
-  an append-only decision history, not current-state reference material this
-  skill keeps synced against the code), or the report directories under
-  `<reports>/` (owned by their respective skills) — those are
-  tracked/managed elsewhere, not part of this skill's "keep the docs
-  honest" job.
+- **Fixed pointers.** A subsection of `CLAUDE.md` that is a short pointer
+  into a `docs/*.md` section (it names the essential rule and links to the
+  detail) is a fixed pointer, by design, with no per-feature narrative of
+  its own. A feature that changes what one describes updates the linked
+  `docs/*.md` file only; do not add narrative detail back into `CLAUDE.md`,
+  and do not treat a pointer's unchanged wording as something needing a
+  sync on every feature. Touch a pointer again only when the `docs/*.md`
+  section or heading it links to is renamed or moved, or when one of the one
+  or two load-bearing facts it states directly changes (for example a
+  required minimum check device, or the shape of a shared type).
+- **Scope.** The skill's scope is `CLAUDE.md`, `README.md` and the reference
+  docs of the kit conventions (`reference/conventions.md`: `docs/*.md`
+  except the folders below); the project notes may add to it (for example a
+  configuration file kept in step with the docs) or name what else is out.
+  Regardless, it does not touch `<backlog>/` files (owned by
+  `feature-plan`/`features-archive`), `docs/decisions/*.md` (owned by
+  `decision-record` — an append-only decision history, not current-state
+  reference material this skill keeps synced against the code),
+  `docs/explorations/`, or the report directories under `<reports>/` (owned
+  by their respective skills) — those are tracked or managed elsewhere, not
+  part of this skill's "keep the docs honest" job.
