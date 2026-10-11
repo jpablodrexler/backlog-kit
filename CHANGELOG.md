@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.25
+- `architecture-reviewer`, second real run: overlapping dimensions are tagged `[D4/P5]` with the mapping in the header, the branch is read from `.git/HEAD`, healthy channels need one line of counts. pablo-web's notes lose the duplicated text and gain a note on non-atomic writes that cites its ADR.
+
 ## 0.2.24
 - `architecture-reviewer`, from the first real run in pablo-web: dimensions of project notes are numbered P1… next to the skill's D1–D8 and findings are tagged and get stable IDs (F1…); documented exceptions are listed under Strengths with their documentation; the hunt-the-broadcast technique is explicitly exempt from the survey-depth limit. pablo-web's notes corrected (flat structure, whole-app `localStorage` grep, BUG-077 marked as fixed).
 

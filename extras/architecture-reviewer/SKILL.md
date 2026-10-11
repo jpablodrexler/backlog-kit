@@ -32,7 +32,7 @@ Skip a dimension that does not apply to this project (say so in the report); nev
 
 ### 1. Determine scope
 
-- **Full review**: every applicable dimension, one pass each, at survey depth (2-4 concrete evidence points per dimension). The one exception is the "hunt the broadcast" technique in the state dimension: it always lists every producer and consumer, whatever the depth.
+- **Full review**: every applicable dimension, one pass each, at survey depth (2-4 concrete evidence points per dimension). When every channel turns out healthy, one line of counts per channel is enough. The one exception to the depth limit is the "hunt the broadcast" technique in the state dimension: it always lists every producer and consumer, whatever the depth.
 - **Deep-dive**: the user names one dimension, or one flagged in an earlier report. Read the relevant source in full, grep every call site, quantify (counts, which features), and cite `file:line` for every claim.
 
 ### 2. Read the documented baseline, then the code
@@ -43,7 +43,7 @@ Keep a private list while you work: every file you actually opened and every gre
 
 ### 3. Project notes
 
-List `.backlog-kit/review/architecture/` (relative to the repository root); each file's second line is `Read when: …`; read every file marked `every architecture review` and every file whose `Read when` matches the scope. They hold what this skill cannot know: the project's stack-specific dimensions and checks (which layering it claims, which greps to run), the files that look cross-cutting, and the real case that motivated the review. Add them to the dimensions above; they never remove one. Number the skill's dimensions D1–D8 and a note's own dimensions P1, P2, … in the order the note lists them, and give every finding the tag of the dimension it belongs to; where a note's dimension overlaps one of the skill's, do one combined pass and tag it with both. If the folder does not exist or is empty, work from the dimensions above plus what the project's `CLAUDE.md` and docs say, and state in the report that no project notes were found.
+List `.backlog-kit/review/architecture/` (relative to the repository root); each file's second line is `Read when: …`; read every file marked `every architecture review` and every file whose `Read when` matches the scope. They hold what this skill cannot know: the project's stack-specific dimensions and checks (which layering it claims, which greps to run), the files that look cross-cutting, and the real case that motivated the review. Add them to the dimensions above; they never remove one. Number the skill's dimensions D1–D8 and a note's own dimensions P1, P2, … in the order the note lists them, and give every finding the tag of the dimension it belongs to; where a note's dimension overlaps one of the skill's, do one combined pass and tag it with both, written `[D4/P5]`, and state the mapping in the report header. If the folder does not exist or is empty, work from the dimensions above plus what the project's `CLAUDE.md` and docs say, and state in the report that no project notes were found.
 
 ### 4. Classify each finding
 
@@ -57,7 +57,7 @@ Every `🔴`/`🟡` finding needs concrete evidence: `file:line`, and for a coup
 
 Write `<reports_dir>/architecture-review/ARCHITECTURE_REVIEW_<YYYY-MM-DD>.md` (for a deep-dive, `ARCHITECTURE_REVIEW_<YYYY-MM-DD>_<dimension-slug>.md`). If that name exists, add `-2`, `-3`, ... on the same day; never overwrite or delete an earlier report. Create the folder if needed. Contents:
 
-- A header: date, scope (full or which dimension), the commit or working-tree state it was run against (read from the files already present, without running git; if unknown, say so), and which dimensions were skipped as not applicable.
+- A header: date, scope (full or which dimension), the commit or working-tree state it was run against (read from files already present, without running git — for example the branch from `.git/HEAD`; if unknown, say so), and which dimensions were skipped as not applicable.
 - `### Strengths` (plain bullets), `### Findings` grouped by severity. Each finding gets a stable ID in order (`F1`, `F2`, ...) so a later deep-dive or follow-up can cite it, and is a checkbox line:
   `- [ ] F1 🔴|🟡 [D4] <file>:<line or path> — <what is wrong, evidence with counts, why it matters>`
   Omit an empty group.
