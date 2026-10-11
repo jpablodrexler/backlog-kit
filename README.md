@@ -46,10 +46,13 @@ That is all the setup there is. Backlog files are created on first use in `docs/
 ## The loop
 
 ```
-plan ──► select ──► branch ──► develop + verify ──► you commit ──► PR ──► review ──► merge ──► clean up
+plan ──► select ──► branch ──► develop + verify ──► you commit ──► PR ──► review ──► merge ──► clean up ─┐
+ ▲   feature-plan  features-next   feature-development   (you)       gitflow   (you)    (you)   gitflow  │
+ │   bug-report    bugs-next       bug-fix                                                            │
+ └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The work skills never commit, push or open a PR. Only `gitflow` can, only when you ask, and it confirms before the first push of a branch, a tag and any deletion.
+The middle of the loop (`feature-development`, `bug-fix`) never commits: it leaves a verified, archived result uncommitted on a branch for you to review. You commit it yourself; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.
 
 ## Extras (optional)
 
