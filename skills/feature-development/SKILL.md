@@ -150,8 +150,8 @@ After all phases complete, display:
 **Code review:** ✓ All findings resolved
 **Database review:** ✓ All findings resolved (or N/A — no schema changes)
 **Security review:** ✓ All findings resolved (or N/A — no security-sensitive changes)
-**Mobile viewport check:** ✓ Verified at <each configured phone viewport> — <what was checked/caught> (or N/A — no template/CSS changes)
-**Desktop viewport check:** ✓ Verified at <the configured desktop viewport> — <what was checked/caught> (or N/A — no template/CSS changes)
+**Mobile viewport check:** ✓ <each configured phone viewport: verified, or ⚠ skipped — reason> — <what was checked/caught> (or N/A — no template/CSS changes)
+**Desktop viewport check:** ✓ <the configured desktop viewport: verified, or ⚠ skipped — reason> — <what was checked/caught> (or N/A — no template/CSS changes)
 **Tests:** ✓ All passing (or N/A — the project has no automated tests)
 [if UNREVIEWED_PROD_FIXES was recorded in Phase 3, insert this line here:]
 **⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while

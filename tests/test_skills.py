@@ -340,6 +340,15 @@ class HandBackContract(unittest.TestCase):
             self.assertIn("look at the working tree for what the subagent actually did", text)
 
 
+class ViewportCheck(unittest.TestCase):
+    def test_pipelines_require_every_configured_viewport_to_be_reported(self):
+        for rel in ("skills/bug-fix/SKILL.md", "skills/feature-development/reference/phase-2-implement-review.md"):
+            with self.subTest(file=rel):
+                text = " ".join(" ".join(l.lstrip("> ") for l in (KIT / rel).read_text().splitlines()).split())
+                self.assertIn("Check **each** configured viewport in turn", text)
+                self.assertIn("a viewport you did not check is never reported as verified", text)
+
+
 class SkillAuthor(unittest.TestCase):
     def test_every_skill_names_its_author(self):
         for f in sorted(list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "extras").glob("*/SKILL.md"))):

@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.30
+- Viewport check, from the first real `bug-fix` run in pablo-web (BUG-101): only the smallest phone and the desktop were asserted although six phones were configured. `feature-development` and `bug-fix` now require checking each configured viewport in turn and listing each in the hand-back as verified or skipped with a reason; the Final Summary shows the status per viewport (`bug-fix` gains a Viewport check line).
+
 ## 0.2.29
 - Community files and docs for publishing: `CONTRIBUTING.md` and `SECURITY.md` added; `DESIGN.md` rewritten as the current design (the per-release log lives in this changelog); `MIGRATING.md` rewritten for the core-plus-extras design with no phase files; `tools/migrate_check.py` now lists the optional project-note folders (including architecture and product), treats OpenSpec as optional and checks that `develop` contains the kit's skills.
 

@@ -212,6 +212,7 @@ summary of what changed>` note appended to the same line. Then (recompute
 >   any layout issue the same way as a code-review finding (recompute
 >   `CHANGED_FILES`, review the fix once more as in Step 2). Note what was
 >   checked at each viewport, and anything caught, for the Final Summary.
+>   Check **each** configured viewport in turn (a test or a device emulation per size); asserting only the smallest phone and the desktop is not enough. List every configured viewport in your hand-back as `verified` or `skipped — <reason>`; a viewport you did not check is never reported as verified.
 >
 > **Step 6 — Signal completion**
 > End your response with exactly this line:

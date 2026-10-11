@@ -294,6 +294,7 @@ Spawn a **general-purpose subagent** (`run_in_background: false`) with:
 > same way as a code-review finding (recompute `CHANGED_FILES`, review once
 > more over the fix). Note what was checked at each viewport, and anything
 > caught, for the Final Summary.
+> Check **each** configured viewport in turn (a test or a device emulation per size); asserting only the smallest phone and the desktop is not enough. List every configured viewport in your hand-back as `verified` or `skipped — <reason>`; a viewport you did not check is never reported as verified.
 >
 > **Step 6 — Signal completion**
 > End with exactly:
@@ -471,6 +472,8 @@ DONE`.
 **Regression test:** <path> (failed before the fix, passes now)
 **Root cause / fix:** <one or two sentences>
 **Code review:** ✓ All findings resolved
+[if the viewport check ran:]
+**Viewport check:** ✓ <each configured phone viewport and the desktop viewport: verified, or ⚠ skipped — reason> — <what was checked/caught>
 **Tests:** ✓ <summary> (or N/A — <reason> if skipped)
 **E2E:** ✓ <summary> (or N/A — <reason> if skipped, or ⚠ Partial: <what wasn't covered>)
 **Build:** ✓ <summary> (or N/A — <reason> if skipped)
