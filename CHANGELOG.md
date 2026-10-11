@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.31
+- `docs-sync`: the three documentation tiers (lean `CLAUDE.md`, reference `docs/*.md`, `README.md` index) are now a fixed section of the skill instead of a project note, so a project no longer needs a `.backlog-kit/docs/` file to describe them. The notes keep only what is specific to the project: the section-to-source table and its scope. The example tiers files were removed.
+
 ## 0.2.30
 - Viewport check, from the first real `bug-fix` run in pablo-web (BUG-101): only the smallest phone and the desktop were asserted although six phones were configured. `feature-development` and `bug-fix` now require checking each configured viewport in turn and listing each in the hand-back as verified or skipped with a reason; the Final Summary shows the status per viewport (`bug-fix` gains a Viewport check line).
 

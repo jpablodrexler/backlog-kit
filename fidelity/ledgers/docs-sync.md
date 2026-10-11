@@ -7,7 +7,7 @@ sub: docs/reports => <reports>
 PARAM | name: web-docs-sync description: > Keeps `JPPhotoManagerWeb/CLAUDE.md` | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 PARAM | # Web Docs Sync Skill | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
 DROPPED | `JPPhotoManagerWeb` documents itself in two tiers, and both need activ | second project's variant of this text; the kit follows the first project
-DROPPED | - **`CLAUDE.md`** — a lean quick-start for an agent working in the cod | second project's variant of this text; the kit follows the first project
+PARAM | - **`CLAUDE.md`** — a lean quick-start for an agent working in the cod | the documentation tiers moved from the project's notes into the skill as a fixed section (owner decision): generic wording, no project file names or history
 DROPPED | - **`JPPhotoManagerWeb/docs/*.md`** — the actual reference material, i | second project's variant of this text; the kit follows the first project
 PARAM | - **Full sweep** — audit every table/section in §1 against the current | second project's variant of this text; the kit follows the first project
 PARAM | Both modes **edit the doc/config files directly** rather than writing | second project's variant of this text; the kit follows the first project
@@ -53,9 +53,9 @@ DROPPED | - Manifest-parity and dashboard-panel fixes (§2, §3) are config edit
 PARAM | - This skill's scope is `CLAUDE.md`, `README.md`, and the files direct | second project's variant of this text; the kit follows the first project
 PARAM | name: web-docs-sync description: > Keeps `CLAUDE.md`, the reference do | description rewritten stack-free (TRIGGER structure kept); `scope` removed, `version` is the kit's (D30)
 DROPPED | pablo-web documents itself in three tiers, and all three need active u | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
-DROPPED | - **`CLAUDE.md`** — a lean quick-start for an agent working in the cod #2 | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
+PARAM | - **`CLAUDE.md`** — a lean quick-start for an agent working in the cod #2 | the documentation tiers moved from the project's notes into the skill as a fixed section (owner decision): generic wording, no project file names or history
 DROPPED | - **`docs/*.md`** — the actual reference material, indexed from `READM | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
-DROPPED | - **`README.md`** — a short intro plus the documentation index table p | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
+PARAM | - **`README.md`** — a short intro plus the documentation index table p | the documentation tiers moved from the project's notes into the skill as a fixed section (owner decision): generic wording, no project file names or history
 PARAM | - **Full sweep** — audit every row in §1 against the current codebase | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
 DROPPED | ¦ Commands (Supabase CLI, frontend npm scripts) ¦ `CLAUDE.md` ("Comman | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
 DROPPED | ¦ Repository layout ¦ `CLAUDE.md` ("Repository layout") ¦ Actual top-l | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)

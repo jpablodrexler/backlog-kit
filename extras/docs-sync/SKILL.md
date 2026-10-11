@@ -24,11 +24,27 @@ Paths: `<backlog>` is `docs/backlog` and `<reports>` is `docs/reports`,
 unless `.backlog-kit.toml` sets `[paths] backlog_dir` (then each is the
 folder of that name next to the backlog's parent).
 
-The project documents itself in tiers, and every tier needs active upkeep:
-a lean `CLAUDE.md` quick-start for an agent working in the code, the
-reference docs under `docs/`, and `README.md`'s documentation index. The
-project notes (§1) describe the project's own tiers. Nothing else in the
-repo maintains them automatically; that's this skill's job.
+## The documentation tiers
+
+Every project this skill serves keeps its documentation in three tiers, and
+each needs active upkeep. Nothing else in the repo maintains them
+automatically; that's this skill's job.
+
+- **`CLAUDE.md`** — a lean quick-start for an agent working in the code:
+  commands, repo layout and a few short, fixed-pointer subsections that each
+  name the essential rule and link to the `docs/*.md` section holding the
+  full detail. It should **never** carry a full table or API reference, a
+  routing table, a long step-by-step runbook, or a per-feature narrative
+  inline — those belong in `docs/`. If you find one growing back in
+  `CLAUDE.md`, move it out: detail left inline drifts silently for a long
+  time before anyone re-derives it from the code.
+- **`docs/*.md`** — the actual reference material, indexed from `README.md`:
+  architecture and diagrams, the data model, routing, running, building and
+  testing, the list of what is really reachable. This is comprehensive; the
+  project notes (§1) say which file covers what.
+- **`README.md`** — a short intro plus the documentation index table
+  pointing into `docs/`. It should stay an index, not regrow the runbook
+  content that lives in `docs/`.
 
 This skill has two modes:
 
@@ -56,8 +72,7 @@ above plus what the project's CLAUDE.md and docs say, and tell the user that
 no project notes were found.
 
 The notes hold the project's doc-section table (doc section → files →
-source of truth), the description of its documentation tiers, any
-fixed-pointer subsections of `CLAUDE.md`, and which files and directories
+source of truth), any fixed-pointer subsections of `CLAUDE.md`, and which files and directories
 are in or out of this skill's scope. The workflows below refer to that
 table as "§1".
 
