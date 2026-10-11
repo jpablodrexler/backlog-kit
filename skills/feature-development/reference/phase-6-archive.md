@@ -11,8 +11,14 @@ below), with the following prompt:
 
 > Perform these steps in sequence using the Skill tool:
 >
-> **Step 1 — Verify spec compliance and close every coverage gap.** Invoke
-> `spec-compliance-check` for `<change-name>`. It reads
+> **Step 1 — Verify spec compliance and close every coverage gap.** If the
+> project uses OpenSpec (an `openspec/` folder exists) and the
+> `spec-compliance-check` skill is installed, invoke it for `<change-name>`.
+> Otherwise do the same yourself, with the feature's brief
+> (`<backlog>/features/NNN-<change-name>.md`) and the `ACCEPTANCE:` lines
+> Phase 2 returned as the spec: list every requirement and report each as
+> Verified (a test that currently passes, or a manual check you performed),
+> Failing, or Unverified, with the same rules below. (The skill reads
 > `openspec/changes/<change-name>/specs/**/spec.md` and `tasks.md`
 > (unmodified — this skill is read-only against `openspec/`) and reports
 > each acceptance scenario as Verified, Failing, or Unverified; it does not
@@ -58,15 +64,17 @@ below), with the following prompt:
 > - **If everything is already Verified:** continue to Step 2 with nothing
 >   to close.
 >
-> **Step 2** — Invoke `docs-sync` in its scoped-sync mode for the
+> **Step 2** — If the `docs-sync` skill is installed, invoke it in its scoped-sync mode for the
 > current branch's changes (it diffs against the branch's base itself — no
-> need to pass a file list). This keeps the project's reference docs from
+> need to pass a file list); otherwise check yourself whether the change makes
+> anything the project documents stale (a command, a configuration option, a
+> route, the schema, setup steps) and update those passages briefly. This keeps the project's reference docs from
 > drifting behind whatever this feature just shipped. This step is **best-effort,
 > not blocking**: if the skill reports nothing to sync, continue to Step 3
 > regardless. Only stop and surface details to the user if the skill
 > itself errors out in a way that leaves files in a broken state.
 >
-> **Step 3** — Invoke `openspec-archive-change <change-name>`. Wait for it to
+> **Step 3** — OpenSpec projects only: invoke `openspec-archive-change <change-name>`. Wait for it to
 > complete fully (the SDD change directory must be moved to
 > `openspec/changes/archive/`). This skill may prompt you about delta spec sync
 > or incomplete tasks — respond to those prompts normally.

@@ -21,7 +21,7 @@ Archive one or more implemented features from `<backlog>/features-planned.md` in
 
 **If the user provided numbers or names**, use them directly — skip to step 2.
 
-**Otherwise, auto-detect from the archived SDD changes:**
+**Otherwise, auto-detect from the archived SDD changes** (OpenSpec is optional: with no `openspec/changes/archive/` folder, go straight to the fallback in step d):
 
 This project follows a workflow where each feature in `<backlog>/features-planned.md` is implemented via a corresponding OpenSpec (SDD) change. The full lifecycle is:
 1. Feature added to `<backlog>/features-planned.md` with `⬜ Pending`

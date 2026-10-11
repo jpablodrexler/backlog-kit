@@ -25,3 +25,4 @@ PARAM | If the user explicitly gave a value for any of these, use it as-is (st #
 PARAM | **Full brief.** Write one dense paragraph in the same style as existin #2 | stack names removed from the examples (tables/columns, endpoints, components, libraries) and the project's documented conventions are read from CLAUDE.md/README instead of being listed here
 PARAM | - Never write to `features-planned.md` before the user has confirmed t | also covers the brief file under features/ (J's stricter wording)
 PARAM | - Do not add a row to the **Deployment (migration) dependencies** tabl #2 | 'which Supabase migration timestamp implements it' becomes 'which migration implements it'
+PARAM | - **SDD Artifacts**: `⬜ Pending` until `openspec-propose` has generate | OpenSpec is optional: the column stays Pending in projects that do not use it

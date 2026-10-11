@@ -25,16 +25,14 @@ def skill_dir(name):
 
 CORE = ["feature-plan", "features-next", "features-status", "bug-report",
         "bugs-next", "bugs-status", "decision-record"]          # scripts need the config/table lib
-WORK = ["bug-fix", "feature-development"]                         # share the project-phase contract
+WORK = ["bug-fix", "feature-development"]                      
 
 LIB_FOR = {
     "backlog_kit.py": CORE + ["features-archive"],
     "gitread.py": ["gitflow"],
 }
 
-SHARED_FOR = {
-    "project-phases.md": WORK + ["gitflow"],
-}
+SHARED_FOR = {}
 
 
 def marked(src, text):

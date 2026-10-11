@@ -35,3 +35,4 @@ PARAM | 2. Delete the dependency/note blocks extracted in step 5 — but **only 
 PARAM | - #<n> `<name>` — moved to <backlog>/features-implemented.md (Details: | summary line wording of the second project kept; the first project's '(Details: brief + spec link)' suffix is dropped
 PARAM | - **The rewrite to the implemented shape happens in step 4's in-memory | implemented row shape named per D12 (without SDD Artifacts/Implementation/Summary/Brief)
 DROPPED | - **Only the row moves.** The brief file `<backlog>/features/NNN-<chan | first project's version of the 'brief file never moves' guardrail; the second project's equivalent bullet is kept
+DROPPED | **Otherwise, auto-detect from the archived SDD changes:** | OpenSpec is optional: the heading line is reworded to say so; behaviour unchanged

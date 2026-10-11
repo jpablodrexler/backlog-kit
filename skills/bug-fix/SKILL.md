@@ -3,15 +3,16 @@ name: bug-fix
 description: >-
   Runs the full lifecycle of fixing one bug from the backlog: picks the bug,
   creates a fix/ branch, reproduces it with a failing regression test FIRST,
-  implements the fix, runs the code review and fixes its findings, runs the
-  project's own phases from `.backlog-kit/bug/` (tests, database or security
-  reviews, E2E checks, build — whatever the project defines), syncs docs if
-  behaviour changed, then closes the bug via bugs-archive. No git commits —
-  hands off for review and PR. TRIGGER when asked to fix a bug, work through
-  the bug backlog one at a time, or address a specific BUG-NNN — including a
-  bug only just described (file it with bug-report first, then run this
-  skill). "Plan and fix a bug" also triggers it. Bug-family counterpart to
-  feature-development.
+  implements the fix, runs the code review and fixes its findings, then runs
+  the phases that apply to the project — database and security reviews and a
+  viewport check when the fix touches schema, sensitive code or templates,
+  tests, an end-to-end check when a user-facing flow changed, a local build —
+  skipping any that do not apply, syncs docs if behaviour changed, then closes
+  the bug via bugs-archive. No git commits — hands off for review and PR.
+  TRIGGER when asked to fix a bug, work through the bug backlog one at a time,
+  or address a specific BUG-NNN — including a bug only just described (file it
+  with bug-report first, then run this skill). "Plan and fix a bug" also
+  triggers it. Bug-family counterpart to feature-development.
 license: MIT
 metadata:
   author: Juan Pablo Drexler
@@ -45,18 +46,21 @@ normal single-bug use.
 Phase 0 runs in the orchestrator's own
 context (never a subagent — the confirmation must reliably reach the
 user); Phases 1–6 each run as a dedicated `run_in_background: false`
-subagent, each gated on the prior phase's signal. Phases 3–5 are the
-**project's own phases**: one subagent per file found in
-`.backlog-kit/bug/`, so whatever the project verifies after a fix is defined
-in the project, not in this skill.
+subagent, each gated on the prior phase's signal. **Phases 3, 4 and 5 are
+optional**, and so are the database review, the security review and the
+viewport check inside Phase 2: each one checks whether it applies to the
+project and to this fix, and when it does not it is skipped with a one-line
+reason that appears in the Final Summary.
 
 | Phase | Skills / actions |
 | ----- | ---------------- |
 | 0 — Select & Confirm *(orchestrator's own context)* | `bugs-next` (recommend + mandatory `AskUserQuestion`) |
 | 1 — Branch & Reproduce | `git fetch --prune` → `gitflow` (start/resume/sync `fix/<slug>`) → mark bug `🔶 In Progress` → write a **failing** regression test that reproduces the bug |
-| 2 — Fix & Review | implement the fix until the regression test passes → `code-reviewer`, findings fixed |
-| 3–5 — Project phases | each `.backlog-kit/bug/NN-*.md` file in filename order (tests, conditional reviews, E2E, build — whatever the project defines) |
-| 6 — Close | `docs-sync` (scoped, best-effort, only if behaviour changed) → `bugs-archive <BUG-ID> fixed "<resolution>"` |
+| 2 — Fix & Review | implement the fix until the regression test passes → code review; then, only when the fix touches them, a database review, a security review and a mobile/desktop viewport check; findings fixed |
+| 3 — Tests *(optional)* | the project's tests (and its fast smoke tier, if CI runs one) until they pass; skipped if the project has no automated tests |
+| 4 — E2E verification *(optional, conditional)* | the project's end-to-end/browser checks when the fix touches a user-facing flow — test account decided by the orchestrator first; skipped otherwise |
+| 5 — Build verification *(optional)* | the project's build, locally; skipped if there is no build step |
+| 6 — Close | docs sync (scoped, best-effort, only if behaviour changed) → `bugs-archive <BUG-ID> fixed "<resolution>"` |
 
 ---
 
@@ -96,7 +100,9 @@ Before spawning any subagent, replace every `<bug-id>`, `<slug>`, and
 substitute `<repro-test-path>` with the path captured from Phase 1's
 `REPRO: DONE — test: <path>` line.
 
-Also append, to every one of those subagent prompts, the hand-back paragraph from `reference/project-phases.md` ("The hand-back paragraph") unchanged.
+Also append, unchanged, to every one of those subagent prompts:
+
+> **Hand-back.** Your hand-back is the final text of your response, ending with exactly the signal line(s) this prompt asks for. Do not send it as a message through a messaging or hand-back tool, and never send placeholder text: the orchestrator reads only your final response, and a response without its signal is treated as blocked.
 
 ---
 
@@ -225,7 +231,11 @@ Spawn a **general-purpose subagent** (`run_in_background: false`) with:
 > is committed, so it shows zero).
 >
 > **Step 2 — Code review**
-> (recompute `CHANGED_FILES`) Invoke `code-reviewer` via the Skill tool
+> (recompute `CHANGED_FILES`) If the `code-reviewer` skill is not installed,
+> review the diff of `CHANGED_FILES` yourself as a reviewer who did not write
+> it (correctness, regressions, missing or weak tests, unintended changes) and
+> fix every real finding, up to 3 rounds, then go to Step 3. If it is
+> installed, invoke `code-reviewer` via the Skill tool
 > using its **Review** workflow, passing `CHANGED_FILES` as the explicit
 > scope — a scoped review of one change, not a full-codebase sweep, and
 > not the interactive Fix Workflow. It writes one dated
@@ -240,22 +250,189 @@ Spawn a **general-purpose subagent** (`run_in_background: false`) with:
 >
 > Do not proceed until all Critical and Warning findings are resolved.
 >
-> **Step 3 — Signal completion**
+> **Step 3 — Database review (conditional)**
+> (recompute `CHANGED_FILES`) If any path is a database migration or schema
+> definition: review them (Review workflow, scoped, non-interactive) with the
+> `database-reviewer` skill if it is installed — dated report at
+> `<reports>/database-review/DATABASE_REVIEW_FINDINGS_*.md` — otherwise
+> yourself, for normalization, naming, data types, constraints, index coverage
+> and migration safety, recording the findings in that report. Fix every 🔴/🟡
+> finding (a fix to already-applied schema is a **new** migration, never an
+> edit), check each off with a `**Fixed:**` note, re-review to confirm clean,
+> 3-round cap → `DATABASE_BLOCKED — …`. Then (recompute `CHANGED_FILES`)
+> review once more over the database fixes as in Step 2.
+>
+> **Step 4 — Security review (conditional)**
+> (recompute `CHANGED_FILES`) If any path touches authentication or
+> authorization, access-control rules, user-input handling, secrets or
+> configuration, or a dependency manifest: review it (Review workflow, scoped,
+> non-interactive) with the `security-reviewer` skill if it is installed —
+> dated report at `<reports>/security-review/SECURITY_REVIEW_FINDINGS_*.md` —
+> otherwise yourself, for missing authorization checks, injection, unsafe input
+> handling, secrets or tokens in code or logs, and vulnerable or unpinned
+> dependencies. Same fix / re-check / 3-round-cap loop →
+> `SECURITY_BLOCKED — …`. Then review once more over the security fixes.
+>
+> Do not proceed until all Critical and Warning findings (including
+> follow-on code-review findings from Steps 3–4) are resolved.
+>
+> **Step 5 — Mobile and desktop viewport check (conditional)**
+> (recompute `CHANGED_FILES`) If any changed path is a user-interface
+> template, markup file or stylesheet: verify the affected view at **both** a
+> phone-sized viewport (about 390×844) **and** a desktop viewport (1920×1080)
+> — with a browser tool, a browser's device emulation, or a component/E2E test
+> that sets the viewport, whichever the project has; if it has no way to render
+> the view, skip this step and say so in the Final Summary. At the phone size,
+> confirm no text overlap between elements, no clipped/cropped content, and no
+> forced horizontal scroll. At desktop, confirm no field/dialog/container
+> collapses to a narrow, phone-sized width while leaving the rest of its space
+> unused, and nothing that was correctly sized for the phone stayed wrongly
+> pinned to that size once the wide layout applies. Fix any layout issue the
+> same way as a code-review finding (recompute `CHANGED_FILES`, review once
+> more over the fix). Note what was checked at each viewport, and anything
+> caught, for the Final Summary.
+>
+> **Step 6 — Signal completion**
 > End with exactly:
 > `FIX_IMPLEMENTED: DONE`
 
-Do not start the first project phase until this subagent returns `FIX_IMPLEMENTED: DONE`.
+Do not start Phase 3 until this subagent returns `FIX_IMPLEMENTED: DONE`.
 On any `*_BLOCKED`, surface the details and wait for user guidance.
 
 ---
 
-## Phases 3–5 — Project phases (one subagent per file)
+## Phase 3 — Tests (Subagent 3, optional)
 
-What a project verifies after a fix — component and E2E tests, a build, a database or security review that only applies when certain files changed, a viewport check — is defined in the project, as one markdown file per phase in `.backlog-kit/bug/`, named `NN-name.md`. Run them **in filename order**, each one fully (orchestrator step, subagent, hand-back) before the next starts. The file format, the `PHASE:` hand-back signal, `CHANGED_FILES` and how to handle `PROD_CODE_FIXED:` are exactly those of `reference/project-phases.md` — read that file in full before running the first one, with `<bug-id>`, `<slug>`, `<repro-details>`, `<repro-test-path>` and `<CHANGED_FILES>` available for substitution.
+Skip this phase when the project has no automated tests: find out yourself
+(orchestrator) from its `CLAUDE.md`, `README` and build manifest which command
+runs them — and a faster end-to-end smoke tier, if CI runs one. If you cannot
+tell, ask the user once (**AskUserQuestion**, with "skip this phase" as an
+option); if there are no tests, record `TESTS: SKIPPED — no automated tests`
+and go to Phase 4.
 
-If `.backlog-kit/bug/` does not exist or holds no `*.md` file, tell the user `No project phases found in .backlog-kit/bug/ — tests, reviews beyond the code review, and the build are not run` and go straight to Phase 6; this is a warning, not a blocker.
+Runs unconditionally otherwise, regardless of what the fix touched — a tier CI
+gates every PR on can still be broken by a fix that looks unrelated.
 
-On `PHASE: BLOCKED`, stop and surface the failure. On one or more `PROD_CODE_FIXED:` lines, surface them to the user (those production changes weren't covered by Phase 2's review) and ask: **Proceed** (record `UNREVIEWED_PROD_FIXES:` for the Final Summary) or **Re-run Phase 2** (new Subagent 2 over the fixes, then the project phases again).
+Spawn a **general-purpose subagent** (`run_in_background: false`) with
+(substitute the commands you found; delete Step 2 if there is no smoke tier):
+
+> Validate the fix for `<bug-id>`. Both suites are local-only.
+>
+> **Step 1 — Tests**
+> `<TEST_COMMAND>`. On failure: diagnose (type error, missing stub,
+> assertion mismatch, …), fix — preferring test code over production source;
+> if you must touch production source note it `PROD_CODE_FIXED: <file> —
+> <reason>` — re-run until green.
+>
+> **Step 2 — Smoke tier**
+> `<SMOKE_COMMAND>` (allow ~5 min). Most failures here are a stale assertion in
+> the spec itself (a hardcoded string / fixture that no longer matches what the
+> component renders), not a real regression — check the rendered output before
+> changing any production file. Fix, preferring the spec over production source
+> (same `PROD_CODE_FIXED:` rule), re-run until green.
+>
+> End with one of:
+> - `TESTS: PASS (<n> tests, <m> smoke tests)`
+> - `TESTS: BLOCKED — <reason, noting which tier>`
+
+On `BLOCKED`, stop and surface the failure. On one or more
+`PROD_CODE_FIXED:` lines, surface them to the user (those production
+changes weren't covered by Phase 2's review) and ask: **Proceed** (record
+`UNREVIEWED_PROD_FIXES:` for the Final Summary) or **Re-run Phase 2** (new
+Subagent 2 over the fixes, then new Subagent 3).
+
+---
+
+## Phase 4 — E2E Verification (Subagent 4, optional, conditional)
+
+Skip this phase — recording `E2E: SKIPPED — <reason>` — when the project has no
+end-to-end or browser suite (its `CLAUDE.md`, `README` and build manifest say),
+or when the fix touches no user-facing flow.
+
+**Before spawning — resolve the test account** (orchestrator step; needs
+`AskUserQuestion`):
+
+1. Run `git status --porcelain` yourself. If no changed path falls under a
+   user-facing flow the suite covers (screens, routes, endpoints, or a schema
+   change that changes what they render) — skip straight to spawning Subagent
+   4; its own Step 1 will land on `E2E: SKIPPED`.
+2. If a flow was touched and the suite needs a test account or live services,
+   ask the user (**AskUserQuestion**) whether to run it and how the account is
+   provided (a credentials file they maintain, environment variables, or a
+   fresh registration if the app allows it). Never read a credentials file
+   yourself and never put credentials in a prompt; set
+   `CREDENTIAL_SOURCE: <the answer>`. If they decline, record
+   `E2E: SKIPPED — user chose not to run it` and go to Phase 5.
+3. Substitute `<CREDENTIAL_SOURCE>` into the prompt.
+
+Spawn a **general-purpose subagent** (`run_in_background: false`) with
+(substitute the suite's command for `<E2E_COMMAND>`):
+
+> **Step 1 — Does E2E verification apply?**
+> `git status --porcelain` → parse all paths (incl. `??`) into
+> `CHANGED_FILES`. If none fall under a user-facing flow the suite covers,
+> end with `E2E: SKIPPED — no user-facing flow changed` and stop.
+>
+> **Step 2 — Environment** — confirm what the suite needs is reachable (the
+> backend or database it talks to, required configuration, migrations applied
+> if one was touched). On failure → `E2E_BLOCKED — <reason>` and stop.
+>
+> **Step 3 — Dev server** — if the suite needs the application running, kill
+> any stale instance, start a fresh one, confirm it answers. On failure →
+> `E2E_BLOCKED — dev server did not start`.
+>
+> **Step 4 — Browser checks** — credential source: `<CREDENTIAL_SOURCE>`
+> (already decided; do not re-ask, do not decide yourself; never log or echo
+> credentials; if the source is unusable now, `E2E_BLOCKED — <source> unusable
+> at read time`, never silently fall back).
+> 1. Run `<E2E_COMMAND>` — the narrowest command that covers the changed flow.
+> 2. If the fix touched a specific flow, exercise the specific flow the bug was
+>    about, once, through the real UI against the real backend — confirm the
+>    bug is actually gone here, not just in the unit test — with no console
+>    errors.
+> 3. A cross-user data-scoping check — only if the fix touched data access
+>    **and** a real second account is available; otherwise skip it and say so
+>    via `PASS_PARTIAL`.
+> 4. Screenshot the final state and read it back for layout breaks.
+>
+> **Step 5 — Tear down** — stop any server you started.
+>
+> End with one of:
+> - `E2E: PASS — <one-line summary>`
+> - `E2E: PASS_PARTIAL — <what passed> — NOT COVERED: <what was skipped and why>`
+> - `E2E_BLOCKED — <reason>`
+
+Do not start Phase 5 until `E2E: PASS`, `PASS_PARTIAL`, or `SKIPPED`. On
+`E2E_BLOCKED`, surface and wait — a failure against a live environment may be
+environment/data, not a code defect; don't assume it belongs back in Phase 2
+without the user confirming.
+
+---
+
+## Phase 5 — Build Verification (Subagent 5, optional)
+
+Skip this phase — recording `BUILD: SKIPPED — no build step` — when the project
+has no build, compile or type-check step (find out yourself from its
+`CLAUDE.md`, `README` and build manifest; if unsure, ask once with "skip" as an
+option). This skill never deploys anything; the build runs locally only so a
+failure is caught before CI or the host would.
+
+Spawn a **general-purpose subagent** (`run_in_background: false`) with
+(substitute the command for `<BUILD_COMMAND>`):
+
+> **Step 1** — `<BUILD_COMMAND>` (allow up to 5 min; if it can take longer, poll
+> with repeated foreground calls in this same turn — never end your response
+> while it still runs in the background).
+> **Step 2** — On failure: read the error (it names the file and cause), fix
+> prioritising files related to the fix, re-run until it succeeds or you hit a
+> blocker needing human input.
+> **Step 3** — If the build produces an output directory or artifact, confirm
+> it exists and is non-empty — empty or missing after a "successful" build is
+> itself a failure.
+>
+> End with `BUILD: PASS` or `BUILD: BLOCKED — <reason>`.
+
+Do not start Phase 6 until `BUILD: PASS` (or the phase was skipped).
 
 ---
 
@@ -291,10 +468,11 @@ DONE`.
 **Regression test:** <path> (failed before the fix, passes now)
 **Root cause / fix:** <one or two sentences>
 **Code review:** ✓ All findings resolved
-[one line per project phase file, in order:]
-**<phase title>:** ✓ <that phase's SUMMARY line> (or N/A — <reason> if SKIPPED, or ⚠ Partial: <what wasn't covered>)
-[if UNREVIEWED_PROD_FIXES was recorded in a project phase:]
-**⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while chasing test failures in a project phase; the user chose to proceed without routing them back through Phase 2.
+**Tests:** ✓ <summary> (or N/A — <reason> if skipped)
+**E2E:** ✓ <summary> (or N/A — <reason> if skipped, or ⚠ Partial: <what wasn't covered>)
+**Build:** ✓ <summary> (or N/A — <reason> if skipped)
+[if UNREVIEWED_PROD_FIXES was recorded:]
+**⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while chasing test failures; the user chose to proceed without routing them back through Phase 2.
 **Docs sync:** ✓ <one-line summary, or "Nothing to sync">
 **Bug:** ✓ Closed — moved to bugs-fixed.md
 
@@ -317,7 +495,7 @@ Nothing was committed. The fix (and its regression test) is on `fix/<slug>`, ent
   through the AskUserQuestion decision point, never worked around by
   skipping straight to a speculative fix.
 - Do not start a phase until the prior phase's subagent returns its
-  expected signal (`PHASE: PASS` or `PHASE: SKIPPED` for a project phase). On any `*_BLOCKED`, surface details and wait for user
+  expected signal (`TESTS`/`E2E`/`BUILD`: `PASS` or `SKIPPED` for the optional phases). On any `*_BLOCKED`, surface details and wait for user
   guidance — never retry automatically.
 - **Missing signal fallback**: a subagent that returns without its
   expected signal is treated as `BLOCKED`; surface its raw response and
@@ -326,7 +504,7 @@ Nothing was committed. The fix (and its regression test) is on `fix/<slug>`, ent
   for what the subagent actually did (for example `git status`, the backlog
   row, the test file) and tell the user; whether to accept that evidence in
   place of the signal or to re-run the phase is the user's decision.
-- **`code-reviewer` (and any review a project phase runs) always uses its
+- **`code-reviewer` (and the DB/security reviewers when they run) always uses its
   Review workflow, scoped to `CHANGED_FILES`, never the interactive Fix
   Workflow and never a full-codebase sweep.**
 - **No git commits at any point.** Neither this skill nor any subagent may
@@ -342,9 +520,8 @@ Nothing was committed. The fix (and its regression test) is on `fix/<slug>`, ent
   other phase changes — Phases 2–6 already operate on "whatever branch is
   checked out". This flag is only ever passed by `bugs-batch-fix`.
 - **Auto Mode never overrides a required confirmation** — Phase 0's bug
-  selection, the cannot-reproduce decision point, a project
-  phase's `PROD_CODE_FIXED` choice, any decision a project phase's
-  orchestrator step asks, and any post-`*_BLOCKED` guidance prompt all still stop and wait for a real
+  selection, the cannot-reproduce decision point, the
+  `PROD_CODE_FIXED` choice, the E2E credential-source question, and any post-`*_BLOCKED` guidance prompt all still stop and wait for a real
   answer.
 - **Never let a subagent print a generated secret's raw value** anywhere
   in a response, report, or file (same standard as `feature-development`).

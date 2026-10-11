@@ -146,7 +146,12 @@ see the foreground guardrail in `../SKILL.md`), with the following prompt (subst
 > was proposed ad hoc, outside the tracked backlog), skip this silently — it
 > is not an error.
 >
-> **Step 2 — Check whether SDD artifacts exist**
+> **Step 2 — Check whether SDD artifacts exist (OpenSpec projects only)**
+> The project uses OpenSpec when an `openspec/` folder exists at the repository
+> root. **If it does not, skip Steps 2 and 3 entirely** — the feature's brief
+> file (`<backlog>/features/NNN-<change-name>.md`) is the spec, and Phase 2
+> implements against it — and go to Step 3.5, reading the brief where it says
+> to read `proposal.md`/`design.md`.
 > Run:
 >
 > ```
@@ -160,7 +165,7 @@ see the foreground guardrail in `../SKILL.md`), with the following prompt (subst
 >   skip Step 3.
 > - If **any** are not `done`: artifacts are missing — proceed to Step 3.
 >
-> **Step 3 — Create missing artifacts (if needed)**
+> **Step 3 — Create missing artifacts (if needed; OpenSpec projects only)**
 > The feature's full brief is the input `openspec-propose` turns into the
 > SDD spec, so hand it over explicitly instead of letting `openspec-propose`
 > ask for a description:
@@ -217,7 +222,8 @@ see the foreground guardrail in `../SKILL.md`), with the following prompt (subst
 > the prerequisite with no record of why. Catch it here instead, before any
 > implementation work starts.
 >
-> 1. Read proposal.md (and design.md if it exists) for `<change-name>`.
+> 1. Read proposal.md (and design.md if it exists) for `<change-name>` — or, in a
+>    project without OpenSpec, the feature's brief file.
 > 2. Read `<backlog>/features-planned.md`'s `## Feature List` table and
 >    its `### Hard implementation dependencies` subsection.
 > 3. Determine whether the design depends on something owned by a *different*

@@ -6,14 +6,7 @@
 # (<docs>/decisions, <docs>/explorations, <docs>/reports, where <docs> contains the backlog folder).
 backlog_dir = "docs/backlog"        # features-*.md, bugs-*.md, features/, bugs/
 
-# Everything else the skills need to know about your project is written as markdown files in the
-# project, not configured here:
-#   .backlog-kit/feature/NN-*.md          phases feature-development runs after implementing (tests, build, ...)
-#   .backlog-kit/bug/NN-*.md              the same for bug-fix
-#   .backlog-kit/release/NN-*.md          what gitflow runs before pushing a release or hotfix
-#   .backlog-kit/review/<code|security|database>/*.md   the reviewers' checklists
-#   .backlog-kit/spec-compliance/*.md, .backlog-kit/docs/*.md, .backlog-kit/dependency-upgrade/*.md
-# See examples/ for the two projects the kit comes from.
+# Nothing else is configured: the skills ask you when they need to know something about your project.
 #
 # Priorities (P0-P3), efforts (S/M/L), severities (S1-S4), the bug id prefix (BUG), the Schema Change
 # column, the branch names (feature/, fix/, base develop) and OpenSpec's location (openspec/changes) are

@@ -1,5 +1,7 @@
 # Replacing a project's workflow skills with backlog-kit
 
+> **Note (0.2.21):** the project phase files described below no longer exist; `feature-development`, `bug-fix` and `gitflow` carry their optional phases themselves. Treat the `.backlog-kit/feature|bug|release/` steps here as historical.
+
 This is for a repository that already has its own copies of the workflow skills (the two projects backlog-kit was extracted from, or one like them) and wants to delete them and use the kit instead. Nothing in the kit edits your repository for you; `tools/migrate_check.py` only reads.
 
 ## What is replaced, what stays yours

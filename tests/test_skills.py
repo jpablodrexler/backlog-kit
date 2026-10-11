@@ -328,14 +328,11 @@ class HandBackContract(unittest.TestCase):
     """The shared hand-back paragraph exists and every skill that spawns subagents tells the orchestrator to append it."""
 
     def test_paragraph_and_references(self):
-        shared = (KIT / "shared/project-phases.md").read_text()
-        self.assertIn("**Hand-back.** Your hand-back is the final text of your response", shared)
-        self.assertIn("never send placeholder text", shared)
-        for name in ("feature-development", "bug-fix", "gitflow"):
+        for name in ("feature-development", "bug-fix"):
             with self.subTest(skill=name):
                 text = (sdir(name) / "SKILL.md").read_text()
-                self.assertIn("hand-back paragraph", text)
-                self.assertIn("**Hand-back.** Your hand-back", (sdir(name) / "reference/project-phases.md").read_text())
+                self.assertIn("**Hand-back.** Your hand-back is the final text of your response", text)
+                self.assertIn("never send placeholder text", text)
         for name in ("feature-development", "bug-fix"):
             text = " ".join((sdir(name) / "SKILL.md").read_text().split())
             self.assertIn("look at the working tree for what the subagent actually did", text)

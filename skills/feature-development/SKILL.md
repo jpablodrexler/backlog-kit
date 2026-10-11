@@ -2,16 +2,16 @@
 name: feature-development
 description: >
   Orchestrates the full feature lifecycle end-to-end: selects the next
-  feature, proposes SDD artifacts if missing, implements all change tasks,
-  runs the code review (findings fixed before continuing), runs the
-  project's own phases from `.backlog-kit/feature/` (tests, database or
-  security reviews, E2E checks, build — whatever the project defines) until
-  each passes, syncs the project's documentation against what actually
-  shipped, verifies the implementation actually satisfies the change's spec
-  scenarios (not just that tasks are checked off) before archiving, then
-  archives the SDD change and marks the feature as implemented. Use when you
-  want a fully automated feature development cycle with minimal manual
-  steps. TRIGGER when the user asks to develop a feature.
+  feature, creates its branch, implements the feature from its brief (or its
+  OpenSpec artifacts), reviews the change and fixes the findings, then runs
+  the phases that apply to the project — database and security reviews when
+  schema or sensitive files changed, tests, an end-to-end check when a
+  user-facing flow changed, a local build — skipping any that do not apply,
+  verifies the implementation actually satisfies the feature's requirements
+  (not just that tasks are checked off) before archiving, syncs the
+  documentation, and marks the feature as implemented. Works with or without
+  OpenSpec. Use when you want a fully automated feature development cycle
+  with minimal manual steps. TRIGGER when the user asks to develop a feature.
 license: MIT
 metadata:
   author: Juan Pablo Drexler
@@ -42,18 +42,22 @@ unchanged.
 
 Phase 0 runs directly in the orchestrator's own context (never a subagent —
 see that phase's own rationale below), Phases 1–6 each run as a dedicated
-subagent. Phases 3–5 are the **project's own phases**: one subagent per file
-found in `.backlog-kit/feature/` (see the Project phases entry in the index
-below), so whatever the project verifies — tests, E2E, build, extra reviews —
-is defined in the project, not in this skill.
+subagent. **Phases 3, 4 and 5 are optional**, and so are the database review,
+the security review and the viewport check inside Phase 2: each one starts by
+checking whether it applies to the project and to this change, and when it does
+not it is skipped with a one-line reason that appears in the Final Summary.
+A project with a test command and nothing else therefore runs one phase; a
+project with a schema, an end-to-end suite and a build runs them all.
 
 | Phase                        | Subagent   | Skills / actions                                                                                                                                  |
 | ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0 — Select & Confirm          | *(orchestrator's own context — never a subagent)* | `features-next` (recommend + mandatory `AskUserQuestion` confirmation) |
 | 1 — Propose                   | Subagent 1 | `git fetch origin --prune` to detect a branch/commits pushed from another device → `gitflow` (start feature to create `feature/<change-name>`, resume + merge in another device's pushed commits, or sync feature to catch up an existing one with `develop`) → mark the feature `🔶 In Progress` in `<backlog>/features-planned.md` → `openspec-propose` (if artifacts missing) |
-| 2 — Implement & Review        | Subagent 2 | `openspec-apply-change <name>` + `code-reviewer`, findings fixed before done |
-| 3–5 — Project phases          | One subagent per file | each `.backlog-kit/feature/NN-*.md` file in filename order (tests, conditional reviews, E2E, build — whatever the project defines); a file may begin with an orchestrator step, because a decision that needs `AskUserQuestion` is made by the orchestrator itself, before spawning its subagent |
-| 6 — Archive                   | Last subagent | `openspec-archive-change <name>` → `features-archive <name>` |
+| 2 — Implement & Review        | Subagent 2 | implement from the brief (`openspec-apply-change <name>` in an OpenSpec project) + code review, then — only when the change touches them — a database review, a security review, and a mobile/desktop viewport check, findings fixed before done |
+| 3 — Tests *(optional)*        | Subagent 3 | runs the project's tests (and its fast smoke tier, if CI runs one) until they pass; skipped if the project has no automated tests |
+| 4 — E2E verification *(optional, conditional)* | Subagent 4 | runs the project's end-to-end/browser checks when the change touches a user-facing flow — skipped otherwise, or if the project has no such suite; how the test account is provided is decided by the orchestrator itself, before spawning Subagent 4, since that decision needs `AskUserQuestion` |
+| 5 — Build verification *(optional)* | Subagent 5 | runs the project's build locally to catch build failures before CI or the host would; skipped if the project has no build step |
+| 6 — Archive                   | Subagent 6 | proves each requirement, syncs the docs, `openspec-archive-change <name>` (OpenSpec projects), `features-archive <name>` |
 
 ---
 
@@ -75,10 +79,12 @@ or `features-batch-development`'s inline loop) is the only way to
 given subagent call can or can't surface entirely, rather than relying on a
 flag or an assumption about subagent behavior.
 
-1. Run `openspec --version` yourself. If it fails or is not found, tell the
+1. **OpenSpec is optional.** If the repo has an `openspec/` folder, run
+   `openspec --version` yourself; if it fails or is not found, tell the
    user `PROPOSE_BLOCKED — openspec CLI not found` and stop the whole
    workflow here — do not proceed to feature selection with a broken
-   toolchain.
+   toolchain. With no `openspec/` folder, skip OpenSpec entirely: the
+   feature brief `<backlog>/features/NNN-<name>.md` is the spec.
 2. Use the Skill tool to invoke the `features-next` skill directly — not
    wrapped in an Agent call, not inside any subagent — passing the argument
    given to this skill (feature name/number), if any, or no argument
@@ -110,10 +116,12 @@ across every phase, and other skills cite these phases by number
 
 | Phase | Subagent | Read before… | File |
 | ----- | -------- | ------------ | ---- |
-| 1 — Propose | Subagent 1 | selecting the branch/resume mode, generating SDD artifacts, the dependency check | `reference/phase-1-propose.md` |
-| 2 — Implement & Review | Subagent 2 | implementing tasks and the code review | `reference/phase-2-implement-review.md` |
-| 3–5 — Project phases | One subagent per file | running the project's own phases | `reference/project-phases.md` |
-| 6 — Archive | Last subagent | spec-compliance check, docs sync, archiving the change and marking the feature implemented | `reference/phase-6-archive.md` |
+| 1 — Propose | Subagent 1 | selecting the branch/resume mode, the spec step (OpenSpec projects), the dependency check | `reference/phase-1-propose.md` |
+| 2 — Implement & Review | Subagent 2 | implementing, the code review, and the conditional database/security/viewport steps | `reference/phase-2-implement-review.md` |
+| 3 — Tests *(optional)* | Subagent 3 | running the project's tests | `reference/phase-3-tests.md` |
+| 4 — E2E Verification *(optional)* | Subagent 4 (conditional) | deciding whether the end-to-end check applies and running it | `reference/phase-4-e2e-verification.md` |
+| 5 — Build Verification *(optional)* | Subagent 5 | the local build | `reference/phase-5-build-verification.md` |
+| 6 — Archive | Subagent 6 | requirement check, docs sync, archiving the change and marking the feature implemented | `reference/phase-6-archive.md` |
 
 ---
 ## Placeholder substitution (Phases 1–6)
@@ -123,7 +131,9 @@ Before spawning any subagent in Phases 1–6, replace every occurrence of
 confirmed in Phase 0, and every `<backlog>` / `<reports>` with the folder
 named above.
 
-Also append, to every one of those subagent prompts, the hand-back paragraph from `reference/project-phases.md` ("The hand-back paragraph") unchanged.
+Also append, unchanged, to every one of those subagent prompts:
+
+> **Hand-back.** Your hand-back is the final text of your response, ending with exactly the signal line(s) this prompt asks for. Do not send it as a message through a messaging or hand-back tool, and never send placeholder text: the orchestrator reads only your final response, and a response without its signal is treated as blocked.
 
 ---
 
@@ -135,18 +145,24 @@ After all phases complete, display:
 ## Feature Development Complete
 
 **Change:** <change-name>
-**SDD Artifacts:** ✓ Created
+**Spec:** ✓ Created (or N/A — no OpenSpec in this project)
 **Implementation:** ✓ All tasks complete
 **Code review:** ✓ All findings resolved
-[one line per project phase file, in order — see reference/project-phases.md:]
-**<phase title>:** ✓ <that phase's SUMMARY line> (or N/A — <reason> if SKIPPED, or **⚠ Partial:** <what wasn't covered>)
-[if UNREVIEWED_PROD_FIXES was recorded in a project phase, insert this line here:]
+**Database review:** ✓ All findings resolved (or N/A — no schema changes)
+**Security review:** ✓ All findings resolved (or N/A — no security-sensitive changes)
+**Mobile viewport check:** ✓ Verified at a phone-sized viewport — <what was checked/caught> (or N/A — no template/CSS changes)
+**Desktop viewport check:** ✓ Verified at 1920×1080 — <what was checked/caught> (or N/A — no template/CSS changes)
+**Tests:** ✓ All passing (or N/A — the project has no automated tests)
+[if UNREVIEWED_PROD_FIXES was recorded in Phase 3, insert this line here:]
 **⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while
-chasing test failures in a project phase; the user chose to proceed without
-routing them back through Phase 2's code review.
+chasing test failures in Phase 3; the user chose to proceed without routing
+them back through Phase 2's code review.
+**E2E verification:** ✓ <one-line summary from Phase 4's `E2E: PASS`> (or
+"N/A — <reason>" if `E2E: SKIPPED`, or **⚠ Partial:** <what wasn't covered> if `E2E: PASS_PARTIAL`)
+**Build:** ✓ the build succeeded locally (or N/A — the project has no build step)
 **Spec compliance:** ✓ All scenarios verified (any Unverified scenario `spec-compliance-check` found was closed with new test coverage during Phase 6, Step 1, before archiving — never left as a caveat)
 **Docs sync:** ✓ <one-line summary from `docs-sync`, or "Nothing to sync">
-**SDD change:** ✓ Archived
+**SDD change:** ✓ Archived (OpenSpec projects)
 **Feature:** ✓ Marked as implemented
 ```
 
@@ -162,8 +178,8 @@ routing them back through Phase 2's code review.
   stop the workflow immediately, before Subagent 1 is ever spawned, and
   inform the user. Subagent 1 itself is never given the opportunity to
   cancel feature selection — by the time it runs, the choice is final.
-- Do not start Phase 2 until Phase 1 confirms that all `applyRequires`
-  artifacts are `done`. If Phase 1 returns `PROPOSE_BLOCKED`, surface the
+- Do not start Phase 2 until Phase 1 confirms the branch is ready and, in an
+  OpenSpec project, that all `applyRequires` artifacts are `done`. If Phase 1 returns `PROPOSE_BLOCKED`, surface the
   details to the user and stop.
 - **Do not start Phase 2 if Phase 1 returns `PROPOSE_NEEDS_DEPENDENCY_DECISION`
   either**, even though it isn't a failure — this workflow must never barrel
@@ -173,19 +189,32 @@ routing them back through Phase 2's code review.
   answer continues to Phase 2. This is what closes the gap that previously
   let a feature's missing dependency surface as a surprise mid-implementation
   instead of being caught, recorded, and decided on right after design.
-- Do not start the first project phase until Phase 2 returns `IMPLEMENT: DONE`.
-  If Phase 2 returns `IMPLEMENT_BLOCKED` or `REVIEW_BLOCKED`, surface the
-  details to the user and wait for guidance before continuing.
-- Do not start a project phase until the previous one reports `PHASE: PASS`
-  or `PHASE: SKIPPED`. If it reports `PHASE: BLOCKED`, surface the details to
-  the user and wait for guidance before continuing — do not assume it belongs
+- Do not start Phase 3 until Phase 2 returns `IMPLEMENT: DONE`. If Phase 2
+  returns `IMPLEMENT_BLOCKED`, `REVIEW_BLOCKED`, `DATABASE_BLOCKED`, or
+  `SECURITY_BLOCKED`, surface the details to the user and wait for guidance
+  before continuing.
+- Do not start Phase 4 until Phase 3 reports `PASS` — meaning **both** tiers
+  passed (the tests and, if the project has one, the smoke tier), not just the
+  first of the two — or was skipped (`TESTS: SKIPPED`). If it reports `BLOCKED`,
+  surface the details to the user and wait for guidance before continuing. If
+  it reports `PROD_CODE_FIXED:` lines, surface them to the user and confirm
+  whether to proceed or re-run Phase 2.
+- **A smoke tier that CI runs on every PR always runs in Phase 3, on every
+  invocation of the phase — it is never conditional on what `<change-name>`
+  touched.** Unlike Phase 4's end-to-end check, which only runs when the change
+  touches a user-facing flow, CI runs that tier unconditionally, so this
+  workflow must mirror that rather than trying to predict which changes could
+  affect it — a change that looks entirely unrelated can still break one.
+- Do not start Phase 5 until Phase 4 reports `E2E: PASS`, `E2E: PASS_PARTIAL`,
+  or `E2E: SKIPPED`. If it reports `E2E_BLOCKED`, surface the details to the
+  user and wait for guidance before continuing — do not assume it belongs
   back in Phase 2's code review without the user confirming that (a failure
-  can equally be an environment/infrastructure problem, not a code defect).
-  If it reports `PROD_CODE_FIXED:` lines, surface them to the user and
-  confirm whether to proceed or re-run Phase 2. A `PHASE: PASS` carrying a
-  `PARTIAL:` note is not blocking — carry the caveat into the Final Summary.
-- Do not start Phase 6 until the last project phase has reported `PHASE: PASS`
-  or `PHASE: SKIPPED`.
+  here can equally be an environment/data problem, not a code defect). If it
+  reports `E2E: PASS_PARTIAL`, that's not blocking — carry the caveat into the
+  Final Summary's "E2E verification" field.
+- Do not start Phase 6 until Phase 5 reports `BUILD: PASS` or `BUILD: SKIPPED`.
+  If it reports `BUILD: BLOCKED`, surface the details to the user and wait for
+  guidance before continuing.
 - Do not display the Final Summary until Phase 6 subagent returns `ARCHIVE: DONE`.
   If it returns `ARCHIVE_BLOCKED` instead — Step 1's `spec-compliance-check`
   found a Failing scenario, a test added to close an Unverified scenario
@@ -212,15 +241,16 @@ routing them back through Phase 2's code review.
   something to rely on for correctness — always wait for a real result
   either way. **Never delegate an `AskUserQuestion` decision point to a
   spawned subagent as a workaround for this** — that is what Phase 0 (and
-  a project phase's orchestrator step) exist to avoid entirely, by
+  Phase 4's credential-source pre-step below) exist to avoid entirely, by
   running the confirmation directly in the orchestrator's own context
   instead of trying to make a subagent's confirmation reliable.
 - **Auto Mode (or any other autonomous-operation instruction) never
   overrides a required user confirmation anywhere in this workflow.** This
   applies to every `AskUserQuestion` decision point this skill or a skill it
-  invokes raises: Phase 0's feature selection (`features-next`), a project
-  phase's `PROD_CODE_FIXED` proceed-or-re-review choice, any decision a
-  project phase's orchestrator step asks, and any blocker-guidance prompt
+  invokes raises: Phase 0's feature selection (`features-next`), Phase 3's
+  `PROD_CODE_FIXED` proceed-or-re-review choice, Phase 4's test-account
+  choice, a question about which command runs a phase, and any
+  blocker-guidance prompt
   after a `*_BLOCKED` result. "Make the reasonable call instead of stopping
   to ask" is guidance for implementation judgment calls (which helper to
   use, how to phrase something) — it is never license to pick an
@@ -257,9 +287,32 @@ routing them back through Phase 2's code review.
 - **Phase 2's code review is always scoped, never a full-codebase sweep.**
   `code-reviewer` splits into one report per architecture layer only when
   asked to review the entire codebase. Phase 2 reviews a single change's
-  files, so it must stay on the single-report path. The same holds for any
-  review a project phase runs: Review workflow, scoped, never Fix or a
-  full sweep.
+  files, so it must stay on the single-report path.
+- **`database-reviewer` follows the same conditional-trigger, scoped-Review,
+  never-Fix pattern as `code-reviewer`.** It only runs when Step 3 detects a
+  migration or schema file changed; Subagent 2 fixes findings itself (a new
+  migration for any fix to an already-applied one, never an edit of the existing
+  file) and updates the resulting report's checkboxes directly. **`security-reviewer`**
+  has the same two-workflow and scoped-vs-sweep split; Phase 2 always uses
+  Review, scoped, never Fix or a full sweep. Either skill, if not installed, is
+  replaced by the subagent's own review of the same concerns.
+- **Phase 5 never deploys anything.** The build is run purely as a local check;
+  this skill never invokes a deployment tool, never pushes to trigger a deploy,
+  and never touches the host's settings.
+- **Phase 4's test-account choice is decided once, by the orchestrator, before
+  Subagent 4 is ever spawned — never by Subagent 4 itself.** The orchestrator
+  asks the user (`AskUserQuestion`) in its own context (main conversation, or
+  `features-batch-development`'s inline loop) and passes the answer into
+  Subagent 4 as `<CREDENTIAL_SOURCE>`; Subagent 4 cannot reliably access
+  `AskUserQuestion`. A second account for a cross-user check is used only if one
+  genuinely exists; otherwise the check is reported as not covered via
+  `E2E: PASS_PARTIAL`. Credentials files are never read by the orchestrator and
+  their contents never appear in a prompt, a response or a report.
+- **Phase 4 only starts the application locally and reads/writes no repository
+  files.** It never runs a migration or any other write against a shared
+  database — Step 2 only confirms the environment is ready. Any schema fix
+  needed to make Phase 4 pass belongs back in Phase 2's conditional database
+  review.
 - **Step 1.6 marks the backlog row `🔶 In Progress` as soon as the branch to
   work on is ready, in both normal and batch mode.** This is what lets
   `features-next` recommend resuming an interrupted feature instead of

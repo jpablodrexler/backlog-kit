@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.21
+- Simplification. The kit is now a small core (12 skills) plus optional extras (`extras/`, installed with `tools/install.py --extras`/`--all`). The project phase files (`.backlog-kit/feature|bug|release/`) are gone: `feature-development` and `bug-fix` carry the original phases themselves, restored as close to the source skills as possible and marked optional (Tests, E2E, Build; database/security/viewport reviews only when the change touches them). `gitflow` carries the original release steps (version bump when a manifest has one, regression suite) as optional steps. OpenSpec is optional: without an `openspec/` folder the feature brief is the spec. `shared/project-phases.md` is removed; the hand-back paragraph is inlined in both skills. The README opens with a one-page quick start.
+
 ## 0.2.20
 - Every skill names its author again (`metadata.author`), as the source projects' skills do; the conversion had dropped it. The stack-leakage lint ignores that one line. The kit has no agent definitions, so there is nothing to change there.
 

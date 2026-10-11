@@ -43,7 +43,7 @@ Read:
 - **Schema Change**: `Yes` if the feature adds or alters a database migration, a schema definition or an access policy; `No` otherwise
 - **Effort**: `S` / `M` / `L`
 - **Area**: `Backend` · `Frontend` · `Full-stack` (touches both) · `Infra` (deployment/provisioning-only, no application code)
-- **SDD Artifacts**: `⬜ Pending` until `openspec-propose` has generated proposal/specs/tasks for the change; `✅ Created` once it has
+- **SDD Artifacts**: (only meaningful in projects that use OpenSpec; otherwise it stays `⬜ Pending`) `⬜ Pending` until `openspec-propose` has generated proposal/specs/tasks for the change; `✅ Created` once it has
 - **Implementation**: `⬜ Pending` until work starts; `🔶 In Progress` once `feature-development` has selected the feature and set up its branch, until shipped; `✅ Implemented` once `features-archive` has moved the row to `features-implemented.md`
 - **Summary**: a short hand-written one- or two-sentence summary of the brief (at most 250 characters, no pipes) for humans and for `features-next`'s display only — never spec input
 - **Brief**: link to the feature's full brief, `features/NNN-<change-name>.md` (`NNN` = zero-padded feature number) — the verbatim text `feature-development` hands to `openspec-propose`; the file never moves, and planned vs. implemented is decided only by which table holds the row

@@ -5,19 +5,28 @@ _Part of the `feature-development` skill — see `../SKILL.md` for the overview,
 ## Phase 2 — Implement & Review (Subagent 2)
 
 Spawn a **general-purpose subagent** via the Agent tool, with
-`run_in_background: false` (the first project phase cannot start until this subagent
+`run_in_background: false` (Phase 3 cannot start until this subagent
 returns `IMPLEMENT: DONE` — see the foreground guardrail in `../SKILL.md`), with the
 following prompt:
 
 > Perform these steps in sequence:
 >
 > **Step 1 — Implement**
-> Use the Skill tool to invoke `openspec-apply-change <change-name>`.
-> Work through all pending tasks until implementation is complete.
-> Do not stop until all tasks show `[x]` or you encounter a blocker that
-> requires user guidance.
-> When `openspec-apply-change` completes, do NOT invoke `code-reviewer`
+> **OpenSpec project** (an `openspec/` folder exists): use the Skill tool to
+> invoke `openspec-apply-change <change-name>`. Work through all pending
+> tasks until implementation is complete. Do not stop until all tasks show
+> `[x]` or you encounter a blocker that requires user guidance. When
+> `openspec-apply-change` completes, do NOT invoke `code-reviewer`
 > proactively — it is handled explicitly in Step 2.
+>
+> **Otherwise**, the feature's brief file
+> (`<backlog>/features/NNN-<change-name>.md`, everything after the H1; `NNN`
+> is the feature number zero-padded to three digits, from the feature's row in
+> `<backlog>/features-planned.md`) is the spec. Write down, for yourself, the
+> short list of tasks it implies and what must be true when the feature is
+> done, implement the tasks, and add or update tests so that what must be true
+> is covered by tests where the project's test setup allows it. List those
+> checks in your hand-back as `ACCEPTANCE: <check>` lines; Phase 6 uses them.
 > If you encounter a blocker during implementation, end your response with
 > `IMPLEMENT_BLOCKED — <brief reason>` and stop.
 >
@@ -56,12 +65,13 @@ following prompt:
 > the branch's committed history stays identical to its base branch
 > throughout — a branch-to-branch diff would always show zero files.
 >
-> **Do not compute this once and reuse it across Steps 2–4.** The working
+> **Do not compute this once and reuse it across Steps 2–5.** The working
 > tree keeps changing throughout Phase 2 — Step 2's fix-and-re-review loop
-> (up to 3 rounds) modifies or creates files, and a fix can easily be
-> exactly the kind of file a *later* review's trigger check needs to see
-> (e.g. a Step 2 fix that adds a new migration must be visible to a project
-> phase's database-review trigger). A `CHANGED_FILES` snapshot taken once
+> (up to 3 rounds), Step 3's, and Step 4's each modify or create files, and
+> a fix can easily be exactly the kind of file the *next* step's trigger
+> check needs to see
+> (e.g. a Step 2 fix that adds a new migration must be visible to Step 3's
+> database-review trigger). A `CHANGED_FILES` snapshot taken once
 > before Step 2 and reused afterward would silently miss all of that. Instead, re-run `git status --porcelain` and recompute
 > `CHANGED_FILES` fresh immediately before **every** point below marked
 > "(recompute `CHANGED_FILES`)", and pass that freshly computed list as an
@@ -70,7 +80,12 @@ following prompt:
 > itself.
 >
 > **Step 2 — Code review**
-> (recompute `CHANGED_FILES`) Invoke `code-reviewer` via the Skill tool
+> (recompute `CHANGED_FILES`) If the `code-reviewer` skill is not installed,
+> review the diff of `CHANGED_FILES` yourself as a reviewer who did not write
+> it — correctness and edge cases, regressions in what calls the changed code,
+> missing or weak tests, unintended changes, consistency with the project's
+> conventions — fix every real finding and review the fixes again, up to 3
+> rounds, then continue to Step 3. If it is installed, invoke `code-reviewer` via the Skill tool
 > using its **Review** workflow, passing the freshly recomputed
 > `CHANGED_FILES` as the explicit scope (this subagent runs unattended — do
 > not invoke the skill's interactive Fix Workflow, which is designed for a
@@ -93,14 +108,113 @@ summary of what changed>` note appended to the same line. Then (recompute
 > - If you encounter a finding you cannot fix without human input: end your
 >   response with `REVIEW_BLOCKED — <brief reason>` and stop.
 >
-> Do not proceed to Step 3 until all Critical and Warning code-review
-> findings are resolved.
+> Do not proceed to Step 3 until all Critical and Warning findings are resolved.
 >
-> **Step 3 — Signal completion**
+> **Step 3 — Database review (conditional)**
+> (recompute `CHANGED_FILES` — Step 2's fix rounds have modified the
+> working tree since it was last computed) Check whether any path in the
+> freshly recomputed `CHANGED_FILES` is a database migration or schema
+> definition (a migrations folder, a schema/DDL file, an ORM model that
+> generates migrations).
+>
+> - If **no** such path was touched: skip this step.
+> - If **any** such path was touched: invoke `database-reviewer` via the
+>   Skill tool using its **Review** workflow, passing that same
+>   `CHANGED_FILES` as the explicit scope (this subagent runs unattended —
+>   do not invoke the skill's interactive Fix Workflow). This is a scoped
+>   review of one change, not a full migration-history audit. If the
+>   `database-reviewer` skill is not installed, review those files yourself
+>   for the same concerns (normalization, naming, data types, constraints,
+>   index coverage, migration safety) and record the findings in a dated
+>   `<reports>/database-review/DATABASE_REVIEW_FINDINGS_*.md` report; with
+>   the skill, it writes that report itself. After the review completes, fix
+>   every 🔴 Critical and 🟡 Warning finding in the source files — check each
+>   off in that report file (`- [ ]` → `- [x]`) with a `**Fixed:**` note as
+>   you go — then (recompute `CHANGED_FILES`) re-review, passing the freshly
+>   recomputed list, to confirm no new findings were introduced; this writes
+>   a fresh report for the re-check. Repeat until the re-check report is
+>   clean.
+>   Remember that a fix to an already-applied migration is never an edit to
+>   the existing file: it must be a new migration created with the project's
+>   migration tool.
+>   If after 3 rounds of fix-and-re-review findings are still present, end
+>   your response with `DATABASE_BLOCKED — repeated review cycles` and stop.
+>   If you encounter a finding you cannot fix without human input (e.g. it
+>   requires a data-backfill/locking strategy decision): end your response
+>   with `DATABASE_BLOCKED — <brief reason>` and stop.
+>   Once the database report is clean, (recompute `CHANGED_FILES` — the
+>   database fixes just applied changed the working tree again) review the
+>   changed files once more as in Step 2, passing the freshly recomputed list
+>   as scope, for a final pass covering the database fixes — apply any 🔴
+>   Critical or 🟡 Warning findings, checking each off in that pass's report
+>   file with a `**Fixed:**` note as in Step 2, before proceeding.
+>
+> **Step 4 — Security review (conditional)**
+> (recompute `CHANGED_FILES` — Step 3's fixes, if any, have modified the
+> working tree since it was last computed) Check whether any path in the
+> freshly recomputed `CHANGED_FILES` falls under any of these
+> security-sensitive areas: authentication/authorization, access-control
+> rules or policies, user input handling, secrets or configuration, or a
+> dependency change (a package manifest or lockfile).
+>
+> - If **none** of these areas were touched: skip this step.
+> - If **any** were touched: invoke `security-reviewer` via the Skill tool
+>   using its **Review** workflow, passing that same `CHANGED_FILES` as the
+>   explicit scope (this subagent runs unattended — do not invoke the
+>   skill's interactive Fix Workflow). This is a scoped review of one
+>   change, not a full-codebase sweep — do not request or expect multiple
+>   reports or additional subagents here. If the `security-reviewer` skill is
+>   not installed, review those files yourself for the matching risks
+>   (missing authorization checks, injection, unsafe input handling, secrets
+>   or tokens in code or logs, a vulnerable or unpinned dependency) and record
+>   the findings in a dated
+>   `<reports>/security-review/SECURITY_REVIEW_FINDINGS_*.md` report. After
+>   the review completes, fix every 🔴 Critical and 🟡 Warning finding in
+>   the source files — check each off in that report file (`- [ ]` → `- [x]`)
+>   with a `**Fixed:**` note as you go — then (recompute `CHANGED_FILES`)
+>   re-review, passing the freshly recomputed list, to confirm no new
+>   findings were introduced; this writes a fresh report for the re-check.
+>   Repeat until the re-check report is clean.
+>   If after 3 rounds of fix-and-re-review findings are still present, end
+>   your response with `SECURITY_BLOCKED — repeated review cycles` and stop.
+>   If you encounter a finding you cannot fix without human input: end your
+>   response with `SECURITY_BLOCKED — <brief reason>` and stop.
+>   Once the security report is clean, (recompute `CHANGED_FILES` — the
+>   security fixes just applied changed the working tree again) review the
+>   changed files once more as in Step 2, passing the freshly recomputed list
+>   as scope, for a final pass covering the security fixes — apply any 🔴
+>   Critical or 🟡 Warning findings, checking each off in that pass's report
+>   file with a `**Fixed:**` note as in Step 2, before proceeding.
+>
+> Do not proceed to Step 5 until all Critical and Warning code-review,
+> database-review, and security-review findings (including any follow-on
+> code-review findings from the database and security sub-steps) are resolved.
+>
+> **Step 5 — Mobile and desktop viewport check (conditional)**
+> (recompute `CHANGED_FILES`) Check whether any path in the freshly
+> recomputed `CHANGED_FILES` is a user-interface template, markup file or
+> stylesheet.
+>
+> - If **none**: skip this step.
+> - If **any**: verify the affected view at **both** a phone-sized viewport
+>   (about 390×844) **and** a desktop viewport (1920×1080) — with a browser
+>   tool, a browser's device emulation, or a component/E2E test that sets the
+>   viewport, whichever the project has. If the project has no way to render
+>   the view, skip this step and say so in the Final Summary. At the phone
+>   size, confirm no text overlap between elements, no clipped/cropped
+>   content, and no forced horizontal scroll. At desktop, confirm no
+>   field/dialog/container collapses to a narrow, phone-sized width while
+>   leaving the rest of its space unused, and nothing correctly sized for the
+>   phone stayed wrongly pinned to that size once the wide layout applies. Fix
+>   any layout issue the same way as a code-review finding (recompute
+>   `CHANGED_FILES`, review the fix once more as in Step 2). Note what was
+>   checked at each viewport, and anything caught, for the Final Summary.
+>
+> **Step 6 — Signal completion**
 > End your response with exactly this line:
 > `IMPLEMENT: DONE`
 
 Do not start this phase until Phase 1 subagent has confirmed artifacts are
-ready. Do not start the first project phase until this subagent returns `IMPLEMENT: DONE`.
+ready. Do not start Phase 3 until this subagent returns `IMPLEMENT: DONE`.
 
 ---
