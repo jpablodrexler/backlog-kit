@@ -1,6 +1,8 @@
 # Architecture Reviewer — the case that motivated the review
 Read when: every architecture review (use it as the model for the "hunt the broadcast" finding)
 
+> Status: this case (BUG-077) is already fixed — the household-member bus was split, and `MedicationsRefreshService` now keeps its producers and consumers inside `medications/`. It is kept as the model of the finding, not as something to expect to find again.
+
 Assess whether the pablo-web Angular frontend's overall structure — not a
 specific diff or PR, but the shape of the system as a whole — still
 follows recommended Angular practice and the project's own documented

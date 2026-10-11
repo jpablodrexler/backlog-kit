@@ -4,7 +4,7 @@ Read when: every architecture review, and any deep-dive on one of these dimensio
 ## The dimensions
 
 1. **File/folder organization & naming** — `core → features ← shared`
-   structure (`docs/frontend.md`'s "Project Structure"), whether feature
+   structure (today the code is flat: feature folders sit directly under `app/` and there is no `features/` directory yet, per `docs/frontend.md` "Project Structure" — judge the layering against what is actually there, not the arrow) (`docs/frontend.md`'s "Project Structure"), whether feature
    folders stay self-contained, whether `shared/` holds genuinely
    multi-consumer code or single-consumer code kept there "for parity."
 2. **Layering & inter-layer communication** — the Service → Component
@@ -20,8 +20,8 @@ Read when: every architecture review, and any deep-dive on one of these dimensio
    `getAllX()` companion for unbounded/chart-feeding reads — see
    `CLAUDE.md`'s "Pagination").
 4. **Browser-storage (`localStorage`) usage** — enumerate every
-   `localStorage` read/write in `core/` (`Grep -r "localStorage\."
-   frontend/src/app/core/`); confirm each is a genuine per-browser
+   `localStorage` read/write in the whole app, components included (`Grep -r "localStorage\."
+   frontend/src/app/`); confirm each is a genuine per-browser
    preference (theme, language, active household member) rather than
    something that should be synced data, and confirm auth tokens are
    left to `@supabase/supabase-js`'s own persistence rather than
@@ -38,7 +38,7 @@ Read when: every architecture review, and any deep-dive on one of these dimensio
    consumers span two or more features that have no parent/child
    relationship to each other, and whose name doesn't describe that
    broadcast role, is the exact shape of the `ActiveHouseholdMemberService`
-   finding above — flag it the same way, with the full call-site count
+   finding described in `02-motivating-case.md` (since split, see the note there) — flag it the same way, with the full call-site count
    and the list of features it spans.
 6. **Routing & guards** — lazy-loading coverage, functional guard usage
    (`authGuard`/`redirectIfAuthenticatedGuard`), whether route-level

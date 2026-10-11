@@ -32,7 +32,7 @@ Skip a dimension that does not apply to this project (say so in the report); nev
 
 ### 1. Determine scope
 
-- **Full review**: every applicable dimension, one pass each, at survey depth (2-4 concrete evidence points per dimension).
+- **Full review**: every applicable dimension, one pass each, at survey depth (2-4 concrete evidence points per dimension). The one exception is the "hunt the broadcast" technique in the state dimension: it always lists every producer and consumer, whatever the depth.
 - **Deep-dive**: the user names one dimension, or one flagged in an earlier report. Read the relevant source in full, grep every call site, quantify (counts, which features), and cite `file:line` for every claim.
 
 ### 2. Read the documented baseline, then the code
@@ -43,11 +43,11 @@ Keep a private list while you work: every file you actually opened and every gre
 
 ### 3. Project notes
 
-List `.backlog-kit/review/architecture/` (relative to the repository root); each file's second line is `Read when: …`; read every file marked `every architecture review` and every file whose `Read when` matches the scope. They hold what this skill cannot know: the project's stack-specific dimensions and checks (which layering it claims, which greps to run), the files that look cross-cutting, and the real case that motivated the review. Add them to the dimensions above; they never remove one. If the folder does not exist or is empty, work from the dimensions above plus what the project's `CLAUDE.md` and docs say, and state in the report that no project notes were found.
+List `.backlog-kit/review/architecture/` (relative to the repository root); each file's second line is `Read when: …`; read every file marked `every architecture review` and every file whose `Read when` matches the scope. They hold what this skill cannot know: the project's stack-specific dimensions and checks (which layering it claims, which greps to run), the files that look cross-cutting, and the real case that motivated the review. Add them to the dimensions above; they never remove one. Number the skill's dimensions D1–D8 and a note's own dimensions P1, P2, … in the order the note lists them, and give every finding the tag of the dimension it belongs to; where a note's dimension overlaps one of the skill's, do one combined pass and tag it with both. If the folder does not exist or is empty, work from the dimensions above plus what the project's `CLAUDE.md` and docs say, and state in the report that no project notes were found.
 
 ### 4. Classify each finding
 
-- **✅ Strength** — a pattern worth keeping, cited with the same rigour as a risk (file and pattern named) so nobody "fixes" a deliberate choice. Plain bullet, no checkbox.
+- **✅ Strength** — a pattern worth keeping, cited with the same rigour as a risk (file and pattern named) so nobody "fixes" a deliberate choice. Plain bullet, no checkbox. A documented exception to a rule (the project says in its docs or code comments that it is deliberate) is listed here, with the documentation cited, not as a finding.
 - `🟡` **Worth addressing** — a real deviation, growing coupling or friction that is not urgent or user-blocking.
 - `🔴` **Structural risk** — actively causing, or clearly about to cause, a correctness or maintainability problem (a layer bypassed, a dependency cycle, a write path with no transaction boundary, a stream never closed).
 
@@ -58,8 +58,8 @@ Every `🔴`/`🟡` finding needs concrete evidence: `file:line`, and for a coup
 Write `<reports_dir>/architecture-review/ARCHITECTURE_REVIEW_<YYYY-MM-DD>.md` (for a deep-dive, `ARCHITECTURE_REVIEW_<YYYY-MM-DD>_<dimension-slug>.md`). If that name exists, add `-2`, `-3`, ... on the same day; never overwrite or delete an earlier report. Create the folder if needed. Contents:
 
 - A header: date, scope (full or which dimension), the commit or working-tree state it was run against (read from the files already present, without running git; if unknown, say so), and which dimensions were skipped as not applicable.
-- `### Strengths` (plain bullets), `### Findings` grouped by severity. Each finding is a checkbox line:
-  `- [ ] 🔴|🟡 <file>:<line or path> — <what is wrong, evidence with counts, why it matters>`
+- `### Strengths` (plain bullets), `### Findings` grouped by severity. Each finding gets a stable ID in order (`F1`, `F2`, ...) so a later deep-dive or follow-up can cite it, and is a checkbox line:
+  `- [ ] F1 🔴|🟡 [D4] <file>:<line or path> — <what is wrong, evidence with counts, why it matters>`
   Omit an empty group.
 - `### Not verified` — anything you could not confirm and why.
 - `### Candidate follow-ups` — for each `🔴`/`🟡` finding, which kit skill would record it: `bug-report` for a concrete defect or tech-debt item; `feature-plan` for a structural improvement that is a piece of planned work; `decision-record` for a finding that is really an architectural choice nobody wrote down (the report lists it as a candidate; it is not a defect). Listing only.

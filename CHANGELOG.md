@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.24
+- `architecture-reviewer`, from the first real run in pablo-web: dimensions of project notes are numbered P1… next to the skill's D1–D8 and findings are tagged and get stable IDs (F1…); documented exceptions are listed under Strengths with their documentation; the hunt-the-broadcast technique is explicitly exempt from the survey-depth limit. pablo-web's notes corrected (flat structure, whole-app `localStorage` grep, BUG-077 marked as fixed).
+
 ## 0.2.23
 - `architecture-reviewer` and `product-scope-roaster` converted from the two projects' skills: the frame (steps, classification, report names, follow-up, guardrails) follows the originals; the stack-specific dimensions, named files and real cases moved to optional project notes (`.backlog-kit/review/architecture/`, `.backlog-kit/review/product/`), with both projects' notes in `examples/`. The obsolete phase-file examples were removed from `examples/`.
 
