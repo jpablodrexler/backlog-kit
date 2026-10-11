@@ -76,7 +76,7 @@ Early software (0.2), exercised on real repositories but not exhaustively. `gitf
 
 ## For maintainers
 
-[INSTALL.md](INSTALL.md) · [CHANGELOG.md](CHANGELOG.md) · [DESIGN.md](DESIGN.md) (design notes) · [MIGRATING.md](MIGRATING.md) (replacing a project's own copies of these skills) · `examples/`, `fidelity/` (the two source projects and the comparison used to convert them).
+[INSTALL.md](INSTALL.md) · [CHANGELOG.md](CHANGELOG.md) · [DESIGN.md](DESIGN.md) (design notes) · [MIGRATING.md](MIGRATING.md) (replacing a project's own copies of these skills) · `examples/` and `fidelity/` (the ledgers of differences from the two source projects; the originals are exported from their repositories on demand, see `fidelity/SOURCES.md`).
 
 ```
 python3 tools/vendor.py --check

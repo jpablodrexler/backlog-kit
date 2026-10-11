@@ -31,7 +31,11 @@ Ledger format (`fidelity/ledgers/<skill>.md`), one record per line, anything els
 
 Usage:
     python3 tools/fidelity.py [skill ...] [--check] [--init] [--added] [--variants]
-    python3 tools/fidelity.py --snapshot --from NAME=/path/to/skills [--from ...] [skill ...]
+    python3 tools/fidelity.py --fetch NAME=/path/to/repo@REF [--fetch ...] [skill ...]
+
+The originals are not stored in the kit. `--fetch` exports them from the source projects' own repositories
+(`git archive` of `.claude/skills/<skill>` at REF) into `fidelity/base/` (gitignored), which is where
+`--check` reads them; without that folder `--check` has nothing to compare and says so.
 """
 import argparse
 import difflib
@@ -238,6 +242,32 @@ def snapshot(skill, sources):
                 shutil.copyfile(f, t)
 
 
+ORIGINAL_NAME = {"docs-sync": "web-docs-sync"}  # the kit's name -> the name in the source projects
+
+
+def fetch(skill, sources):
+    """Export a skill's markdown and scripts from each `name=repo@ref` source into fidelity/base/<name>/<skill>."""
+    import subprocess
+    import tarfile
+    import io
+    for name, spec in sources.items():
+        repo, _, ref = spec.partition("@")
+        ref = ref or "HEAD"
+        proc = subprocess.run(["git", "-C", repo, "archive", ref, f".claude/skills/{ORIGINAL_NAME.get(skill, skill)}"], capture_output=True)
+        if proc.returncode != 0:
+            continue  # the skill does not exist in that project at that ref
+        dest = FID / "base" / name / skill
+        if dest.exists():
+            shutil.rmtree(dest)
+        prefix = f".claude/skills/{ORIGINAL_NAME.get(skill, skill)}/"
+        with tarfile.open(fileobj=io.BytesIO(proc.stdout)) as tar:
+            for m in tar.getmembers():
+                if m.isfile() and m.name.startswith(prefix) and m.name.endswith((".md", ".py")):
+                    t = dest / m.name[len(prefix):]
+                    t.parent.mkdir(parents=True, exist_ok=True)
+                    t.write_bytes(tar.extractfile(m).read())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skills", nargs="*")
@@ -246,10 +276,21 @@ def main():
     ap.add_argument("--added", action="store_true", help="list kit text with no origin")
     ap.add_argument("--variants", action="store_true", help="list units where the projects differ and the kit follows one")
     ap.add_argument("--snapshot", action="store_true", help="copy the originals into fidelity/base (needs --from)")
+    ap.add_argument("--fetch", action="append", default=[], metavar="NAME=REPO@REF",
+                    help="export the originals from a source project's git repository into fidelity/base, repeatable")
     ap.add_argument("--from", dest="sources", action="append", default=[], metavar="NAME=SKILLS_DIR",
                     help="a source project's skills folder, repeatable")
     a = ap.parse_args()
     skills = a.skills or sorted(p.stem for p in (FID / "ledgers").glob("*.md"))
+    if a.fetch:
+        sources = dict(x.split("=", 1) for x in a.fetch)
+        for s_ in skills:
+            fetch(s_, sources)
+        return
+    if not (FID / "base").is_dir():
+        print("fidelity/base is missing: the originals are not stored in the kit. "
+              "Run: python3 tools/fidelity.py --fetch <name>=<repo>@<ref> (see fidelity/SOURCES.md)")
+        return
     if a.snapshot:
         sources = dict(x.split("=", 1) for x in a.sources)
         for s in skills:

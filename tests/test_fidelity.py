@@ -77,6 +77,7 @@ def run(script, root, *args):
 
 
 class LedgersAreComplete(unittest.TestCase):
+    @unittest.skipUnless(BASE.is_dir(), "originals not fetched (see fidelity/SOURCES.md)")
     def test_every_difference_from_the_originals_is_on_record(self):
         proc = subprocess.run([sys.executable, str(KIT / "tools/fidelity.py"), "--check"], capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0, proc.stdout)
@@ -90,6 +91,7 @@ class LedgersAreComplete(unittest.TestCase):
                     self.assertIn(d, decided)
 
 
+@unittest.skipUnless(BASE.is_dir(), "originals not fetched (see fidelity/SOURCES.md)")
 class ScriptsAgreeWithTheOriginals(unittest.TestCase):
     """The kit's rank scripts are the originals plus a few edited lines; on the same backlog they must agree."""
 

@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.28
+- The snapshots of the source projects' skills (`fidelity/base/`) are no longer stored in the repository: `tools/fidelity.py --fetch NAME=REPO@REF` exports them from the projects' own repositories at the commits pinned in `fidelity/SOURCES.md`, into a gitignored folder. Without them the fidelity check says so and its tests are skipped. Decision D9 updated.
+
 ## 0.2.27
 - `architecture-reviewer`, fourth real run, wording only: `Maps to:` accepts a list or free text and a note without one is assigned by the reviewer; P-numbers belong to the skill; a note's `Read when` may list several conditions; `[docs]` tag for documentation findings; documented deliberate exceptions and documented idempotent writes are strengths, undocumented ones are not; Coverage markers are `[x]`/`[~]`/`[ ]`, a rule is one bullet or one technique, and Not verified names the dimension and what was skipped.
 

@@ -94,7 +94,7 @@ class SkillLint(unittest.TestCase):
         for f in files:
             with self.subTest(file=str(f.relative_to(KIT))):
                 body = f.read_text()
-                if f.name == "gitread.py":
+                if f.name in ("gitread.py", "fidelity.py"):  # fidelity.py is a maintainer tool: it exports files with `git archive`
                     continue
                 self.assertNotRegex(body, r"\bsubprocess\b|os\.system|os\.popen")
 
