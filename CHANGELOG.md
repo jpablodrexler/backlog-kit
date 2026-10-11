@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.23
+- `architecture-reviewer` and `product-scope-roaster` converted from the two projects' skills: the frame (steps, classification, report names, follow-up, guardrails) follows the originals; the stack-specific dimensions, named files and real cases moved to optional project notes (`.backlog-kit/review/architecture/`, `.backlog-kit/review/product/`), with both projects' notes in `examples/`. The obsolete phase-file examples were removed from `examples/`.
+
 ## 0.2.22
 - The viewport check of `feature-development` and `bug-fix` reads an optional `[viewports]` table of `.backlog-kit.toml` (`phones`, `desktop`); default Galaxy S23 Ultra 384x824 and 1920x1080. The example file lists five popular phones to add. `docs/extras.md` documents how the extras use optional project notes under `.backlog-kit/` and fall back to `CLAUDE.md` and the docs when there are none. README: loop diagram restored.
 

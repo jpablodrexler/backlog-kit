@@ -41,22 +41,25 @@ Read the project's own architecture documentation (README, `CLAUDE.md`, docs fol
 
 Keep a private list while you work: every file you actually opened and every grep you ran. A claim must trace to something on that list. Do not infer behaviour from a folder name, a file name or a class name alone; open the file. If you could not verify something, write it as "not verified" with the reason, or leave it out.
 
-### 3. Classify each finding
+### 3. Project notes
 
-- **Strength** — a pattern worth keeping, cited with the same rigour as a risk (file and pattern named) so nobody "fixes" a deliberate choice. Plain bullet, no checkbox.
-- `🔵` **Note** — a minor deviation or friction, cheap to ignore today.
+List `.backlog-kit/review/architecture/` (relative to the repository root); each file's second line is `Read when: …`; read every file marked `every architecture review` and every file whose `Read when` matches the scope. They hold what this skill cannot know: the project's stack-specific dimensions and checks (which layering it claims, which greps to run), the files that look cross-cutting, and the real case that motivated the review. Add them to the dimensions above; they never remove one. If the folder does not exist or is empty, work from the dimensions above plus what the project's `CLAUDE.md` and docs say, and state in the report that no project notes were found.
+
+### 4. Classify each finding
+
+- **✅ Strength** — a pattern worth keeping, cited with the same rigour as a risk (file and pattern named) so nobody "fixes" a deliberate choice. Plain bullet, no checkbox.
 - `🟡` **Worth addressing** — a real deviation, growing coupling or friction that is not urgent or user-blocking.
 - `🔴` **Structural risk** — actively causing, or clearly about to cause, a correctness or maintainability problem (a layer bypassed, a dependency cycle, a write path with no transaction boundary, a stream never closed).
 
 Every `🔴`/`🟡` finding needs concrete evidence: `file:line`, and for a coupling or coordination finding the producer and consumer counts and the features spanned. A bare "this could be an issue" with no grep behind it does not belong in the report.
 
-### 4. Write the report, then the summary
+### 5. Write the report, then the summary
 
 Write `<reports_dir>/architecture-review/ARCHITECTURE_REVIEW_<YYYY-MM-DD>.md` (for a deep-dive, `ARCHITECTURE_REVIEW_<YYYY-MM-DD>_<dimension-slug>.md`). If that name exists, add `-2`, `-3`, ... on the same day; never overwrite or delete an earlier report. Create the folder if needed. Contents:
 
 - A header: date, scope (full or which dimension), the commit or working-tree state it was run against (read from the files already present, without running git; if unknown, say so), and which dimensions were skipped as not applicable.
 - `### Strengths` (plain bullets), `### Findings` grouped by severity. Each finding is a checkbox line:
-  `- [ ] 🔴|🟡|🔵 <file>:<line or path> — <what is wrong, evidence with counts, why it matters>`
+  `- [ ] 🔴|🟡 <file>:<line or path> — <what is wrong, evidence with counts, why it matters>`
   Omit an empty group.
 - `### Not verified` — anything you could not confirm and why.
 - `### Candidate follow-ups` — for each `🔴`/`🟡` finding, which kit skill would record it: `bug-report` for a concrete defect or tech-debt item; `feature-plan` for a structural improvement that is a piece of planned work; `decision-record` for a finding that is really an architectural choice nobody wrote down (the report lists it as a candidate; it is not a defect). Listing only.

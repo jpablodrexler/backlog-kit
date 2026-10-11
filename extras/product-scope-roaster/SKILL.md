@@ -57,9 +57,10 @@ Step back and ask whether the backlog is still one coherent thing or is drifting
 
 1. **Determine scope.** Full review (all five dimensions, shipped and planned) unless the user names a slice. A scoped ask applies the relevant dimensions in more depth.
 2. **Find and read the inputs.** Resolve `<backlog>` and `<reports>` from `.backlog-kit.toml` (defaults above). Read both feature tables in full, then briefs where a Summary is not enough, then look for the optional product description and read it. If the planned or implemented file is missing or empty, say so and review what exists; do not fabricate the other half. Build a working list of distinct user-facing capabilities: several implemented rows are slices of one capability already counted.
-3. **Work each in-scope dimension.** A finding needs the feature(s), the cited evidence, the user-facing symptom, and why a real user would be bothered. Discard anything that only looks like a problem once you start thinking about the implementation.
+3. **Read the project notes.** List `.backlog-kit/review/product/` (relative to the repository root); each file's second line is `Read when: …`; read every file marked `every product scope review` and every file whose `Read when` matches the scope. They hold this project's own examples for the dimensions (near-mirror pairs, areas that grew, gaps, inconsistent patterns): treat each as a hypothesis to test on its merits, never as a finding. With no notes, work from the dimensions below and the backlog alone, and say so in the report.
+   Then **work each in-scope dimension.** A finding needs the feature(s), the cited evidence, the user-facing symptom, and why a real user would be bothered. Discard anything that only looks like a problem once you start thinking about the implementation.
 4. **Write the report**, then present it.
-   - **Path:** `<reports>/product/PRODUCT_SCOPE_REVIEW_<YYYY-MM-DD>.md` (add `_<scope-slug>` for a scoped run). If it exists, use `-2`, `-3`, and so on; never overwrite an earlier run. Create the directory if needed.
+   - **Path:** `<reports>/product-scope-roast/PRODUCT_SCOPE_ROAST_<YYYY-MM-DD>.md` (add `_<scope-slug>` for a scoped run). If it exists, use `-2`, `-3`, and so on; never overwrite an earlier run. Create the directory if needed.
    - **Header:** date, scope, the backlog snapshot reviewed (counts of implemented and planned rows), and the product-description file used (or "none found").
    - **Sections**, each omitted if empty, never padded: `### Merge candidates`, `### Split candidates`, `### Missing functionality`, `### Friction and inconsistency`, `### Scope coherence`. Each finding is a checkbox bullet (`- [ ]`) so a follow-up pass can track what was acted on: the claim, the feature(s) with `#`, the cited evidence, the user-facing consequence.
    - **Bottom line**: two or three blunt sentences naming the single most damaging pattern, no hedge and no "overall this is solid but". If the honest answer is that the scope holds together, say so in one flat sentence and stop; do not manufacture findings.
@@ -71,7 +72,7 @@ Step back and ask whether the backlog is still one coherent thing or is drifting
 
 ## Follow-up
 
-Asked to revisit an existing report: resolve the one named, or the most recent `PRODUCT_SCOPE_REVIEW_*.md` for that scope. Read it in full, re-check each open (`- [ ]`) finding against the current backlog, and say explicitly which are now stale (rows shipped, merged or removed) rather than repeating them. Then offer to dig deeper into one, or to hand one to the skills in step 6.
+Asked to revisit an existing report: resolve the one named, or the most recent `PRODUCT_SCOPE_ROAST_*.md` for that scope. Read it in full, re-check each open (`- [ ]`) finding against the current backlog, and say explicitly which are now stale (rows shipped, merged or removed) rather than repeating them. Then offer to dig deeper into one, or to hand one to the skills in step 6.
 
 ---
 
