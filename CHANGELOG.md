@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.29
+- Community files and docs for publishing: `CONTRIBUTING.md` and `SECURITY.md` added; `DESIGN.md` rewritten as the current design (the per-release log lives in this changelog); `MIGRATING.md` rewritten for the core-plus-extras design with no phase files; `tools/migrate_check.py` now lists the optional project-note folders (including architecture and product), treats OpenSpec as optional and checks that `develop` contains the kit's skills.
+
 ## 0.2.28
 - The snapshots of the source projects' skills (`fidelity/base/`) are no longer stored in the repository: `tools/fidelity.py --fetch NAME=REPO@REF` exports them from the projects' own repositories at the commits pinned in `fidelity/SOURCES.md`, into a gitignored folder. Without them the fidelity check says so and its tests are skipped. Decision D9 updated.
 

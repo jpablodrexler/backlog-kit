@@ -302,8 +302,8 @@ class MigrateCheck(unittest.TestCase):
             (root / ".claude/skills/stack-helper/SKILL.md").write_text("see `web-docs-sync` and bug-fix")
             (root / "sub/docs/backlog").mkdir(parents=True)
             (root / "sub/docs/backlog/bugs-open.md").write_text("# Bugs\n")
-            (root / ".backlog-kit/feature").mkdir(parents=True)
-            (root / ".backlog-kit/feature/03-tests.md").write_text("# Tests\n")
+            (root / ".backlog-kit/review/code").mkdir(parents=True)
+            (root / ".backlog-kit/review/code/01-x.md").write_text("# X\n")
             g("add", "-A")
             out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
             self.assertIn("- bug-fix", out)
@@ -311,17 +311,19 @@ class MigrateCheck(unittest.TestCase):
             self.assertNotIn("- stack-helper", out.split("## 2.")[0])
             self.assertIn(".claude/skills/stack-helper/SKILL.md", out)
             self.assertIn('backlog_dir = "sub/docs/backlog"', out)
-            self.assertIn("feature/: 1 file(s)", out)
-            self.assertIn("bug/: 0 file(s)", out)
+            self.assertIn("review/code/: 1 file(s)", out)
+            self.assertIn("review/security/: 0 file(s)", out)
             self.assertIn("## 6. Base branch", out)
             self.assertIn("no local develop branch", out)
             g("commit", "-q", "-m", "x")
             g("branch", "develop")
             out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
-            self.assertIn("develop contains .backlog-kit/", out)
-            g("rm", "-rq", ".backlog-kit"); g("commit", "-q", "-m", "y"); g("branch", "-f", "develop")
+            self.assertIn("WARNING develop does not contain the kit's skills", out)
+            (root / ".claude/skills/features-next/scripts").mkdir(parents=True)
+            (root / ".claude/skills/features-next/scripts/backlog_kit.py").write_text("x")
+            g("add", "-A"); g("commit", "-q", "-m", "y"); g("branch", "-f", "develop")
             out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
-            self.assertIn("WARNING develop does not contain .backlog-kit/", out)
+            self.assertIn("develop contains the kit's skills", out)
 
 
 class HandBackContract(unittest.TestCase):
