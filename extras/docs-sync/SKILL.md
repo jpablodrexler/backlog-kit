@@ -40,22 +40,11 @@ automatically; that's this skill's job.
   time before anyone re-derives it from the code.
 - **`docs/*.md`** — the actual reference material, indexed from `README.md`.
   This is comprehensive: diagrams, full tables, provenance notes. The kit
-  has a convention for where each kind of content lives, so every project
-  that uses it looks the same; a project keeps only the files it needs:
-
-  | File | What it holds |
-  | ---- | ------------- |
-  | `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure |
-  | `docs/features.md` | what a user can actually reach today (never the planned backlog) |
-  | `docs/frontend.md`, `docs/backend.md` | per side the project has: technologies, structure, routing or endpoints, data flow, running, building, testing and deploying |
-  | `docs/database.md` | tables, access rules, migration history, the database workflow |
-  | `docs/authentication.md` | the authentication flow, guards or filters, the session model |
-  | `docs/decisions/` | architecture decision records (`decision-record`) |
-  | `docs/backlog/`, `docs/reports/` | the backlog and the dated reports of the other skills (not documentation to keep in sync) |
-
-  Another topic gets its own `docs/<topic>.md`. This is a convention, not a
-  requirement: where a project already uses other names, its notes (§1) say
-  so and the skill follows them.
+  has a convention for where each kind of content lives — the table in
+  `reference/conventions.md` — so every project that uses it looks the same.
+  A project keeps only the files it needs, and where it already uses other
+  names its notes (§1) and its `Kit conventions` section say so and the skill
+  follows them.
 - **`README.md`** — a short intro plus the documentation index table
   pointing into `docs/`. It should stay an index, not regrow the runbook
   content that lives in `docs/`.
@@ -133,7 +122,16 @@ table as "§1".
 3. Collect every discrepancy found before editing anything, so overlapping
    edits to the same file can be merged into one pass.
 4. Apply all fixes with `Edit`, grouped by file.
-5. Summarize in chat: a short list of what was added/updated/removed,
+5. **Check the `Kit conventions` section of `CLAUDE.md`.** The project's
+   `CLAUDE.md` carries, under the heading `## Kit conventions`, the table of
+   `reference/conventions.md`, so a person or any other skill reading it
+   sees where everything lives. Verify that the section exists, that it
+   matches the table except where the project records a difference on
+   purpose, and that every path it names exists. If the section is missing,
+   propose adding it (copied from `reference/conventions.md`, with the
+   project's differences) and add it only after the user says yes; when run
+   unattended, list it in the summary as a suggestion and do not add it.
+6. Summarize in chat: a short list of what was added/updated/removed,
    grouped by file, so the user can spot-check anything surprising (e.g. a
    removed row means something that no longer exists in code).
 

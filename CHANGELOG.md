@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.33
+- The standard locations now have one source in the kit, `shared/conventions.md`, vendored only into `docs-sync` (the other skills keep their own defaults, and a new test checks that every `docs/` path any skill mentions is in the table). A project carries the table as a `## Kit conventions` section of its `CLAUDE.md`; `docs-sync`'s full sweep checks it and offers to add it. `docs-sync`'s tiers section points to the table instead of embedding it.
+
 ## 0.2.32
 - Standard locations are now a convention of the kit: `docs-sync` carries a table of where each kind of reference doc lives (`docs/architecture.md`, `features.md`, `frontend.md`, `backend.md`, `database.md`, `authentication.md`, `decisions/`, `backlog/`, `reports/`), moved from the per-project tiers note, and the README gains a "Where things live" table. A project keeps only the files it needs and its notes can say where it differs.
 

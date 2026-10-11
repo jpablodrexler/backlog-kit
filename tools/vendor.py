@@ -32,7 +32,9 @@ LIB_FOR = {
     "gitread.py": ["gitflow"],
 }
 
-SHARED_FOR = {}
+SHARED_FOR = {
+    "conventions.md": ["docs-sync"],
+}
 
 
 def marked(src, text):

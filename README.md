@@ -62,15 +62,7 @@ Install them when you want them: `python3 tools/install.py <repo> --extras` (or 
 
 ## Where things live
 
-The skills share a few fixed locations, so every project that uses the kit looks the same:
-
-| Path | What |
-| --- | --- |
-| `docs/backlog/` | the backlog: `features-planned.md`, `features-implemented.md`, `bugs-open.md`, `bugs-fixed.md`, a brief per item in `features/` and `bugs/` |
-| `docs/decisions/` | architecture decision records |
-| `docs/reports/` | dated reports of the reviewers and batch runs (usually gitignored) |
-| `docs/*.md` | reference docs: `architecture.md`, `features.md`, `frontend.md`, `backend.md`, `database.md`, `authentication.md` — only the ones the project needs (see `docs-sync`) |
-| `CLAUDE.md`, `README.md` | the lean quick-start and the documentation index |
+The skills share a few fixed locations, so every project that uses the kit looks the same: the backlog and its briefs in `docs/backlog/`, decisions in `docs/decisions/`, dated reports in `docs/reports/`, and reference docs in `docs/*.md` (`architecture.md`, `features.md`, `frontend.md`, `backend.md`, `database.md`, `authentication.md`). The full table is [`shared/conventions.md`](shared/conventions.md). A project carries it as a `## Kit conventions` section in its `CLAUDE.md`, which `docs-sync` checks and offers to add.
 
 ## Adapting it
 

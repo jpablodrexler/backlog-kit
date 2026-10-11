@@ -340,6 +340,30 @@ class HandBackContract(unittest.TestCase):
             self.assertIn("look at the working tree for what the subagent actually did", text)
 
 
+class KitConventions(unittest.TestCase):
+    """Every docs/ path a skill mentions is a location the kit's conventions table defines."""
+
+    def test_skill_paths_are_in_the_conventions_table(self):
+        import re
+        table = (KIT / "shared/conventions.md").read_text()
+        known = {k.rstrip("/") for k in re.findall(r"`(docs/[^`]+)`", table)}
+        known |= {"docs/*.md", "docs/<topic>.md", "docs/decisions/*.md"}
+        dirs = {k for k in known if k in ("docs/backlog", "docs/decisions", "docs/explorations", "docs/reports")}
+        # a "`a.md`, `b.md`" cell lists several paths; the regex above already catches each one
+        pat = re.compile(r"docs/[A-Za-z0-9_.*<>-]+(?:/[A-Za-z0-9_.*<>-]+)*")
+        files = [f for d in ("skills", "extras") for f in (KIT / d).rglob("*.md") if "reference/conventions.md" not in str(f)]
+        for f in files:
+            for m in pat.findall(f.read_text()):
+                path = m.rstrip(".")
+                ok = path in known or any(path.startswith(k + "/") for k in dirs)
+                with self.subTest(file=str(f.relative_to(KIT)), path=path):
+                    self.assertTrue(ok, f"{path} is not in shared/conventions.md")
+
+    def test_docs_sync_carries_the_table(self):
+        self.assertTrue((KIT / "extras/docs-sync/reference/conventions.md").is_file())
+        self.assertIn("## Kit conventions", (KIT / "shared/conventions.md").read_text())
+
+
 class ViewportCheck(unittest.TestCase):
     def test_pipelines_require_every_configured_viewport_to_be_reported(self):
         for rel in ("skills/bug-fix/SKILL.md", "skills/feature-development/reference/phase-2-implement-review.md"):
