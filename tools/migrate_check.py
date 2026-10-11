@@ -35,7 +35,6 @@ REPLACES["web-docs-sync"] = "docs-sync"
 FOLDERS = {
     "review/code": "code-reviewer checklists",
     "review/security": "security-reviewer checklists",
-    "review/database": "database-reviewer checklists",
     "review/architecture": "architecture-reviewer dimensions and checks",
     "review/product": "product-scope-roaster examples",
     "spec-compliance": "spec-compliance-check notes",

@@ -270,8 +270,12 @@ class ReviewerFrames(unittest.TestCase):
         for name, kind in (("code-reviewer", "code"), ("security-reviewer", "security"), ("database-reviewer", "database")):
             with self.subTest(skill=name):
                 text = (sdir(name) / "SKILL.md").read_text()
-                self.assertIn(f".backlog-kit/review/{kind}/", text)
-                self.assertIn("Read when:", text)
+                if kind == "database":   # its checks live in a section of the project's docs/database.md
+                    self.assertIn("`Database review checks`", text)
+                    self.assertIn("docs/database.md", text)
+                else:
+                    self.assertIn(f".backlog-kit/review/{kind}/", text)
+                    self.assertIn("Read when:", text)
                 self.assertIn("no project checklist", " ".join(text.lower().split()))
                 self.assertIn("**Never run `git commit`, `git push` or open a PR.**", text)
 
