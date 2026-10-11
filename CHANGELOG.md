@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.35
+- `docs-sync` no longer needs a per-project table mapping doc sections to code: every reference doc declares what it is checked against in a `Sources of truth:` line under its title (or under a section heading), a convention described in `shared/conventions.md`. `CLAUDE.md` and `README.md` have fixed sources. A doc without the line gets one inferred and added. `.backlog-kit/docs/` is now only for optional extra notes, and a missing folder is not reported.
+
 ## 0.2.34
 - `docs-sync`: the guardrails that every project repeated in its notes are now fixed text in the skill: what a fixed-pointer subsection of `CLAUDE.md` is and when to touch it, and the scope (`CLAUDE.md`, `README.md` and the reference docs of the kit conventions; never the backlog, decisions, explorations or reports). A project's notes keep only what is specific to it. The pablo-web example of that note was removed.
 

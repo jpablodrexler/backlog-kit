@@ -83,3 +83,7 @@ PARAM | - Never document behavior you haven't verified in the actual code — no
 PARAM | - Don't let `CLAUDE.md` regrow a full RLS/table reference, a routing t | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
 DROPPED | - Every subsection under `CLAUDE.md`'s "Architecture" heading (Environ | stack-specific text, moved unchanged to the project's review checklist files (D30, D31)
 PARAM | - This skill's scope is `CLAUDE.md`, `README.md`, and the five files d | stack and tool names removed, `<reports>` path, or the project-checklists step (D30, D31); the generic wording is kept
+
+DROPPED | 2. Map each changed file to the row(s) in §1 (and §2/§3 if relevant) w | the doc-section table of the project's notes became a `Sources of truth:` line in each doc (owner decision); the scoped sync maps changes to those lines
+PARAM | 3. For each mapped row, read the current doc text and the current code | the doc-section table of the project's notes became a `Sources of truth:` line in each doc (owner decision); the scoped sync maps changes to those lines
+DROPPED | 2. Map each changed file to the row(s) in §1 whose source of truth it | the doc-section table of the project's notes became a `Sources of truth:` line in each doc (owner decision); the scoped sync maps changes to those lines

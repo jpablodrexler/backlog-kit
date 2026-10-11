@@ -22,3 +22,5 @@ Where the backlog-kit skills read and write. Every project that uses the kit loo
 | `README.md` | a short intro and the documentation index into `docs/` |
 
 The decisions, explorations and reports folders sit next to the backlog folder: with `backlog_dir = "app/docs/backlog"` they are `app/docs/decisions`, `app/docs/explorations` and `app/docs/reports`.
+
+Every reference doc under `docs/` states what it is checked against in a line under its title, `Sources of truth: <paths or globs in the code, and any rule for reading them>` (a section with different sources carries its own line under its heading). `docs-sync` uses these lines to know which docs a code change affects. `CLAUDE.md` and `README.md` have fixed sources and need none.
