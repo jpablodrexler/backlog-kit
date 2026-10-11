@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.39
+- `security-reviewer` reads the project's checks from a `Security review checks` section of `docs/security.md`, and the kit convention renames `docs/authentication.md` to `docs/security.md` (authentication flow, session model, access control, and those checks), with a `Checked against` phrase that includes the dependency manifests. The sweep layers are read from that section's `Full-codebase sweep layers` subsection. The conventions table, `docs/extras.md`, the README, `migrate_check` and the tests were updated; the example security notes were removed.
+
 ## 0.2.38
 - `database-reviewer` reads the project's checks from a `Database review checks` section of `docs/database.md` instead of `.backlog-kit/review/database/` (same convention as the architecture review): it works through the subsections that apply to the change, with the context and access-control ones always. The conventions table and `docs/extras.md` were updated; the example database notes were removed.
 

@@ -62,7 +62,7 @@ Install them when you want them: `python3 tools/install.py <repo> --extras` (or 
 
 ## Where things live
 
-The skills share a few fixed locations, so every project that uses the kit looks the same: the backlog and its briefs in `docs/backlog/`, decisions in `docs/decisions/`, dated reports in `docs/reports/`, and reference docs in `docs/*.md` (`architecture.md`, `features.md`, `frontend.md`, `backend.md`, `database.md`, `authentication.md`). The full table is [`shared/conventions.md`](shared/conventions.md); [`docs/conventions.md`](docs/conventions.md) explains it and shows a filled-in example. A project carries it as a `## Kit conventions` section in its `CLAUDE.md`, with a "Checked against" column that tells `docs-sync` what each doc is compared with; `docs-sync` checks the section and offers to add it.
+The skills share a few fixed locations, so every project that uses the kit looks the same: the backlog and its briefs in `docs/backlog/`, decisions in `docs/decisions/`, dated reports in `docs/reports/`, and reference docs in `docs/*.md` (`architecture.md`, `features.md`, `frontend.md`, `backend.md`, `database.md`, `security.md`). The full table is [`shared/conventions.md`](shared/conventions.md); [`docs/conventions.md`](docs/conventions.md) explains it and shows a filled-in example. A project carries it as a `## Kit conventions` section in its `CLAUDE.md`, with a "Checked against" column that tells `docs-sync` what each doc is compared with; `docs-sync` checks the section and offers to add it.
 
 ## Adapting it
 

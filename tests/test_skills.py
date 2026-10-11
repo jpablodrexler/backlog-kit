@@ -270,9 +270,9 @@ class ReviewerFrames(unittest.TestCase):
         for name, kind in (("code-reviewer", "code"), ("security-reviewer", "security"), ("database-reviewer", "database")):
             with self.subTest(skill=name):
                 text = (sdir(name) / "SKILL.md").read_text()
-                if kind == "database":   # its checks live in a section of the project's docs/database.md
-                    self.assertIn("`Database review checks`", text)
-                    self.assertIn("docs/database.md", text)
+                if kind in ("database", "security"):   # their checks live in a section of the project's docs
+                    self.assertIn(f"`{kind.capitalize()} review checks`", text)
+                    self.assertIn(f"docs/{kind}.md", text)
                 else:
                     self.assertIn(f".backlog-kit/review/{kind}/", text)
                     self.assertIn("Read when:", text)
@@ -316,7 +316,7 @@ class MigrateCheck(unittest.TestCase):
             self.assertIn(".claude/skills/stack-helper/SKILL.md", out)
             self.assertIn('backlog_dir = "sub/docs/backlog"', out)
             self.assertIn("review/code/: 1 file(s)", out)
-            self.assertIn("review/security/: 0 file(s)", out)
+            self.assertIn("review/product/: 0 file(s)", out)
             self.assertIn("## 6. Base branch", out)
             self.assertIn("no local develop branch", out)
             g("commit", "-q", "-m", "x")

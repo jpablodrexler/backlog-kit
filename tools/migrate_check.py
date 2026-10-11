@@ -34,7 +34,6 @@ REPLACES["web-docs-sync"] = "docs-sync"
 # kit folder under .backlog-kit/ -> (what reads it). All are optional: without them the extras fall back to CLAUDE.md and docs.
 FOLDERS = {
     "review/code": "code-reviewer checklists",
-    "review/security": "security-reviewer checklists",
     "review/architecture": "architecture-reviewer dimensions and checks",
     "review/product": "product-scope-roaster examples",
     "spec-compliance": "spec-compliance-check notes",

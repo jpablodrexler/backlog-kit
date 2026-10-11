@@ -9,7 +9,7 @@ description: >
   dependency vulnerabilities, the project's authorization boundary,
   sensitive data and secret handling, session/token storage, and injection
   and client-side scripting risks, using the checklists the project keeps
-  in `.backlog-kit/review/security/`. A full-codebase sweep produces one
+  in the `Security review checks` section of its `docs/security.md`. A full-codebase sweep produces one
   report per architecture layer instead of a single consolidated report —
   see "Full-Codebase Sweeps" below. Also TRIGGERS when asked to audit the
   codebase's security, and when asked to fix, address, resolve, or work
@@ -58,13 +58,14 @@ This skill covers two distinct workflows:
    lockfiles).
 3. Read every changed file that touches auth, access-control rules, user
    input, or data persistence before forming any opinion.
-4. **Project checklists:** list `.backlog-kit/review/security/` (relative to
-   the repository root); each file's second line is `Read when: …`; read
-   every file marked `every review` and every file whose `Read when` matches
-   what changed; work through their checklist sections one by one. If the
-   folder does not exist or is empty, review with the frame above plus what
-   the project's CLAUDE.md and docs say, and state in the report that no
-   project checklist was found.
+4. **Project checklists:** read the project's `docs/security.md` and, in it,
+   the section named `Security review checks` (the kit convention: that doc
+   holds the authentication flow, the session model and access control, and
+   what this review checks in the project). Work through the subsections that
+   apply to what changed, one by one; the sensitive-data and known-pitfalls
+   subsections apply to every review. If the doc has no such section, review
+   with the frame above plus what the project's CLAUDE.md and docs say, and
+   state in the report that no project checklist was found.
 5. Report findings grouped by **severity**, then by file.
 6. Summarise with a short verdict and the top action items, then write the
    full report to a new, dated markdown file — see "Review Report Format &
@@ -85,9 +86,9 @@ code+security sweep produces parallel, directly comparable report sets per
 layer.
 
 **The layers:** the layer table (layer key, report suffix, directory scope,
-primary checklist sections) comes from the project file under
-`.backlog-kit/review/security/` whose `Read when` is `a full-codebase
-sweep`. If there is none, the sweep is not available — say so and ask for a
+primary checklist sections) comes from the
+`Full-codebase sweep layers` subsection of the project's `Security review
+checks`. If there is none, the sweep is not available — say so and ask for a
 scope instead.
 
 If only part of the codebase is in scope, skip the layers that don't apply.
@@ -110,8 +111,8 @@ Each layer's review runs in its own subagent (`Agent` tool,
      (copy the relevant row from the layer table into the prompt).
    - An instruction to first read this skill's `SKILL.md` for the severity
      legend and the "Review Report Format & Output File" section (§8), and
-     the project checklist files under `.backlog-kit/review/security/`
-     that hold those checklist sections — don't restate the whole
+     the subsections of the project's `Security review checks` (in
+     `docs/security.md`) that hold those checklist sections — don't restate the whole
      checklist in the prompt.
    - The exact output path to write:
      `<reports>/security-review/SECURITY_REVIEW_FINDINGS_{today's date}_{layer suffix}.md`
@@ -161,8 +162,8 @@ deployment build environment.
 ## 2.–7. Project security checklists
 
 The stack-specific checklist sections are not part of this skill; they live
-in the project's security checklist files under
-`.backlog-kit/review/security/` (see Workflow step 4). Their section numbers
+in the project's `Security review checks` section of `docs/security.md`
+(see Workflow step 4). Their section numbers
 are kept, so findings and fixes can cite them:
 
 - **§2 Authorization boundary** — where access control is actually enforced

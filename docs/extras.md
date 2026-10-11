@@ -10,7 +10,7 @@ Eight of them are stack-neutral in their *frame* (workflow, severities, report f
 | Extra | Folder it reads | What the notes hold |
 | --- | --- | --- |
 | `code-reviewer` | `.backlog-kit/review/code/` | checklists: layering, naming, state, tests, known pitfalls |
-| `security-reviewer` | `.backlog-kit/review/security/` | checklists: auth, authorization, secrets, input handling |
+| `security-reviewer` | the `Security review checks` section of `docs/security.md` | checklists: dependencies, the authorization boundary, sensitive data and keys, authentication and sessions, frontend security, known pitfalls, the sweep layers |
 | `database-reviewer` | the `Database review checks` section of `docs/database.md` | checklists: naming, data types, indexes, access rules, migrations, the fix workflow |
 | `docs-sync` | `.backlog-kit/docs/` | which doc section follows which source of truth |
 | `spec-compliance-check` | `.backlog-kit/spec-compliance/` | where the tests live, how a scenario is verified by hand |
