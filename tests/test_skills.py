@@ -359,10 +359,12 @@ class KitConventions(unittest.TestCase):
                 with self.subTest(file=str(f.relative_to(KIT)), path=path):
                     self.assertTrue(ok, f"{path} is not in shared/conventions.md")
 
-    def test_sources_of_truth_convention_is_described_where_docs_sync_reads_it(self):
-        for rel in ("shared/conventions.md", "extras/docs-sync/SKILL.md"):
+    def test_checked_against_column_is_in_the_table_and_the_example(self):
+        for rel in ("shared/conventions.md", "docs/conventions.md"):
             with self.subTest(file=rel):
-                self.assertIn("Sources of truth:", (KIT / rel).read_text())
+                text = (KIT / rel).read_text()
+                self.assertIn("| Path | What it holds | Checked against |", text)
+        self.assertIn("Checked against", (KIT / "extras/docs-sync/SKILL.md").read_text())
 
     def test_docs_sync_carries_the_table(self):
         self.assertTrue((KIT / "extras/docs-sync/reference/conventions.md").is_file())

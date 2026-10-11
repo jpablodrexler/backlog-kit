@@ -4,8 +4,8 @@ description: >
   Keeps `CLAUDE.md`, the reference docs under `docs/`, and `README.md`'s
   documentation index in sync with the actual code. TRIGGER after
   implementing a feature or OpenSpec change that adds or changes anything
-  the documentation describes (each reference doc declares the code areas it
-  is checked against). Also TRIGGERS when explicitly asked to check,
+  the documentation describes (the `Kit conventions` table of `CLAUDE.md` says
+  what each reference doc is checked against). Also TRIGGERS when explicitly asked to check,
   audit, or sync the project's documentation against the code, or as a
   standalone full sweep. Do not wait to be asked after a feature lands with
   any such change — none of this is re-derived automatically, so it drifts
@@ -65,32 +65,24 @@ the user a short diff-style summary of what changed in chat.
 
 ---
 
-## 1. Sources of truth
+## 1. What each doc is checked against
 
-Every reference doc says what it is checked against, in a line right under
-its title (or under a section heading, for a section checked against
-something different):
+The `Kit conventions` section of the project's `CLAUDE.md` has a table with a
+"Checked against" column: for each doc, in a phrase, the part of the code it
+describes (the table and its defaults are in `reference/conventions.md`). Use
+it as a pointer, not as a complete list: a doc also names the code it
+describes in its own text. The workflows below call this "§1".
 
-```
-Sources of truth: `migrations/**`, `config/db.toml`; read every migration in order
-```
+To find the docs and sections a changed file affects, combine both: the
+"Checked against" column, and a search of `CLAUDE.md` and `docs/` for the
+file's path, its folder and the names (classes, functions, routes, tables)
+it defines. A doc that mentions the file, or something it defines, is
+affected.
 
-The line names the paths or globs in the code the doc describes, and any
-rule for reading them. This is how a doc and the code stay tied together
-without a separate map, and the workflows below call it "§1". Two files
-have fixed sources and need no line:
-
-- **`CLAUDE.md`**: its commands against the project's manifests and task
-  files (the scripts they define), its repository layout against the real
-  top-level directories, and its "Documentation" paragraph against which
-  `docs/*.md` files exist and what each covers.
-- **`README.md`**: its documentation index against which `docs/*.md` files
-  exist and what each covers. A new doc file, or a section moved between
-  files, must be reflected in both indexes.
-
-A reference doc without a `Sources of truth:` line: infer its sources from
-what it describes, work from them, add the line to the doc and say so in the
-summary.
+A doc whose row has no "Checked against" phrase (or a project whose
+`CLAUDE.md` has no such table yet): infer it from what the doc describes,
+work from that, and say so in the summary; the full sweep then proposes
+completing the table (see §3).
 
 **Project notes (optional).** `.backlog-kit/docs/` (relative to the
 repository root) may hold files for what the docs themselves cannot say,
@@ -106,9 +98,10 @@ exist.
    the branch's base (the branch the current feature branch was cut from),
    if run at the end of a feature; otherwise, whatever files the user points
    to.
-2. Map each changed file to the docs and sections whose `Sources of truth:`
-   it matches (and to the fixed sources of `CLAUDE.md` and `README.md`).
-   Skip those whose sources weren't touched — don't re-verify everything on
+2. Map each changed file to the docs and sections it affects (§1: the
+   "Checked against" column plus a search of the docs for its path, folder
+   and names), and to `CLAUDE.md` and `README.md` where their rows apply.
+   Skip those that weren't touched — don't re-verify everything on
    a scoped sync.
 3. For each mapped doc or section, read the current text and the current code side
    by side and determine what's missing, stale, or wrong.
@@ -133,7 +126,7 @@ exist.
 
 1. Read `CLAUDE.md`, `README.md`, and every file under `docs/` (excluding
    the paths the project notes mark out of scope — see Guardrails) in full.
-2. For each doc and each section with its own `Sources of truth:`,
+2. For each doc, using its "Checked against" row and what it references,
    independently re-derive the current state from code rather than trusting
    the doc's existing content, and compare. For sources that are an ordered
    history of files (such as
@@ -146,9 +139,11 @@ exist.
 5. **Check the `Kit conventions` section of `CLAUDE.md`.** The project's
    `CLAUDE.md` carries, under the heading `## Kit conventions`, the table of
    `reference/conventions.md`, so a person or any other skill reading it
-   sees where everything lives. Verify that the section exists, that it
-   matches the table except where the project records a difference on
-   purpose, and that every path it names exists. If the section is missing,
+   sees where everything lives and what each doc is checked against. Verify
+   that the section exists, that it has the "Checked against" column filled
+   in for every `docs/*.md` row, that it matches the table except where the
+   project records a difference on purpose, and that every path it names
+   exists. If the section is missing,
    propose adding it (copied from `reference/conventions.md`, with the
    project's differences) and add it only after the user says yes; when run
    unattended, list it in the summary as a suggestion and do not add it.

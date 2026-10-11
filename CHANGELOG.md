@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.36
+- Replaces the 0.2.35 `Sources of truth:` line in every doc with a "Checked against" column in the `Kit conventions` table that `CLAUDE.md` must carry: one phrase per doc, with defaults in `shared/conventions.md`; `docs-sync` also searches the docs for the path, folder and names of each changed file. New `docs/conventions.md` explains the section and shows pablo-web's table as an example; the README links it.
+
 ## 0.2.35
 - `docs-sync` no longer needs a per-project table mapping doc sections to code: every reference doc declares what it is checked against in a `Sources of truth:` line under its title (or under a section heading), a convention described in `shared/conventions.md`. `CLAUDE.md` and `README.md` have fixed sources. A doc without the line gets one inferred and added. `.backlog-kit/docs/` is now only for optional extra notes, and a missing folder is not reported.
 
