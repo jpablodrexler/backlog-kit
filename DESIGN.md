@@ -27,10 +27,10 @@ A small set of skills that takes a feature or a bug from idea to a verified, arc
 
 The reviewers, `docs-sync`, `spec-compliance-check` and `dependency-upgrade` need to know the stack. The skill holds the frame (workflow, severities, report format); the stack-specific knowledge lives in named sections of the project's own docs (`Architecture review checks`, `Code review checks`, `Dependency upgrade checks`, …). With none, the skill works from `CLAUDE.md` and the docs and says so in its report. See [docs/extras.md](docs/extras.md).
 
-## Fidelity to the source projects
+## Origin
 
-The skills were converted from the workflow skills of two real projects, keeping their text wherever the stack allows. `fidelity/ledgers/<skill>.md` records every deliberate difference; `tools/fidelity.py --check` verifies that no difference is unrecorded. The originals are not stored in the kit: `--fetch` exports them from the projects' repositories (`fidelity/SOURCES.md`). `fidelity/decisions.md` lists the decisions the ledgers cite. Skills rewritten freely after the conversion (the pipelines' phases, the architecture reviewer, the roaster) have no ledger or a partial one.
+The skills were converted from the workflow skills of two real projects, keeping their text wherever the stack allows; the pipelines' phases, the architecture reviewer and the roaster were rewritten freely afterwards.
 
 ## Tests
 
-`python3 -m unittest discover -s tests` checks: frontmatter and author on every skill, no stack words in skills/scripts, the no-commit promise, gitflow's confirmations, script behaviour on fixture backlogs, vendored copies in sync (`tools/vendor.py --check`), and, when the originals have been fetched, the fidelity ledgers.
+`python3 -m unittest discover -s tests` checks: frontmatter and author on every skill, no stack words in skills/scripts, the no-commit promise, gitflow's confirmations, script behaviour on fixture backlogs, vendored copies in sync (`tools/vendor.py --check`).

@@ -94,7 +94,7 @@ class SkillLint(unittest.TestCase):
         for f in files:
             with self.subTest(file=str(f.relative_to(KIT))):
                 body = f.read_text()
-                if f.name in ("gitread.py", "fidelity.py"):  # fidelity.py is a maintainer tool: it exports files with `git archive`
+                if f.name == "gitread.py":
                     continue
                 self.assertNotRegex(body, r"\bsubprocess\b|os\.system|os\.popen")
 
@@ -205,7 +205,7 @@ class ReleaseHygieneTest(unittest.TestCase):
 
 
 class GeneralizedSkillsTest(unittest.TestCase):
-    """The seven skills generalized from the source projects (0.2.6)."""
+    """The seven skills generalized from the source projects."""
     ROOT = Path(__file__).resolve().parents[1]
     REVIEWERS = ("code-reviewer", "security-reviewer", "database-reviewer")
     STANDALONE = ("architecture-reviewer", "product-scope-roaster", "dependency-upgrade", "docs-sync")

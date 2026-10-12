@@ -1,6 +1,6 @@
 # Replacing a project's own workflow skills with backlog-kit
 
-For a repository that already has its own copies of these skills (the two projects backlog-kit was extracted from, or one like them). Nothing here edits your repository for you; `tools/migrate_check.py` only reads.
+For a repository that already has its own copies of these skills (for example a project that grew its own `feature-plan` or `bug-fix`). Nothing here edits your repository for you; `tools/migrate_check.py` only reads.
 
 If you are starting a new project, you do not need this page: install the kit and talk to Claude ([INSTALL.md](INSTALL.md)).
 
@@ -37,14 +37,12 @@ Run these from a clean working tree, on a branch.
 
 ## What behaves differently
 
-Where the two source projects disagreed, the kit follows one; none of it is a setting.
+Where projects' own versions differ, the kit follows one choice; none of it is a setting.
 
-- There is no `commit` action in `gitflow`: you commit your own work; `finish` pushes and opens the PR with the confirmations the originals had.
+- There is no `commit` action in `gitflow`: you commit your own work; `finish` pushes and opens the PR with confirmations before the first push of a branch.
 - Tests, E2E, build, database and security reviews and the viewport check are optional phases inside the pipelines, not project files; a phase that does not apply is skipped with a stated reason.
 - `Schema Change`, the P0–P3 / S/M/L / S1–S4 scales, branch names (`feature/`, `fix/`, base `develop`) and OpenSpec's location are fixed.
 - `bugs-next` reads whether a fix needs a schema change from a `- **Schema change:** yes` line in the bug's details file.
-
-The reasons for each choice are in the ledgers under `fidelity/` (maintainers; the originals are exported with `tools/fidelity.py --fetch`, see `fidelity/SOURCES.md`).
 
 ## Rolling back
 
