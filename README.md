@@ -56,7 +56,7 @@ The middle of the loop (`feature-development`, `bug-fix`) never commits: it leav
 
 ## Extras (optional)
 
-Install them when you want them: `python3 tools/install.py <repo> --extras` (or `--all`). The reviewers, `docs-sync`, `spec-compliance-check` and `dependency-upgrade` work out of the box from your `CLAUDE.md` and docs, and get sharper if you add project notes under `.backlog-kit/` — see [docs/extras.md](docs/extras.md).
+Install them when you want them: `python3 tools/install.py <repo> --extras` (or `--all`). The reviewers, `docs-sync`, `spec-compliance-check` and `dependency-upgrade` work out of the box from your `CLAUDE.md` and docs, and get sharper if you add review-check sections to your docs — see [docs/extras.md](docs/extras.md).
 
 `code-reviewer`, `security-reviewer`, `database-reviewer`, `architecture-reviewer`, `product-scope-roaster`, `docs-sync`, `dependency-upgrade`, `spec-compliance-check`, `features-batch-development`, `bugs-batch-fix`.
 
@@ -80,7 +80,7 @@ Early software (0.2), exercised on real repositories but not exhaustively. `gitf
 
 ## For maintainers
 
-[INSTALL.md](INSTALL.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md) · [DESIGN.md](DESIGN.md) (design) · [MIGRATING.md](MIGRATING.md) (replacing a project's own copies of these skills) · `examples/` and `fidelity/` (the ledgers of differences from the two source projects; the originals are exported from their repositories on demand, see `fidelity/SOURCES.md`).
+[INSTALL.md](INSTALL.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md) · [DESIGN.md](DESIGN.md) (design) · [MIGRATING.md](MIGRATING.md) (replacing a project's own copies of these skills) · `fidelity/` (the ledgers of differences from the two source projects; the originals are exported from their repositories on demand, see `fidelity/SOURCES.md`).
 
 ```
 python3 tools/vendor.py --check

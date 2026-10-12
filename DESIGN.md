@@ -25,7 +25,7 @@ A small set of skills that takes a feature or a bug from idea to a verified, arc
 
 ## Extras and project knowledge
 
-The reviewers, `docs-sync`, `spec-compliance-check` and `dependency-upgrade` need to know the stack. The skill holds the frame (workflow, severities, report format); the stack-specific knowledge lives in optional files in the project under `.backlog-kit/<folder>/`, each with a `Read when:` line. With none, the skill works from `CLAUDE.md` and the docs and says so in its report. See [docs/extras.md](docs/extras.md).
+The reviewers, `docs-sync`, `spec-compliance-check` and `dependency-upgrade` need to know the stack. The skill holds the frame (workflow, severities, report format); the stack-specific knowledge lives in named sections of the project's own docs (`Architecture review checks`, `Code review checks`, `Dependency upgrade checks`, …). With none, the skill works from `CLAUDE.md` and the docs and says so in its report. See [docs/extras.md](docs/extras.md).
 
 ## Fidelity to the source projects
 

@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.41
+- `spec-compliance-check` and `dependency-upgrade` read their project knowledge from `Spec compliance checks` and `Dependency upgrade checks` sections of `docs/frontend.md` and/or `docs/backend.md`. That removes the last `.backlog-kit/` folders: the concept is gone from the kit, along with `examples/`, the optional notes of `docs-sync`, the stale `project-phases.md` leftover in `bug-fix`, and section 4 of `migrate_check`. The conventions table, `docs/extras.md`, MIGRATING and the tests were updated.
+
 ## 0.2.40
 - `code-reviewer` reads the project's checks from a `Code review checks` section of `docs/frontend.md` and/or `docs/backend.md`, and `product-scope-roaster` from a `Product scope review checks` section of `docs/product.md` (now a documented optional kit doc), replacing `.backlog-kit/review/code/` and `.backlog-kit/review/product/`. The conventions table, `docs/extras.md`, `migrate_check` and the tests were updated, and the example review notes were removed: `.backlog-kit/` is now only for the optional notes of `spec-compliance-check`, `dependency-upgrade` and `docs-sync`.
 

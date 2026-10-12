@@ -8,9 +8,8 @@ It changes nothing. It reports, for the repository at <repo-root>:
   1. which of its `.claude/skills/` directories backlog-kit replaces (candidates to delete);
   2. which other tracked files still mention a skill that would be deleted (to review before deleting);
   3. where the backlog lives and the `.backlog-kit.toml` that points to it, if one is needed;
-  4. which optional `.backlog-kit/` project-note folders exist and how many files each holds;
-  5. whether OpenSpec's folder is there (optional: without it the feature brief is the spec);
-  6. whether `develop` already contains the kit's skills (the pipelines cut their branches from it).
+  4. whether OpenSpec's folder is there (optional: without it the feature brief is the spec);
+  5. whether `develop` already contains the kit's skills (the pipelines cut their branches from it).
 MIGRATING.md explains how to act on each section.
 """
 import re
@@ -31,14 +30,8 @@ REPLACES = {n: n for n in (
     "spec-compliance-check", "dependency-upgrade")}
 REPLACES["web-docs-sync"] = "docs-sync"
 
-# kit folder under .backlog-kit/ -> (what reads it). All are optional: without them the extras fall back to CLAUDE.md and docs.
-FOLDERS = {
-    "spec-compliance": "spec-compliance-check notes",
-    "docs": "optional docs-sync notes",
-    "dependency-upgrade": "dependency-upgrade notes",
-}
 SKIP = re.compile(r"(^|/)(node_modules|\.git)/|package-lock\.json$|(^|/)openspec/changes/archive/|"
-                  r"(^|/)docs/(reports|decisions|backlog|explorations)/|\.backlog-kit/")
+                  r"(^|/)docs/(reports|decisions|backlog|explorations)/")
 
 
 def tracked(root):
@@ -96,16 +89,10 @@ def main():
     if (root / ".backlog-kit.toml").is_file():
         print("- .backlog-kit.toml exists (only [paths] backlog_dir is read; other sections are ignored)")
 
-    print("\n## 4. Project files under .backlog-kit/")
-    base = root / ".backlog-kit"
-    for folder, what in FOLDERS.items():
-        n = len(list((base / folder).glob("*.md"))) if (base / folder).is_dir() else 0
-        print(f"- {folder}/: {n} file(s) — {what} [{'ok' if n else 'none (optional)'}]")
-
-    print("\n## 5. OpenSpec")
+    print("\n## 4. OpenSpec")
     print("- openspec/ present: feature-development will use it" if (root / "openspec").is_dir() else "- openspec/ not found: fine, the feature brief is the spec")
 
-    print("\n## 6. Base branch")
+    print("\n## 5. Base branch")
     marker = "develop:.claude/skills/features-next/scripts/backlog_kit.py"
     if gitread.ok(root, "rev-parse", "--verify", "--quiet", "develop"):
         if gitread.ok(root, "rev-parse", "--verify", "--quiet", marker):

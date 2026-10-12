@@ -37,9 +37,9 @@ honestly whether a change is ready for that decision.
 
 **Never run `git commit`, `git push` or open a PR.**
 
-## Project notes
+## Project checks
 
-List `.backlog-kit/spec-compliance/` (relative to the repository root); each file's second line is `Read when: …`; read every file marked `every run` and every file whose `Read when` matches the task; follow them. If the folder does not exist or is empty, work from the frame above plus what the project's CLAUDE.md and docs say, and tell the user that no project notes were found.
+Read the `Spec compliance checks` section of the project's `docs/frontend.md` and/or `docs/backend.md` (the kit convention: each of those docs holds the conventions of its side). It says which kinds of test file exist, how to run a single test and how to verify a scenario by hand. If the docs have no such section, work from the frame above plus what the project's CLAUDE.md and docs say, and tell the user that no project checks were found.
 
 ## Workflow
 
@@ -117,7 +117,7 @@ denied"*). To match:
 1. Scan `tasks.md`'s "Tests" section(s) for a task whose described
    input/action and expected outcome matches the scenario's `WHEN`/`THEN`.
 2. If found, open the test file that task's section header names
-   (a component test or end-to-end spec — the project notes say which kinds
+   (a component test or end-to-end spec — the project's checks say which kinds
    of test files exist) and locate the actual
    test — don't just trust the task description;
    read the test body and confirm it really asserts the `THEN` outcome, not
@@ -138,7 +138,7 @@ task for it.
 For scenarios with no automated coverage — commonly true-visual claims
 ("the task card SHALL show a checkbox for marking it done") or scenarios
 genuinely awkward to unit-test — perform the check directly, following the
-project notes' manual-verification recipes (how to start a running instance,
+project's manual-verification recipes (how to start a running instance,
 issue a real request, or drive the UI), and compare the real result to the
 scenario's `THEN`.
 
@@ -157,7 +157,7 @@ as a failing one; don't conflate the two in the report (§6).
 Matching a test to a scenario isn't the same as confirming it passes *now*:
 
 - For a matched automated test (§4.1/§4.2), **run it** — the single spec
-  file (the project notes say how) if the runner supports that granularity,
+  file (the project's checks say how) if the runner supports that granularity,
   otherwise
   the narrowest containing suite. A test that exists but is currently
   failing, skipped, or was silently broken by a later refactor is a

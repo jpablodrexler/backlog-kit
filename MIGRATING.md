@@ -8,14 +8,14 @@ If you are starting a new project, you do not need this page: install the kit an
 
 The kit replaces the skills with the same names: the planning family (`feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`), `decision-record`, `feature-development`, `bug-fix`, `gitflow`, and the extras you choose to install (`code-reviewer`, `security-reviewer`, `database-reviewer`, `architecture-reviewer`, `product-scope-roaster`, `docs-sync` — called `web-docs-sync` in one source project —, `spec-compliance-check`, `dependency-upgrade`, `features-batch-development`, `bugs-batch-fix`). Your stack skills, `openspec-*` skills and anything else in `.claude/skills/` stay.
 
-What the replaced skills knew about your stack does not disappear. Test, build and E2E commands are found by the pipelines in your `CLAUDE.md` and build manifest. The optional extras read checklists and maps from markdown files you keep under `.backlog-kit/` (see [docs/extras.md](docs/extras.md)); the notes of the two source projects are in `examples/`.
+What the replaced skills knew about your stack does not disappear. Test, build and E2E commands are found by the pipelines in your `CLAUDE.md` and build manifest. The optional extras read their checklists from sections of your own docs (see [docs/extras.md](docs/extras.md)).
 
 ## Steps
 
 Run these from a clean working tree, on a branch.
 
-1. **Look first:** `python3 /path/to/backlog-kit/tools/migrate_check.py <repo>` lists the project skills to delete, the files that still mention them, the `.backlog-kit.toml` you need (if any), the project-note folders present, whether OpenSpec is there, and whether `develop` already has the kit's skills.
-2. **Optional project notes.** Copy the nearest example (`examples/<project>/.backlog-kit`) into your repository and edit it, or start with none: the extras then work from `CLAUDE.md` and your docs.
+1. **Look first:** `python3 /path/to/backlog-kit/tools/migrate_check.py <repo>` lists the project skills to delete, the files that still mention them, the `.backlog-kit.toml` you need (if any), whether OpenSpec is there, and whether `develop` already has the kit's skills.
+2. **Optional project checks.** Put the checklists your extras should use into sections of your docs (see [docs/extras.md](docs/extras.md)), or start with none: the extras then work from `CLAUDE.md` and your docs.
 3. **Settings, if you need any.** `.backlog-kit.toml` is optional: the backlog folder (default `docs/backlog`) and the viewport check devices. See `backlog-kit.example.toml`.
 4. **Delete the project skills, then install the kit's.**
    ```
@@ -48,4 +48,4 @@ The reasons for each choice are in the ledgers under `fidelity/` (maintainers; t
 
 ## Rolling back
 
-`git revert` the migration commit: the deleted skills come back; `.backlog-kit/` and `.backlog-kit.toml` go away.
+`git revert` the migration commit: the deleted skills come back; `.backlog-kit.toml` goes away.

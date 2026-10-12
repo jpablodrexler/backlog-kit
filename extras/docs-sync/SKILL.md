@@ -84,12 +84,6 @@ A doc whose row has no "Checked against" phrase (or a project whose
 work from that, and say so in the summary; the full sweep then proposes
 completing the table (see §3).
 
-**Project notes (optional).** `.backlog-kit/docs/` (relative to the
-repository root) may hold files for what the docs themselves cannot say,
-each with `Read when: …` on its second line; read the ones that match the
-task and follow them. There is nothing to report when the folder does not
-exist.
-
 ---
 
 ## 2. Scoped Sync Workflow
@@ -125,7 +119,7 @@ exist.
 ## 3. Full Sweep Workflow
 
 1. Read `CLAUDE.md`, `README.md`, and every file under `docs/` (excluding
-   the paths the project notes mark out of scope — see Guardrails) in full.
+   the paths named in Guardrails) in full.
 2. For each doc, using its "Checked against" row and what it references,
    independently re-derive the current state from code rather than trusting
    the doc's existing content, and compare. For sources that are an ordered
@@ -179,9 +173,7 @@ exist.
   required minimum check device, or the shape of a shared type).
 - **Scope.** The skill's scope is `CLAUDE.md`, `README.md` and the reference
   docs of the kit conventions (`reference/conventions.md`: `docs/*.md`
-  except the folders below); the project notes may add to it (for example a
-  configuration file kept in step with the docs) or name what else is out.
-  Regardless, it does not touch `<backlog>/` files (owned by
+  except the folders below). It does not touch `<backlog>/` files (owned by
   `feature-plan`/`features-archive`), `docs/decisions/*.md` (owned by
   `decision-record` — an append-only decision history, not current-state
   reference material this skill keeps synced against the code),
