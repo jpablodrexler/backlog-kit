@@ -63,16 +63,16 @@ def project(tmp):
     root = Path(tmp)
     (root / "docs/backlog/features").mkdir(parents=True)
     (root / "docs/backlog/bugs").mkdir(parents=True)
-    (root / "docs/backlog/features-planned.md").write_text(PLANNED)
-    (root / "docs/backlog/features-implemented.md").write_text(IMPLEMENTED)
-    (root / "docs/backlog/bugs-open.md").write_text(BUGS)
+    (root / "docs/backlog/features-planned.md").write_text(PLANNED, encoding="utf-8")
+    (root / "docs/backlog/features-implemented.md").write_text(IMPLEMENTED, encoding="utf-8")
+    (root / "docs/backlog/bugs-open.md").write_text(BUGS, encoding="utf-8")
     for n in range(1, 5):
-        (root / f"docs/backlog/bugs/BUG-00{n}.md").write_text(f"# BUG-00{n}\n\n- **Notes:** none\n")
+        (root / f"docs/backlog/bugs/BUG-00{n}.md").write_text(f"# BUG-00{n}\n\n- **Notes:** none\n", encoding="utf-8")
     return root
 
 
 def run(script, root, *args):
-    return json.loads(subprocess.run([sys.executable, str(script), str(root), *args], capture_output=True, text=True, check=True).stdout)
+    return json.loads(subprocess.run([sys.executable, str(script), str(root), *args], capture_output=True, text=True, encoding="utf-8", check=True).stdout)
 
 
 class RankScripts(unittest.TestCase):
@@ -94,7 +94,7 @@ class RankScripts(unittest.TestCase):
     def test_a_bug_marked_schema_change_loses_the_tier_4_bonus(self):
         with tempfile.TemporaryDirectory() as d:
             root = project(d)
-            (root / "docs/backlog/bugs/BUG-001.md").write_text("# BUG-001\n\n- **Schema change:** yes — adds a column\n")
+            (root / "docs/backlog/bugs/BUG-001.md").write_text("# BUG-001\n\n- **Schema change:** yes — adds a column\n", encoding="utf-8")
             kit = run(KIT / "skills/bugs-next/scripts/rank_bugs.py", root, "--json")
             scores = {r["id"]: r["score"] for r in [kit["top"]] + kit["runners_up"]}
             self.assertEqual(scores["BUG-001"], scores["BUG-004"] - 5)       # same tier and order bonus, but no tier 4

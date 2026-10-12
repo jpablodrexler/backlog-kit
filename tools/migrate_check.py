@@ -77,7 +77,7 @@ def main():
         print("- none")
 
     print("\n## 3. Backlog location")
-    found_dirs = sorted({str(Path(p).parent) for p in tracked(root)
+    found_dirs = sorted({Path(p).parent.as_posix() for p in tracked(root)
                          if p.endswith(("/features-planned.md", "/bugs-open.md")) or p in ("features-planned.md", "bugs-open.md")})
     if not found_dirs:
         print("- no features-planned.md / bugs-open.md tracked yet: the defaults apply (docs/backlog)")

@@ -11,7 +11,7 @@ S = KIT / "skills"
 
 
 def run(script, root, *args):
-    out = subprocess.run([sys.executable, str(script), str(root), *args], capture_output=True, text=True, check=True).stdout
+    out = subprocess.run([sys.executable, str(script), str(root), *args], capture_output=True, text=True, encoding="utf-8", check=True).stdout
     return out
 
 
@@ -46,13 +46,13 @@ IMPLEMENTED = """# Implemented Features
 def repo(deps="_None yet._", backlog="docs/backlog", toml='[spec]\nworkflow = "openspec"\n'):
     tmp = tempfile.TemporaryDirectory()
     root = Path(tmp.name)
-    (root / ".backlog-kit.toml").write_text(toml + (f'[paths]\nbacklog_dir = "{backlog}"\n' if backlog != "docs/backlog" else ""))
+    (root / ".backlog-kit.toml").write_text(toml + (f'[paths]\nbacklog_dir = "{backlog}"\n' if backlog != "docs/backlog" else ""), encoding="utf-8")
     bl = root / backlog
     (bl / "features").mkdir(parents=True)
-    (bl / "features-planned.md").write_text(PLANNED % deps)
-    (bl / "features-implemented.md").write_text(IMPLEMENTED)
-    (bl / "features/004-shout.md").write_text("# Feature 4 — shout\n\nx\n")
-    (bl / "features/003-parser.md").write_text("# Feature 3 — parser\n\nx\n")
+    (bl / "features-planned.md").write_text(PLANNED % deps, encoding="utf-8")
+    (bl / "features-implemented.md").write_text(IMPLEMENTED, encoding="utf-8")
+    (bl / "features/004-shout.md").write_text("# Feature 4 — shout\n\nx\n", encoding="utf-8")
+    (bl / "features/003-parser.md").write_text("# Feature 3 — parser\n\nx\n", encoding="utf-8")
     return tmp, root
 
 
@@ -63,7 +63,7 @@ class SddArtifactsFromDisk(unittest.TestCase):
         ch = root / "openspec/changes/shout"
         (ch / "specs/shout").mkdir(parents=True)
         for f in ("proposal.md", "tasks.md", "specs/shout/spec.md"):
-            (ch / f).write_text("x\n")
+            (ch / f).write_text("x\n", encoding="utf-8")
         ranked = json.loads(run(S / "features-next/scripts/rank_features.py", root, "--json"))
         self.assertFalse(ranked["top"]["artifacts_ready"])      # features-next trusts the cell, as the originals do
 
@@ -100,9 +100,9 @@ class ClosedBugsKeepTheirWriteUp(unittest.TestCase):
         bl = root / "docs/backlog"
         (bl / "bugs").mkdir(parents=True)
         (bl / "bugs-open.md").write_text("# Open Bugs\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Status | Fix | Summary |\n| --- | --- | --- | --- | --- | --- | --- |\n"
-                                        "| [BUG-001](bugs/BUG-001.md) | S3 | a | local | 🚫 Won't fix | | nope |\n| [BUG-002](bugs/BUG-002.md) | S3 | a | local | ❓ Cannot reproduce | | cannot |\n")
-        (bl / "bugs-fixed.md").write_text("# Fixed Bugs\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Fixed | Fix | Summary |\n| --- | --- | --- | --- | --- | --- | --- |\n")
-        (bl / "bugs/BUG-001.md").write_text("# BUG-001 — a\n\n- **Steps to reproduce:** x\n")      # no Resolution line
+                                        "| [BUG-001](bugs/BUG-001.md) | S3 | a | local | 🚫 Won't fix | | nope |\n| [BUG-002](bugs/BUG-002.md) | S3 | a | local | ❓ Cannot reproduce | | cannot |\n", encoding="utf-8")
+        (bl / "bugs-fixed.md").write_text("# Fixed Bugs\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Fixed | Fix | Summary |\n| --- | --- | --- | --- | --- | --- | --- |\n", encoding="utf-8")
+        (bl / "bugs/BUG-001.md").write_text("# BUG-001 — a\n\n- **Steps to reproduce:** x\n", encoding="utf-8")      # no Resolution line
         text = run(S / "bugs-status/scripts/status_report.py", root)
         self.assertIn("BUG-001 is resolved but", text)
         self.assertIn("BUG-002 has a table row but no", text)       # details file missing entirely
@@ -110,7 +110,7 @@ class ClosedBugsKeepTheirWriteUp(unittest.TestCase):
 
 class SkillTextFixes(unittest.TestCase):
     def read(self, rel):
-        return (KIT / rel).read_text()
+        return (KIT / rel).read_text(encoding="utf-8")
 
     def test_bugs_archive_never_leaves_two_resolution_lines(self):
         t = self.read("skills/bugs-archive/SKILL.md")
@@ -136,14 +136,14 @@ class PreviouslyUnverifiedFindings(unittest.TestCase):
     """Findings from the comparison that were first reported, then checked, then fixed."""
 
     def read(self, rel):
-        return (KIT / rel).read_text()
+        return (KIT / rel).read_text(encoding="utf-8")
 
     def test_an_unknown_prerequisite_is_reported_not_silently_accepted(self):
         # decision D7: a prerequisite with no row anywhere counts as shipped (as in the source projects),
         # but the script says so, so a mistyped number does not pass unnoticed.
         tmp, root = repo(deps="**Feature 4 → Feature 39** (still pending)\n\ntypo'd number")
         self.addCleanup(tmp.cleanup)
-        proc = subprocess.run([sys.executable, str(S / "features-next/scripts/rank_features.py"), str(root), "--json"], capture_output=True, text=True)
+        proc = subprocess.run([sys.executable, str(S / "features-next/scripts/rank_features.py"), str(root), "--json"], capture_output=True, text=True, encoding="utf-8")
         out = json.loads(proc.stdout)
         self.assertIn("top", out)
         self.assertIn("neither features-planned.md nor features-implemented.md", out["warning"])

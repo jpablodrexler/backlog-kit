@@ -25,18 +25,18 @@ SCRIPTS = {
 
 def run(key, root, *extra, as_json=True):
     out = subprocess.run([sys.executable, str(SCRIPTS[key]), str(root), *extra],
-                         capture_output=True, text=True, check=True).stdout
+                         capture_output=True, text=True, encoding="utf-8", check=True).stdout
     return json.loads(out) if as_json else out
 
 
 def skeleton(root, backlog="docs/backlog"):
     """Create the two backlog files from the skeletons printed in feature-plan/SKILL.md (what the skill tells the model to write)."""
-    text = (S / "feature-plan/SKILL.md").read_text()
+    text = (S / "feature-plan/SKILL.md").read_text(encoding="utf-8")
     blocks = re.findall(r"```markdown\n(.*?)```", text, re.S)
     d = Path(root) / backlog
     d.mkdir(parents=True, exist_ok=True)
-    (d / "features-planned.md").write_text(blocks[0])
-    (d / "features-implemented.md").write_text(blocks[1])
+    (d / "features-planned.md").write_text(blocks[0], encoding="utf-8")
+    (d / "features-implemented.md").write_text(blocks[1], encoding="utf-8")
 
 
 def frow(n, name, prio="P2", schema="No", effort="M", area="Backend", sdd="⬜ Pending", impl="⬜ Pending", summary=None):
@@ -47,11 +47,11 @@ def frow(n, name, prio="P2", schema="No", effort="M", area="Backend", sdd="⬜ P
 def add_feature_row(root, rel, row):
     """Append a table row to a features file, right after the header separator's last row."""
     p = Path(root) / rel
-    lines = p.read_text().splitlines()
+    lines = p.read_text(encoding="utf-8").splitlines()
     idx = max(i for i, ln in enumerate(lines[: lines.index("## Column legend") if "## Column legend" in lines else len(lines)])
               if ln.startswith("|"))
     lines.insert(idx + 1, row)
-    p.write_text("\n".join(lines) + "\n")
+    p.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 class FeatureFlow(unittest.TestCase):
@@ -67,9 +67,9 @@ class FeatureFlow(unittest.TestCase):
     def test_the_skeleton_in_the_skill_is_what_the_scripts_read_and_numbering_starts_at_one(self):
         skeleton(self.root)
         self.assertEqual(run("f_next_id", self.root)["next_number"], 1)
-        header = (self.root / self.REL).read_text().splitlines()
+        header = (self.root / self.REL).read_text(encoding="utf-8").splitlines()
         self.assertIn("| # | Change name | Priority | Schema Change | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |", header)
-        self.assertIn("## Deployment (migration) dependencies (applied)", (self.root / "docs/backlog/features-implemented.md").read_text())
+        self.assertIn("## Deployment (migration) dependencies (applied)", (self.root / "docs/backlog/features-implemented.md").read_text(encoding="utf-8"))
 
     def test_rank_blocks_on_live_prerequisite_and_prefers_in_progress(self):
         skeleton(self.root)
@@ -78,16 +78,16 @@ class FeatureFlow(unittest.TestCase):
         fdir = self.root / "docs/backlog/features"
         fdir.mkdir()
         for n, name in ((1, "alpha"), (2, "beta"), (3, "gamma")):
-            (fdir / f"{n:03d}-{name}.md").write_text(f"# Feature {n} — {name}\n\nbrief\n")
+            (fdir / f"{n:03d}-{name}.md").write_text(f"# Feature {n} — {name}\n\nbrief\n", encoding="utf-8")
 
         out = run("f_rank", self.root, "--json")
         self.assertEqual(out["top"]["name"], "gamma", "an in-progress feature outranks a higher-priority pending one")
 
         # beta (P0) hard-depends on alpha, which is still pending -> beta is blocked
         p = self.root / self.REL
-        p.write_text(p.read_text().replace(
+        p.write_text(p.read_text(encoding="utf-8").replace(
             "### Hard implementation dependencies\n\n_None yet._",
-            "### Hard implementation dependencies\n\n**Feature 2 → Feature 1** (still pending)\n\n`beta` needs `alpha`."))
+            "### Hard implementation dependencies\n\n**Feature 2 → Feature 1** (still pending)\n\n`beta` needs `alpha`."), encoding="utf-8")
         out = run("f_rank", self.root, "--json")
         self.assertEqual([b["number"] for b in out["blocked"]], ["2"])
         self.assertNotIn("beta", [out["top"]["name"]] + [r["name"] for r in out["runners_up"]])
@@ -124,23 +124,23 @@ class FeatureFlow(unittest.TestCase):
         self.assertIn("no docs/backlog/features/001-a.md file", out)
 
     def test_custom_backlog_dir(self):
-        (self.root / ".backlog-kit.toml").write_text('[paths]\nbacklog_dir = "planning"\n')
+        (self.root / ".backlog-kit.toml").write_text('[paths]\nbacklog_dir = "planning"\n', encoding="utf-8")
         skeleton(self.root, "planning")
         add_feature_row(self.root, "planning/features-planned.md", frow(4, "d", "P1"))
         (self.root / "planning/features").mkdir()
-        (self.root / "planning/features/004-d.md").write_text("# Feature 4 — d\n\nbrief\n")
+        (self.root / "planning/features/004-d.md").write_text("# Feature 4 — d\n\nbrief\n", encoding="utf-8")
         self.assertEqual(run("f_next_id", self.root)["next_number"], 5)
         self.assertEqual(run("f_rank", self.root, "--json")["top"]["brief_file"], "planning/features/004-d.md")
 
 
 def bug_skeleton(root, backlog="docs/backlog"):
     """Create bugs-open.md / bugs-fixed.md from the skeletons printed in bug-report/SKILL.md."""
-    text = (S / "bug-report/SKILL.md").read_text()
+    text = (S / "bug-report/SKILL.md").read_text(encoding="utf-8")
     blocks = re.findall(r"```markdown\n(.*?)```", text, re.S)
     d = Path(root) / backlog
     d.mkdir(parents=True, exist_ok=True)
-    (d / "bugs-open.md").write_text(blocks[0])
-    (d / "bugs-fixed.md").write_text(blocks[1])
+    (d / "bugs-open.md").write_text(blocks[0], encoding="utf-8")
+    (d / "bugs-fixed.md").write_text(blocks[1], encoding="utf-8")
 
 
 class BugFlow(unittest.TestCase):
@@ -153,17 +153,17 @@ class BugFlow(unittest.TestCase):
 
     def add_bug(self, bug_id, sev, env, status="⬜ Open"):
         p = self.root / "docs/backlog/bugs-open.md"
-        text = p.read_text().replace("\n\n_No open bugs._", "")
+        text = p.read_text(encoding="utf-8").replace("\n\n_No open bugs._", "")
         lines = text.splitlines()
         sep = next(i for i, ln in enumerate(lines) if ln.startswith("| ---"))
         end = sep + 1
         while end < len(lines) and lines[end].startswith("|"):
             end += 1
         lines.insert(end, f"| [{bug_id}](bugs/{bug_id}.md) | {sev} | /x | {env} | {status} | | summary {bug_id} |")
-        p.write_text("\n".join(lines) + "\n")
+        p.write_text("\n".join(lines) + "\n", encoding="utf-8")
         bdir = self.root / "docs/backlog/bugs"
         bdir.mkdir(exist_ok=True)
-        (bdir / f"{bug_id}.md").write_text(f"# {bug_id} — title\n\n- **Expected:** x\n")
+        (bdir / f"{bug_id}.md").write_text(f"# {bug_id} — title\n\n- **Expected:** x\n", encoding="utf-8")
 
     def test_numbering_follows_the_skeleton_in_the_skill(self):
         bug_skeleton(self.root)
@@ -194,7 +194,7 @@ class BugFlow(unittest.TestCase):
     def test_status_counts_and_integrity(self):
         bug_skeleton(self.root)
         self.add_bug("BUG-001", "S1", "prod")
-        (self.root / "docs/backlog/bugs/BUG-009.md").write_text("# BUG-009 — orphan\n")
+        (self.root / "docs/backlog/bugs/BUG-009.md").write_text("# BUG-009 — orphan\n", encoding="utf-8")
         out = run("b_status", self.root, as_json=False)
         self.assertRegex(out, r"\| ⬜ Open\s+\| 1 \|")
         self.assertIn("BUG-009.md exists but BUG-009 has no table row", out)
@@ -206,7 +206,7 @@ class AdrNumbering(unittest.TestCase):
             self.assertEqual(run("adr", tmp)["next_number"], "0001")
             d = Path(tmp) / "docs/decisions"
             d.mkdir(parents=True)
-            (d / "0031-x.md").write_text("x")
+            (d / "0031-x.md").write_text("x", encoding="utf-8")
             self.assertEqual(run("adr", tmp)["next_number"], "0032")
 
 

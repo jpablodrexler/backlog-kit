@@ -46,14 +46,14 @@ class SkillLint(unittest.TestCase):
     def test_every_skill_dir_has_valid_frontmatter(self):
         for d in SKILLS:
             with self.subTest(skill=d.name):
-                fm = frontmatter((d / "SKILL.md").read_text())
+                fm = frontmatter((d / "SKILL.md").read_text(encoding="utf-8"))
                 self.assertEqual(fm["name"], d.name)
                 self.assertGreater(len(fm["description"]), 80)
                 self.assertRegex(fm["description"], r"TRIGGER|Use when", "description must say when to trigger")
 
     def test_referenced_scripts_exist(self):
         for d in SKILLS:
-            text = (d / "SKILL.md").read_text()
+            text = (d / "SKILL.md").read_text(encoding="utf-8")
             for rel in set(re.findall(r"python3 (scripts/\w+\.py)", text)):
                 with self.subTest(skill=d.name, script=rel):
                     self.assertTrue((d / rel).is_file())
@@ -64,14 +64,14 @@ class SkillLint(unittest.TestCase):
     def test_public_promise_never_commits(self):
         for d in SKILLS:
             with self.subTest(skill=d.name):
-                text = (d / "SKILL.md").read_text()
+                text = (d / "SKILL.md").read_text(encoding="utf-8")
                 if d.name == "gitflow":      # the one skill that writes to git, and only when asked
                     continue
                 self.assertIn("**Never run `git commit`, `git push` or open a PR.**", text,
                               "every skill must carry the canonical no-commit promise verbatim")
 
     def test_gitflow_is_the_only_pusher_and_keeps_the_originals_confirmations(self):
-        text = (KIT / "skills/gitflow/SKILL.md").read_text()
+        text = (KIT / "skills/gitflow/SKILL.md").read_text(encoding="utf-8")
         for needle in ("Never force-push", "Never merge a PR automatically",
                        "Never tag without explicit user confirmation",
                        "Never delete `main` or `develop`",
@@ -81,7 +81,7 @@ class SkillLint(unittest.TestCase):
         for d in SKILLS:
             if d.name == "gitflow":
                 continue
-            body = (d / "SKILL.md").read_text()
+            body = (d / "SKILL.md").read_text(encoding="utf-8")
             for ln in [l for l in body.splitlines() if "`gitflow`" in l]:
                 if d.name in ("feature-development", "bug-fix", "features-batch-development", "bugs-batch-fix", "dependency-upgrade", "spec-compliance-check"):
                     continue        # D23: the pipelines call gitflow's start and sync as the originals do
@@ -93,7 +93,7 @@ class SkillLint(unittest.TestCase):
         files = list(list((KIT / "skills").rglob("*.py")) + list((KIT / "extras").rglob("*.py"))) + list((KIT / "lib").glob("*.py")) + list((KIT / "tools").glob("*.py"))
         for f in files:
             with self.subTest(file=str(f.relative_to(KIT))):
-                body = f.read_text()
+                body = f.read_text(encoding="utf-8")
                 if f.name == "gitread.py":
                     continue
                 self.assertNotRegex(body, r"\bsubprocess\b|os\.system|os\.popen")
@@ -116,17 +116,17 @@ class SkillLint(unittest.TestCase):
         # decision D8: the source projects confirm every item, also inside a batch.
         for path in list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "extras").glob("*/SKILL.md")) + list((KIT / "shared").glob("*.md")):
             with self.subTest(file=str(path.relative_to(KIT))):
-                self.assertNotIn("--confirmed", path.read_text())
+                self.assertNotIn("--confirmed", path.read_text(encoding="utf-8"))
 
     def test_vendored_copies_are_current(self):
-        proc = subprocess.run([sys.executable, str(KIT / "tools/vendor.py"), "--check"], capture_output=True, text=True)
+        proc = subprocess.run([sys.executable, str(KIT / "tools/vendor.py"), "--check"], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
     def test_placeholder_script_and_reference_paths_resolve(self):
         for d in SKILLS:
-            text = (d / "SKILL.md").read_text()
+            text = (d / "SKILL.md").read_text(encoding="utf-8")
             for rel in set(re.findall(r"<scripts>/(\w+\.py)", text + "".join(
-                    f.read_text() for f in (d / "reference").glob("*.md") if (d / "reference").is_dir()))):
+                    f.read_text(encoding="utf-8") for f in (d / "reference").glob("*.md") if (d / "reference").is_dir()))):
                 with self.subTest(skill=d.name, script=rel):
                     self.assertTrue((d / "scripts" / rel).is_file())
             for rel in set(re.findall(r"`(reference/[\w-]+\.md)`", text)):
@@ -138,7 +138,7 @@ class SkillLint(unittest.TestCase):
             if f.is_file() and f.suffix in {".md", ".py"}:
                 with self.subTest(file=str(f.relative_to(KIT))):
                     # the author line of the frontmatter names the owner; nothing else may
-                    hit = LEAK.search(f.read_text().replace("author: Juan Pablo Drexler", ""))
+                    hit = LEAK.search(f.read_text(encoding="utf-8").replace("author: Juan Pablo Drexler", ""))
                     self.assertIsNone(hit, f"stack-specific term leaked: {hit.group(0) if hit else ''}")
 
     def test_no_script_imports_outside_stdlib_or_lib(self):
@@ -147,7 +147,7 @@ class SkillLint(unittest.TestCase):
                      "backlog_kit", "gitread", "work_scope", "branch_state", "detect_gates", "batch_plan", "batch_report"}
         for f in list((KIT / "skills").rglob("*.py")) + list((KIT / "extras").rglob("*.py")):
             with self.subTest(file=str(f.relative_to(KIT))):
-                mods = set(re.findall(r"^(?:import|from)\s+(\w+)", f.read_text(), re.M))
+                mods = set(re.findall(r"^(?:import|from)\s+(\w+)", f.read_text(encoding="utf-8"), re.M))
                 self.assertLessEqual(mods, stdlib_ok, f"non-stdlib import: {mods - stdlib_ok}")
 
 
@@ -160,15 +160,15 @@ class PackagingTest(unittest.TestCase):
 
     def test_plugin_manifest_and_marketplace_are_valid(self):
         import json
-        plugin = json.loads((self.ROOT / ".claude-plugin" / "plugin.json").read_text())
-        market = json.loads((self.ROOT / ".claude-plugin" / "marketplace.json").read_text())
+        plugin = json.loads((self.ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        market = json.loads((self.ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         self.assertEqual(plugin["name"], "backlog-kit")
         self.assertRegex(plugin["version"], r"^\d+\.\d+\.\d+$")
         self.assertEqual([p["name"] for p in market["plugins"]], [plugin["name"]])
 
     def test_docs_list_every_skill(self):
         names = sorted(p.name for p in (self.ROOT / "skills").iterdir() if (p / "SKILL.md").is_file())
-        readme = (self.ROOT / "README.md").read_text()
+        readme = (self.ROOT / "README.md").read_text(encoding="utf-8")
         for n in names:
             self.assertIn(f"`{n}`", readme, f"README does not mention {n}")
 
@@ -197,13 +197,13 @@ class ReleaseHygieneTest(unittest.TestCase):
 
     def test_changelog_top_entry_matches_the_plugin_version(self):
         import json
-        version = json.loads((self.ROOT / ".claude-plugin/plugin.json").read_text())["version"]
+        version = json.loads((self.ROOT / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))["version"]
         top = re.search(r"^## \[?(\d+\.\d+\.\d+)", (self.ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), re.M)
         self.assertIsNotNone(top)
         self.assertEqual(top.group(1), version)
 
     def test_ci_runs_the_drift_check_and_the_tests(self):
-        ci = (self.ROOT / ".github/workflows/ci.yml").read_text()
+        ci = (self.ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("tools/vendor.py --check", ci)
         self.assertIn("unittest discover -s tests", ci)
 
@@ -268,7 +268,7 @@ class ListMergeCandidates(unittest.TestCase):
             g("commit", "-q", "--allow-empty", "-m", "x")
             g("branch", "feature/a"); g("branch", "hotfix/v1.0.1"); g("branch", "other/z")
             out = json.loads(subprocess.run([sys.executable, str(script), d, "--no-fetch", "--json"],
-                                            capture_output=True, text=True, check=True).stdout)
+                                            capture_output=True, text=True, encoding="utf-8", check=True).stdout)
             self.assertEqual([c["branch"] for c in out["candidates"]], ["feature/a", "hotfix/v1.0.1"])
             self.assertEqual(out["candidates"][0]["where"], ["local"])
 
@@ -279,7 +279,7 @@ class ReviewerFrames(unittest.TestCase):
     def test_each_reviewer_reads_the_project_checklists_and_warns_when_there_are_none(self):
         for name, kind in (("code-reviewer", "code"), ("security-reviewer", "security"), ("database-reviewer", "database")):
             with self.subTest(skill=name):
-                text = (sdir(name) / "SKILL.md").read_text()
+                text = (sdir(name) / "SKILL.md").read_text(encoding="utf-8")
                 # their checks live in a section of the project's docs
                 self.assertIn(f"`{kind.capitalize()} review checks`", text)
                 self.assertIn({"code": "docs/frontend.md", "security": "docs/security.md", "database": "docs/database.md"}[kind], text)
@@ -297,15 +297,15 @@ class MigrateCheck(unittest.TestCase):
                 subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", *a], check=True, capture_output=True)
             g("init", "-q", "-b", "main")
             (root / ".claude/skills/bug-fix").mkdir(parents=True)
-            (root / ".claude/skills/bug-fix/SKILL.md").write_text("x")
+            (root / ".claude/skills/bug-fix/SKILL.md").write_text("x", encoding="utf-8")
             (root / ".claude/skills/web-docs-sync").mkdir(parents=True)
-            (root / ".claude/skills/web-docs-sync/SKILL.md").write_text("x")
+            (root / ".claude/skills/web-docs-sync/SKILL.md").write_text("x", encoding="utf-8")
             (root / ".claude/skills/stack-helper").mkdir(parents=True)
-            (root / ".claude/skills/stack-helper/SKILL.md").write_text("see `web-docs-sync` and bug-fix")
+            (root / ".claude/skills/stack-helper/SKILL.md").write_text("see `web-docs-sync` and bug-fix", encoding="utf-8")
             (root / "sub/docs/backlog").mkdir(parents=True)
-            (root / "sub/docs/backlog/bugs-open.md").write_text("# Bugs\n")
+            (root / "sub/docs/backlog/bugs-open.md").write_text("# Bugs\n", encoding="utf-8")
             g("add", "-A")
-            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
+            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, encoding="utf-8", check=True).stdout
             self.assertIn("- bug-fix", out)
             self.assertIn("web-docs-sync  (the kit calls it `docs-sync`)", out)
             self.assertNotIn("- stack-helper", out.split("## 2.")[0])
@@ -315,12 +315,12 @@ class MigrateCheck(unittest.TestCase):
             self.assertIn("no local develop branch", out)
             g("commit", "-q", "-m", "x")
             g("branch", "develop")
-            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
+            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, encoding="utf-8", check=True).stdout
             self.assertIn("WARNING develop does not contain the kit's skills", out)
             (root / ".claude/skills/features-next/scripts").mkdir(parents=True)
-            (root / ".claude/skills/features-next/scripts/backlog_kit.py").write_text("x")
+            (root / ".claude/skills/features-next/scripts/backlog_kit.py").write_text("x", encoding="utf-8")
             g("add", "-A"); g("commit", "-q", "-m", "y"); g("branch", "-f", "develop")
-            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
+            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, encoding="utf-8", check=True).stdout
             self.assertIn("develop contains the kit's skills", out)
 
 
@@ -330,11 +330,11 @@ class HandBackContract(unittest.TestCase):
     def test_paragraph_and_references(self):
         for name in ("feature-development", "bug-fix"):
             with self.subTest(skill=name):
-                text = (sdir(name) / "SKILL.md").read_text()
+                text = (sdir(name) / "SKILL.md").read_text(encoding="utf-8")
                 self.assertIn("**Hand-back.** Your hand-back is the final text of your response", text)
                 self.assertIn("never send placeholder text", text)
         for name in ("feature-development", "bug-fix"):
-            text = " ".join((sdir(name) / "SKILL.md").read_text().split())
+            text = " ".join((sdir(name) / "SKILL.md").read_text(encoding="utf-8").split())
             self.assertIn("look at the working tree for what the subagent actually did", text)
 
 
@@ -343,7 +343,7 @@ class KitConventions(unittest.TestCase):
 
     def test_skill_paths_are_in_the_conventions_table(self):
         import re
-        table = (KIT / "shared/conventions.md").read_text()
+        table = (KIT / "shared/conventions.md").read_text(encoding="utf-8")
         known = {k.rstrip("/") for k in re.findall(r"`(docs/[^`]+)`", table)}
         known |= {"docs/*.md", "docs/<topic>.md", "docs/decisions/*.md"}
         dirs = {k for k in known if k in ("docs/backlog", "docs/decisions", "docs/explorations", "docs/reports")}
@@ -351,7 +351,7 @@ class KitConventions(unittest.TestCase):
         pat = re.compile(r"docs/[A-Za-z0-9_.*<>-]+(?:/[A-Za-z0-9_.*<>-]+)*")
         files = [f for d in ("skills", "extras") for f in (KIT / d).rglob("*.md") if "reference/conventions.md" not in str(f)]
         for f in files:
-            for m in pat.findall(f.read_text()):
+            for m in pat.findall(f.read_text(encoding="utf-8")):
                 path = m.rstrip(".")
                 ok = path in known or any(path.startswith(k + "/") for k in dirs)
                 with self.subTest(file=str(f.relative_to(KIT)), path=path):
@@ -360,20 +360,20 @@ class KitConventions(unittest.TestCase):
     def test_checked_against_column_is_in_the_table_and_the_example(self):
         for rel in ("shared/conventions.md", "docs/conventions.md"):
             with self.subTest(file=rel):
-                text = (KIT / rel).read_text()
+                text = (KIT / rel).read_text(encoding="utf-8")
                 self.assertIn("| Path | What it holds | Checked against |", text)
-        self.assertIn("Checked against", (KIT / "extras/docs-sync/SKILL.md").read_text())
+        self.assertIn("Checked against", (KIT / "extras/docs-sync/SKILL.md").read_text(encoding="utf-8"))
 
     def test_docs_sync_carries_the_table(self):
         self.assertTrue((KIT / "extras/docs-sync/reference/conventions.md").is_file())
-        self.assertIn("## Kit conventions", (KIT / "shared/conventions.md").read_text())
+        self.assertIn("## Kit conventions", (KIT / "shared/conventions.md").read_text(encoding="utf-8"))
 
 
 class ViewportCheck(unittest.TestCase):
     def test_pipelines_require_every_configured_viewport_to_be_reported(self):
         for rel in ("skills/bug-fix/SKILL.md", "skills/feature-development/reference/phase-2-implement-review.md"):
             with self.subTest(file=rel):
-                text = " ".join(" ".join(l.lstrip("> ") for l in (KIT / rel).read_text().splitlines()).split())
+                text = " ".join(" ".join(l.lstrip("> ") for l in (KIT / rel).read_text(encoding="utf-8").splitlines()).split())
                 self.assertIn("Check **each** configured viewport in turn", text)
                 self.assertIn("a viewport you did not check is never reported as verified", text)
 
@@ -382,5 +382,5 @@ class SkillAuthor(unittest.TestCase):
     def test_every_skill_names_its_author(self):
         for f in sorted(list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "extras").glob("*/SKILL.md"))):
             with self.subTest(skill=f.parent.name):
-                head = f.read_text().split("\n---\n", 1)[0]
+                head = f.read_text(encoding="utf-8").split("\n---\n", 1)[0]
                 self.assertIn("  author: Juan Pablo Drexler", head)

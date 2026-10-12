@@ -13,7 +13,7 @@ import backlog_kit as bk  # noqa: E402
 
 
 def sh(cwd, *cmd):
-    return subprocess.run(cmd, cwd=cwd, check=True, capture_output=True, text=True).stdout
+    return subprocess.run(cmd, cwd=cwd, check=True, capture_output=True, text=True, encoding="utf-8").stdout
 
 
 def git(cwd, *args):
@@ -22,7 +22,7 @@ def git(cwd, *args):
 
 def run(script, root, *extra):
     out = subprocess.run([sys.executable, str(LIB / script), str(root), *extra],
-                         capture_output=True, text=True, check=True).stdout
+                         capture_output=True, text=True, encoding="utf-8", check=True).stdout
     return json.loads(out)
 
 
@@ -33,7 +33,7 @@ def init_repo(path, bare=False):
 
 
 def commit_file(repo, name, text="x", msg="c"):
-    (Path(repo) / name).write_text(text)
+    (Path(repo) / name).write_text(text, encoding="utf-8")
     git(repo, "add", name)
     git(repo, "commit", "-q", "-m", msg)
 
@@ -58,10 +58,10 @@ class GitRead(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             init_repo(d)
             commit_file(d, "tracked.txt")
-            (Path(d) / "tracked.txt").write_text("changed")
-            (Path(d) / "new file.txt").write_text("n")
+            (Path(d) / "tracked.txt").write_text("changed", encoding="utf-8")
+            (Path(d) / "new file.txt").write_text("n", encoding="utf-8")
             (Path(d) / "sub").mkdir()
-            (Path(d) / "sub/a.py").write_text("n")
+            (Path(d) / "sub/a.py").write_text("n", encoding="utf-8")
             self.assertEqual(gitread.changed_files(d), ["new file.txt", "sub/a.py", "tracked.txt"])
 
 
@@ -95,13 +95,13 @@ class ConfirmedModeSafety(unittest.TestCase):
                 "| 1 | `base` | P1 | S | X | ⬜ Pending | b | [brief](features/001-base.md) |\n"
                 "| 2 | `needs-base` | P1 | S | X | ⬜ Pending | n | [brief](features/002-needs-base.md) |\n\n"
                 "## Dependencies\n\n### Hard implementation dependencies\n\n"
-                "**Feature 2 → Feature 1** (still pending)\n\nx\n\n### Recommended implementation order\n\n_None yet._\n")
+                "**Feature 2 → Feature 1** (still pending)\n\nx\n\n### Recommended implementation order\n\n_None yet._\n", encoding="utf-8")
             (root / "docs/backlog/features-implemented.md").write_text(
                 "# Implemented Features\n\n## Feature List\n\n| # | Change name | Priority | Effort | Area | Details |\n"
-                "| - | ----------- | -------- | ------ | ---- | ------- |\n| 7 | `done` | P1 | S | X | [brief](features/007-done.md) |\n")
+                "| - | ----------- | -------- | ------ | ---- | ------- |\n| 7 | `done` | P1 | S | X | [brief](features/007-done.md) |\n", encoding="utf-8")
             script = LIB.parent / "skills/features-next/scripts/rank_features.py"
             sel = lambda x: json.loads(subprocess.run([sys.executable, str(script), d, "--select", x, "--json"],
-                                                      capture_output=True, text=True, check=True).stdout)
+                                                      capture_output=True, text=True, encoding="utf-8", check=True).stdout)
             self.assertFalse(sel("base")["blocked"])
             blocked = sel("needs-base")
             self.assertTrue(blocked["blocked"])
