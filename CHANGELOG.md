@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.40
+- `code-reviewer` reads the project's checks from a `Code review checks` section of `docs/frontend.md` and/or `docs/backend.md`, and `product-scope-roaster` from a `Product scope review checks` section of `docs/product.md` (now a documented optional kit doc), replacing `.backlog-kit/review/code/` and `.backlog-kit/review/product/`. The conventions table, `docs/extras.md`, `migrate_check` and the tests were updated, and the example review notes were removed: `.backlog-kit/` is now only for the optional notes of `spec-compliance-check`, `dependency-upgrade` and `docs-sync`.
+
 ## 0.2.39
 - `security-reviewer` reads the project's checks from a `Security review checks` section of `docs/security.md`, and the kit convention renames `docs/authentication.md` to `docs/security.md` (authentication flow, session model, access control, and those checks), with a `Checked against` phrase that includes the dependency manifests. The sweep layers are read from that section's `Full-codebase sweep layers` subsection. The conventions table, `docs/extras.md`, the README, `migrate_check` and the tests were updated; the example security notes were removed.
 

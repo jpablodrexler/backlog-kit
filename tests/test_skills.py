@@ -270,23 +270,11 @@ class ReviewerFrames(unittest.TestCase):
         for name, kind in (("code-reviewer", "code"), ("security-reviewer", "security"), ("database-reviewer", "database")):
             with self.subTest(skill=name):
                 text = (sdir(name) / "SKILL.md").read_text()
-                if kind in ("database", "security"):   # their checks live in a section of the project's docs
-                    self.assertIn(f"`{kind.capitalize()} review checks`", text)
-                    self.assertIn(f"docs/{kind}.md", text)
-                else:
-                    self.assertIn(f".backlog-kit/review/{kind}/", text)
-                    self.assertIn("Read when:", text)
+                # their checks live in a section of the project's docs
+                self.assertIn(f"`{kind.capitalize()} review checks`", text)
+                self.assertIn({"code": "docs/frontend.md", "security": "docs/security.md", "database": "docs/database.md"}[kind], text)
                 self.assertIn("no project checklist", " ".join(text.lower().split()))
                 self.assertIn("**Never run `git commit`, `git push` or open a PR.**", text)
-
-    def test_example_review_files_declare_when_to_read_them(self):
-        files = list((KIT / "examples").glob("*/.backlog-kit/review/*/*.md"))
-        self.assertTrue(files)
-        for f in files:
-            with self.subTest(file=str(f.relative_to(KIT))):
-                lines = f.read_text().splitlines()
-                self.assertTrue(lines[0].startswith("#"), "first line is the title")
-                self.assertTrue(any(l.startswith("Read when:") for l in lines[:4]), "a Read when: line near the top")
 
 
 class MigrateCheck(unittest.TestCase):
@@ -306,8 +294,8 @@ class MigrateCheck(unittest.TestCase):
             (root / ".claude/skills/stack-helper/SKILL.md").write_text("see `web-docs-sync` and bug-fix")
             (root / "sub/docs/backlog").mkdir(parents=True)
             (root / "sub/docs/backlog/bugs-open.md").write_text("# Bugs\n")
-            (root / ".backlog-kit/review/code").mkdir(parents=True)
-            (root / ".backlog-kit/review/code/01-x.md").write_text("# X\n")
+            (root / ".backlog-kit/spec-compliance").mkdir(parents=True)
+            (root / ".backlog-kit/spec-compliance/01-x.md").write_text("# X\n")
             g("add", "-A")
             out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, check=True).stdout
             self.assertIn("- bug-fix", out)
@@ -315,8 +303,8 @@ class MigrateCheck(unittest.TestCase):
             self.assertNotIn("- stack-helper", out.split("## 2.")[0])
             self.assertIn(".claude/skills/stack-helper/SKILL.md", out)
             self.assertIn('backlog_dir = "sub/docs/backlog"', out)
-            self.assertIn("review/code/: 1 file(s)", out)
-            self.assertIn("review/product/: 0 file(s)", out)
+            self.assertIn("spec-compliance/: 1 file(s)", out)
+            self.assertIn("dependency-upgrade/: 0 file(s)", out)
             self.assertIn("## 6. Base branch", out)
             self.assertIn("no local develop branch", out)
             g("commit", "-q", "-m", "x")

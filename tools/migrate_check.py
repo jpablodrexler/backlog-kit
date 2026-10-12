@@ -33,11 +33,8 @@ REPLACES["web-docs-sync"] = "docs-sync"
 
 # kit folder under .backlog-kit/ -> (what reads it). All are optional: without them the extras fall back to CLAUDE.md and docs.
 FOLDERS = {
-    "review/code": "code-reviewer checklists",
-    "review/architecture": "architecture-reviewer dimensions and checks",
-    "review/product": "product-scope-roaster examples",
     "spec-compliance": "spec-compliance-check notes",
-    "docs": "docs-sync map of doc sections to their source",
+    "docs": "optional docs-sync notes",
     "dependency-upgrade": "dependency-upgrade notes",
 }
 SKIP = re.compile(r"(^|/)(node_modules|\.git)/|package-lock\.json$|(^|/)openspec/changes/archive/|"

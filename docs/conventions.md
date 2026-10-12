@@ -28,7 +28,8 @@ Where the backlog-kit skills read and write. This project keeps the files it nee
 | `docs/reports/` | dated reports of the reviewers and the batch runs (gitignored) | — |
 | `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure, and an `Architecture review checks` section (what `architecture-reviewer` checks in this project) | `supabase/migrations/**`, `frontend/src/app/app.routes.ts`, the top-level directory tree |
 | `docs/features.md` | what a user can actually reach today (never the planned backlog) | the routes and components under `frontend/src/app/` |
-| `docs/frontend.md` | technologies, structure, routing, data flow, running, building, testing and deploying | `frontend/src/app/**`, `frontend/angular.json`, `frontend/package.json` |
+| `docs/frontend.md` | technologies, structure, routing, data flow, running, building, testing and deploying, and the `Code review checks` section | `frontend/src/app/**`, `frontend/angular.json`, `frontend/package.json` |
+| `docs/product.md` | what the product is for, and the `Product scope review checks` section | `docs/features.md` and the backlog tables |
 | `docs/database.md` | tables, RLS policies, migration history, the Supabase CLI workflow, and the `Database review checks` section | every migration in `supabase/migrations/**` in order, and `supabase/config.toml` |
 | `docs/security.md` | the Supabase Auth flow, guards, the session model, and the `Security review checks` section | `frontend/src/app/core/auth.service.ts`, `auth.guard.ts` and `app.config.ts`, the RLS policies in `supabase/migrations/**`, `frontend/package.json` |
 | `CLAUDE.md` | this file: the lean quick-start for an agent | its commands against both `package.json` scripts, its layout against the real top-level directories |

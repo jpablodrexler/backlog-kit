@@ -24,8 +24,8 @@ metadata:
 
 Review code in this project against its documented architecture,
 conventions, and known pitfalls. The stack-specific checklists belong to the
-project, not to this skill: they live as files under
-`.backlog-kit/review/code/` (see step 3). Schema and migration files are out
+project, not to this skill: they live in the `Code review checks`
+section of the project's docs (see step 3). Schema and migration files are out
 of scope here — use `database-reviewer` for those.
 
 `<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default, unless `.backlog-kit.toml` sets `[paths] backlog_dir`).
@@ -56,14 +56,16 @@ This skill covers two distinct workflows:
      Layer" instead. It runs steps 2–5 once per layer, each producing its
      own report.
 2. Read every changed file before forming any opinion.
-3. **Project checklists:** list `.backlog-kit/review/code/` (relative to the
-   repository root); each file's second line is `Read when: …`; read every
-   file marked `every review` and every file whose `Read when` matches what
-   changed; work through their checklist sections one by one. If the folder
-   does not exist or is empty, review with the frame above plus what the
-   project's CLAUDE.md and docs say, and state in the report that no project
-   checklist was found. Always finish by scanning the project's
-   known-pitfalls table (§10), if it has one.
+3. **Project checklists:** read the `Code review checks` section of the
+   project's reference docs: `docs/frontend.md` and/or `docs/backend.md`,
+   whichever sides the project has (the kit convention: each of those docs
+   holds the structure, data flow and conventions of its side, and what this
+   review checks there). Work through the subsections that apply to what
+   changed, one by one; the known-pitfalls subsection applies to every review.
+   If the docs have no such section, review with the frame above plus what
+   the project's CLAUDE.md and docs say, and state in the report that no
+   project checklist was found. Always finish by scanning the project's
+   known-pitfalls subsection (§10), if it has one.
 4. Report findings grouped by **severity**, then by file.
 5. Summarise with a short verdict and the top action items, then write the
    full report to a new, dated markdown file — see "Review Report Format &
@@ -82,8 +84,8 @@ across sessions, and lets the user later fix one layer's findings at a time
 (§12) instead of wading through everything at once.
 
 **The layers:** the layer table (layer key, report suffix, directory scope,
-primary checklist sections) comes from the project checklist file whose
-`Read when` is `a full-codebase sweep`. If there is none, the sweep is not
+primary checklist sections) comes from the `Full-codebase sweep layers`
+subsection of the project's `Code review checks`. If there is none, the sweep is not
 available — say so and ask the user for a scope instead.
 
 **Process — one subagent per layer:**
@@ -104,8 +106,8 @@ Each layer's review runs in its own subagent (`Agent` tool,
      (copy the relevant row from the layer table into the prompt).
    - An instruction to first read the `code-reviewer` skill's `SKILL.md`
      (the severity legend and the project-checklists step), then the
-     project checklist files under `.backlog-kit/review/code/` that hold that
-     layer's primary checklist sections, plus the "Review Report Format &
+     subsections of the project's `Code review checks` (in `docs/frontend.md`
+     or `docs/backend.md`) that hold that layer's primary checklist sections, plus the "Review Report Format &
      Output File" section (§11, in `reference/report-format-and-fix-workflow.md`) — don't restate the checklist in the prompt.
    - The exact output path to write:
      `<reports>/code-review/CODE_REVIEW_FINDINGS_{today's date}_{layer suffix}.md`
@@ -139,6 +141,7 @@ Severity levels used throughout:
 | §11-12 Review report format & output file, fix workflow | writing the dated report (every run), or fixing findings from an existing report | `reference/report-format-and-fix-workflow.md` |
 
 The checklist sections themselves (architecture, data access, state,
-conventions, testing, pitfalls, metrics) are the project's, under
-`.backlog-kit/review/code/`. **Section numbers (§N) are stable** — other
-skills, reports and ADRs cite them — and each one is in exactly one file.
+conventions, testing, pitfalls, metrics) are the project's, in the `Code review checks` section of its
+`docs/frontend.md` and/or `docs/backend.md`. **Section numbers (§N) are
+stable** — other skills, reports and ADRs cite them — and each one is in
+exactly one place.
