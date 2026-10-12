@@ -4,7 +4,8 @@ Copy the kit's skills into a project's .claude/skills/ (the no-plugin install).
 
     python3 tools/install.py <repo-root>                      # the core skills
     python3 tools/install.py <repo-root> --extras code-reviewer,docs-sync   # core + chosen extras
-    python3 tools/install.py <repo-root> --all                # core + every extra
+    python3 tools/install.py <repo-root> --extras             # core + every extra
+    python3 tools/install.py <repo-root> --all                # the same
     python3 tools/install.py <repo-root> --force              # overwrite skills already there
     python3 tools/install.py <repo-root> --only bug-fix,bugs-next   # exactly these
 
@@ -31,7 +32,7 @@ def main():
     ap.add_argument("repo_root")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--only", default="", help="exactly these skills (core or extras)")
-    ap.add_argument("--extras", default="", help="the core skills plus these extras")
+    ap.add_argument("--extras", nargs="?", const="all", default="", help="the core skills plus these extras (comma-separated), or every extra when given without names")
     ap.add_argument("--all", action="store_true", help="the core skills plus every extra")
     a = ap.parse_args()
     core, extras = available(SKILLS), available(EXTRAS)
@@ -39,7 +40,7 @@ def main():
     if a.only:
         names = [n for n in a.only.split(",") if n]
     else:
-        wanted = extras if a.all else [n for n in a.extras.split(",") if n]
+        wanted = extras if a.all or a.extras == "all" else [n for n in a.extras.split(",") if n]
         names = core + wanted
     unknown = [n for n in names if n not in where]
     if unknown:

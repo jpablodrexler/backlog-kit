@@ -181,6 +181,16 @@ class PackagingTest(unittest.TestCase):
             self.assertNotEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
             self.assertEqual(subprocess.run(cmd + ["--force", "--only", "bug-fix"], capture_output=True).returncode, 0)
 
+    def test_installer_extras_flag_with_and_without_names(self):
+        import subprocess, sys, tempfile
+        base = [sys.executable, str(self.ROOT / "tools" / "install.py")]
+        core = len(list((self.ROOT / "skills").glob("*/SKILL.md")))
+        extras = len(list((self.ROOT / "extras").glob("*/SKILL.md")))
+        for args, expected in (([], core), (["--extras"], core + extras), (["--extras", "docs-sync,code-reviewer"], core + 2)):
+            with tempfile.TemporaryDirectory() as d:
+                self.assertEqual(subprocess.run(base + [d] + args, capture_output=True).returncode, 0, args)
+                self.assertEqual(len(list((Path(d) / ".claude/skills").glob("*/SKILL.md"))), expected, args)
+
 
 class ReleaseHygieneTest(unittest.TestCase):
     ROOT = Path(__file__).resolve().parents[1]
