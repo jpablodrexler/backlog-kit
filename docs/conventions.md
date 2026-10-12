@@ -44,27 +44,27 @@ Only `CLAUDE.md` is mandatory. Everything else is optional: a skill that does no
 
 A project keeps the docs it has a use for. Add a doc, or one of its sections, when a review keeps missing something the project cares about; the section names are exact, because the skills look them up by name. Each extra's page in [extras.md](extras.md) lists what its section holds.
 
-## Example: pablo-web
+## Example
 
-An Angular frontend that talks straight to Supabase (no backend server), so it has no `docs/backend.md` and two extra reference docs.
+A web app with a single-page frontend and a REST API on a relational database, so it keeps `docs/frontend.md` and `docs/backend.md` and adds one reference doc of its own.
 
 ```markdown
 ## Kit conventions
 
-Where the backlog-kit skills read and write. This project keeps the files it needs (no `docs/backend.md`: there is no backend server) and two extra reference docs, `docs/glossary.md` and `docs/hosting-cost-comparison.md`.
+Where the backlog-kit skills read and write. This project keeps the files it needs and one extra reference doc, `docs/deployment.md`.
 
 | Path | What it holds | Checked against |
 | ---- | ------------- | --------------- |
 | `docs/backlog/` | the backlog: `features-planned.md`, `features-implemented.md`, `bugs-open.md`, `bugs-fixed.md`, plus one brief per item in `features/` and `bugs/` | — |
 | `docs/decisions/` | architecture decision records, numbered and append-only | — |
-| `docs/explorations/` | notes of ideas still being explored | — |
 | `docs/reports/` | dated reports of the reviewers and the batch runs (gitignored) | — |
-| `docs/architecture.md` | system and component diagrams, the data-model diagram, the project structure, and an `Architecture review checks` section (what `architecture-reviewer` checks in this project) | `supabase/migrations/**`, `frontend/src/app/app.routes.ts`, the top-level directory tree |
-| `docs/features.md` | what a user can actually reach today (never the planned backlog) | the routes and components under `frontend/src/app/` |
-| `docs/frontend.md` | technologies, structure, routing, data flow, running, building, testing and deploying, and the `Code review checks`, `Spec compliance checks` and `Dependency upgrade checks` sections | `frontend/src/app/**`, `frontend/angular.json`, `frontend/package.json` |
-| `docs/product.md` | what the product is for, and the `Product scope review checks` section | `docs/features.md` and the backlog tables |
-| `docs/database.md` | tables, RLS policies, migration history, the Supabase CLI workflow, and the `Database review checks` section | every migration in `supabase/migrations/**` in order, and `supabase/config.toml` |
-| `docs/security.md` | the Supabase Auth flow, guards, the session model, and the `Security review checks` section | `frontend/src/app/core/auth.service.ts`, `auth.guard.ts` and `app.config.ts`, the RLS policies in `supabase/migrations/**`, `frontend/package.json` |
-| `CLAUDE.md` | this file: the lean quick-start for an agent | its commands against both `package.json` scripts, its layout against the real top-level directories |
+| `docs/architecture.md` | diagrams, the project structure, and an `Architecture review checks` section | `db/migrations/**`, `web/src/routes.ts`, the top-level directory tree |
+| `docs/features.md` | what a user can actually reach today | the routes and components under `web/src/` |
+| `docs/frontend.md` | the frontend's structure, data flow, running, testing, and the `Code review checks`, `Spec compliance checks` and `Dependency upgrade checks` sections | `web/src/**`, `web/package.json` |
+| `docs/backend.md` | the API's structure, endpoints, running, testing, and its own `Code review checks`, `Spec compliance checks` and `Dependency upgrade checks` sections | `api/src/**`, `api/pyproject.toml` |
+| `docs/database.md` | tables, access rules, migration history, and the `Database review checks` section | every migration in `db/migrations/**` in order |
+| `docs/security.md` | the authentication flow, the session model, and the `Security review checks` section | `api/src/auth/**`, the access-control rules, both dependency manifests |
+| `docs/deployment.md` | how the app is built and released | `.github/workflows/**`, `Dockerfile` |
+| `CLAUDE.md` | this file: the lean quick-start for an agent | its commands against the manifests, its layout against the real top-level directories |
 | `README.md` | a short intro and the documentation index into `docs/` | which `docs/*.md` exist and what each covers |
 ```
