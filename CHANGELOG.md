@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.42
+- `docs/conventions.md` says which project documents the skills expect: only `CLAUDE.md` is mandatory; the backlog, decisions and reports folders are created on first use; each reference doc and section is optional and the table says which skill reads it and what happens without it.
+
 ## 0.2.41
 - `spec-compliance-check` and `dependency-upgrade` read their project knowledge from `Spec compliance checks` and `Dependency upgrade checks` sections of `docs/frontend.md` and/or `docs/backend.md`. That removes the last `.backlog-kit/` folders: the concept is gone from the kit, along with `examples/`, the optional notes of `docs-sync`, the stale `project-phases.md` leftover in `bug-fix`, and section 4 of `migrate_check`. The conventions table, `docs/extras.md`, MIGRATING and the tests were updated.
 
