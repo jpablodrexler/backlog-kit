@@ -10,7 +10,7 @@ The kit is markdown and small read-only Python scripts (standard library only); 
 
 ## Reporting a vulnerability
 
-Please do not open a public issue. Use GitHub's private vulnerability reporting for this repository (Security tab → "Report a vulnerability"). Include which skill or script, what happens, and how to reproduce it. I aim to answer within a week.
+Please do not open a public issue. Use GitHub's private vulnerability reporting for this repository (Security tab → "Report a vulnerability"). Include which skill or script, what happens, and how to reproduce it.
 
 ## Supported versions
 
