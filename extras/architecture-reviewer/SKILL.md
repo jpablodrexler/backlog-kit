@@ -11,7 +11,7 @@ Assess the shape of the system as a whole, not a diff. This is the kind of probl
 
 The motivating shape: a unit that starts as one narrow concern (a preference, a status flag, a cache hook, one event type) and quietly becomes the "something changed, react" channel for several unrelated features. Nothing in its name says so, and no single change that added one more consumer looked wrong. The same drift happens to a documented dependency rule, eroded one convenient import at a time.
 
-`<reports_dir>` comes from `.backlog-kit.toml` (`[paths] reports_dir`); with no file it is `docs/reports`.
+`<reports_dir>` is `docs/reports` unless `.backlog-kit.toml` sets `[paths] backlog_dir` (then it is the `reports` folder next to the backlog's parent). The reference docs named below (`docs/architecture.md`, `docs/frontend.md`, …) sit in that same `docs` folder: the folder that holds the backlog folder (`app/docs` when `backlog_dir` is `app/docs/backlog`).
 
 **Input**: "review the architecture" (full review, every applicable dimension), or one dimension to dig into ("just state management", "how is configuration handled", "look deeper at layering"). A deep-dive goes deeper on that dimension than a full review gives each one. A request to work through an earlier report goes to **Follow-up workflow**.
 

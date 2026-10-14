@@ -11,6 +11,10 @@ A `## Kit conventions` section in its `CLAUDE.md` with that table, the "Checked 
 
 The column is a phrase, not a list of paths: the doc itself names the code it describes, and `docs-sync` also searches the docs for the path, folder and names of every changed file. A project keeps only the docs it needs, may add its own (`docs/<topic>.md`), and writes its own phrase where it differs from the kit's default. `docs-sync` checks the section on a full sweep and offers to add it when it is missing.
 
+## A project in a subfolder
+
+When the backlog is not at `docs/backlog` (for example a repository that holds two applications and the backlog of one of them lives under `app/docs/backlog`), the `docs` folder is the one that holds it, and the project root is the folder above: `app/`. The `## Kit conventions` section goes in `app/CLAUDE.md`, the documentation index in `app/README.md`, and the reference docs in `app/docs/`. The repository root may keep its own `CLAUDE.md`, `README.md` and `docs/` for the other application; the skills ignore them. The one setting that tells the skills where the project is: `[paths] backlog_dir = "app/docs/backlog"` in `.backlog-kit.toml` at the repository root.
+
 ## Which documents a project needs
 
 Only `CLAUDE.md` is mandatory. Everything else is optional: a skill that does not find its document still runs, works from the frame in its `SKILL.md` plus what `CLAUDE.md` and the docs say, and states in its report what it did not find.

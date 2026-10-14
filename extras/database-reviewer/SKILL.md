@@ -27,7 +27,7 @@ live in the project's own checklist files — see Workflow step 4.
 
 `<reports>` is `docs/reports` unless `.backlog-kit.toml` sets
 `[paths] backlog_dir` (reports sit in the `reports` folder next to the
-backlog's parent).
+backlog's parent). The reference docs named below (`docs/architecture.md`, `docs/frontend.md`, …) sit in that same `docs` folder: the folder that holds the backlog folder (`app/docs` when `backlog_dir` is `app/docs/backlog`).
 
 **Never run `git commit`, `git push` or open a PR.**
 

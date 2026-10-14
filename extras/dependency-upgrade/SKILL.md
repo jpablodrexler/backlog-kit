@@ -24,7 +24,7 @@ without silently walking into a major-version breaking change.
 
 `<reports>` below is `docs/reports` unless `.backlog-kit.toml` sets
 `[paths] backlog_dir`, in which case it is the `reports` folder inside that
-directory's parent folder.
+directory's parent folder. The reference docs named below (`docs/architecture.md`, `docs/frontend.md`, …) sit in that same `docs` folder: the folder that holds the backlog folder (`app/docs` when `backlog_dir` is `app/docs/backlog`).
 
 **Never run `git commit`, `git push` or open a PR.**
 

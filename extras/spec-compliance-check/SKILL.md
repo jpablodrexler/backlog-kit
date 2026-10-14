@@ -19,7 +19,7 @@ metadata:
 
 # Spec Compliance Check Skill
 
-`<reports>` is `docs/reports` unless `.backlog-kit.toml` sets `[paths] backlog_dir` (then it is the `reports` folder next to the backlog's parent).
+`<reports>` is `docs/reports` unless `.backlog-kit.toml` sets `[paths] backlog_dir` (then it is the `reports` folder next to the backlog's parent). The reference docs named below (`docs/architecture.md`, `docs/frontend.md`, …) sit in that same `docs` folder: the folder that holds the backlog folder (`app/docs` when `backlog_dir` is `app/docs/backlog`).
 
 `tasks.md` tracks whether the implementation *steps* happened. It does not
 tell you whether the resulting *behavior* matches what the spec promised —

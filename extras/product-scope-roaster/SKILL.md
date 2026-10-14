@@ -11,7 +11,7 @@ metadata:
 
 Read the project's shipped and planned feature scope the way a senior product owner would: someone who has never opened the codebase and does not care how hard a feature was to build. That person cares about one thing: does using this product feel coherent, or does it feel like a pile of individually reasonable features that nobody stepped back and looked at together? This skill is that step back. It is not supposed to feel good. A review that mostly says "looks fine" has probably pulled its punches, not found a clean product.
 
-`<backlog>` is `docs/backlog` and `<reports>` is `docs/reports` unless `.backlog-kit.toml` sets `[paths] backlog_dir` / `reports_dir`.
+`<backlog>` is `docs/backlog` and `<reports>` is `docs/reports` unless `.backlog-kit.toml` sets `[paths] backlog_dir` (then `<reports>` is the `reports` folder next to the backlog's parent). The reference docs named below (`docs/architecture.md`, `docs/frontend.md`, …) sit in that same `docs` folder: the folder that holds the backlog folder (`app/docs` when `backlog_dir` is `app/docs/backlog`).
 
 **Input**: "roast the product scope" (full review: every dimension, shipped and planned) or a scoped ask ("just the planned backlog", "just the billing features", "are 4 and 9 the same feature"). A scoped ask goes deep on its slice instead of surveying everything.
 

@@ -22,4 +22,6 @@ Where the backlog-kit skills read and write. Every project that uses the kit loo
 
 The "Checked against" column says, in a phrase, what `docs-sync` compares each doc with. It is a pointer, not a list of paths: the doc itself names the code it describes, and `docs-sync` also searches the docs for the path, folder and names of every changed file. A project writes its own phrase where it differs (the kit's `docs/conventions.md` has a filled-in example).
 
+The `docs` folder is the one that holds the backlog folder, and the project root is its parent: `docs/…`, `CLAUDE.md` and `README.md` in the table are relative to it. With the default `docs/backlog` that is the repository root; a repository whose product lives in a subfolder (`backlog_dir = "app/docs/backlog"`) keeps its `CLAUDE.md`, `README.md` and `docs/` in `app/`, and the repository root may carry its own, unrelated ones.
+
 The decisions, explorations and reports folders sit next to the backlog folder: with `backlog_dir = "app/docs/backlog"` they are `app/docs/decisions`, `app/docs/explorations` and `app/docs/reports`.

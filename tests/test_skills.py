@@ -239,7 +239,7 @@ class GeneralizedSkillsTest(unittest.TestCase):
             with self.subTest(skill=name):
                 t = self.text(name)
                 self.assertRegex(t, r"(?i)never (file|apply|edit)")
-                self.assertIn("reports_dir", t)
+                self.assertIn("backlog_dir", t)
 
     def test_architecture_follow_ups_can_record_decisions(self):
         self.assertIn("`decision-record`", self.text("architecture-reviewer"))

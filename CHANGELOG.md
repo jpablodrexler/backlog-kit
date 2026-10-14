@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.1.1
+- A project that lives in a subfolder of its repository (the backlog at `app/docs/backlog`) keeps its reference docs, `CLAUDE.md` and `README.md` next to that `docs` folder: the reviewers, `spec-compliance-check`, `dependency-upgrade`, `docs-sync` and the conventions say so, instead of assuming the repository root. The architecture reviewer no longer mentions a `reports_dir` setting that did not exist.
+
 ## 0.1.0
 First public release.
 

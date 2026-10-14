@@ -22,7 +22,7 @@ metadata:
 
 Paths: `<backlog>` is `docs/backlog` and `<reports>` is `docs/reports`,
 unless `.backlog-kit.toml` sets `[paths] backlog_dir` (then each is the
-folder of that name next to the backlog's parent).
+folder of that name next to the backlog's parent). The reference docs, `CLAUDE.md` and `README.md` are found the same way: the `docs` folder is the one that holds the backlog folder (`app/docs` when `backlog_dir` is `app/docs/backlog`), and `CLAUDE.md` and `README.md` sit in its parent.
 
 ## The documentation tiers
 

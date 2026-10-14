@@ -28,7 +28,7 @@ project, not to this skill: they live in the `Code review checks`
 section of the project's docs (see step 3). Schema and migration files are out
 of scope here — use `database-reviewer` for those.
 
-`<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default, unless `.backlog-kit.toml` sets `[paths] backlog_dir`).
+`<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default, unless `.backlog-kit.toml` sets `[paths] backlog_dir`). The reference docs named below (`docs/architecture.md`, `docs/frontend.md`, …) sit in that same `docs` folder: the folder that holds the backlog folder (`app/docs` when `backlog_dir` is `app/docs/backlog`).
 
 **Never run `git commit`, `git push` or open a PR.**
 
