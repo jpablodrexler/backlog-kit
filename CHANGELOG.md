@@ -2,6 +2,13 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.0
+- **`gitflow` commit action:** one local commit on a topic branch, on request only, with the file list and message confirmed first. It never pushes, amends or skips hooks. The kit's promise stands: nothing is committed unless you ask.
+- **`bug-fix --commit`** (and the same flag on `bugs-batch-fix`): a new Phase 7 asks `gitflow` for one commit per closed bug, holding the fix, its regression test and the backlog move.
+- **`bug-fix` phase discipline:** every phase runs or is skipped under its stated condition with a recorded reason; Phase 1 must quote the failing output of the regression test (`RED:` line) or the run is treated as blocked; the Final Summary carries a status table for every phase.
+- **`feature-development --commit`** (and the same flag on `features-batch-development`): Phase 7 asks `gitflow` for one commit per completed feature. The same phase discipline applies: every phase runs or is skipped with a recorded reason, the Final Summary carries a status table, and the batch skill must run `feature-development` for every feature and write its report even when working inline.
+- **`bugs-batch-fix`:** must run `bug-fix` for every bug, with all its phases, and must write its report even when the work is done inline; a conflict with the user's wishes is settled with `--commit` or a question, never by dropping the skill.
+
 ## 0.1.1
 - A project that lives in a subfolder of its repository (the backlog at `app/docs/backlog`) keeps its reference docs, `CLAUDE.md` and `README.md` next to that `docs` folder: the reviewers, `spec-compliance-check`, `dependency-upgrade`, `docs-sync` and the conventions say so, instead of assuming the repository root. The architecture reviewer no longer mentions a `reports_dir` setting that did not exist.
 
