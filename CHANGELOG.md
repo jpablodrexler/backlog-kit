@@ -2,6 +2,10 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.2.1
+- **`feature-development` Phase 6:** the delta specs of an OpenSpec change now reach the main specs through `openspec-sync-specs`, run before `openspec-archive-change`; a hand-written merge of `openspec/specs/**` is no longer accepted, and the hand-back reports `SPECS SYNCED`.
+- **`feature-development` Phase 4:** starts a stopped container runtime (Docker) itself instead of reporting it as a blocker, and applies the change's own pending migrations after a dry run shows nothing else pending (otherwise `E2E_BLOCKED — unexpected pending migrations`). The "never writes to a shared database" guardrail is narrowed to match.
+
 ## 0.2.0
 - **`gitflow` commit action:** one local commit on a topic branch, on request only, with the file list and message confirmed first. It never pushes, amends or skips hooks. The kit's promise stands: nothing is committed unless you ask.
 - **`bug-fix --commit`** (and the same flag on `bugs-batch-fix`): a new Phase 7 asks `gitflow` for one commit per closed bug, holding the fix, its regression test and the backlog move.
