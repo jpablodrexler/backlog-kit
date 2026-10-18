@@ -371,11 +371,26 @@ class KitConventions(unittest.TestCase):
 
 class ViewportCheck(unittest.TestCase):
     def test_pipelines_require_every_configured_viewport_to_be_reported(self):
-        for rel in ("skills/bug-fix/SKILL.md", "skills/feature-development/reference/phase-2-implement-review.md"):
+        for rel in ("shared/review-gate.md",):
             with self.subTest(file=rel):
                 text = " ".join(" ".join(l.lstrip("> ") for l in (KIT / rel).read_text(encoding="utf-8").splitlines()).split())
                 self.assertIn("Check **each** configured viewport in turn", text)
                 self.assertIn("a viewport you did not check is never reported as verified", text)
+
+
+class ReviewGate(unittest.TestCase):
+    def test_pipelines_run_reviews_in_their_own_subagents_and_verify_the_reports(self):
+        gate = (KIT / "shared/review-gate.md").read_text(encoding="utf-8")
+        for needle in ("G6 — Verify before accepting", "SKILL_USED:", "FILES_CHANGED:", "REVIEW_GATE: DONE"):
+            self.assertIn(needle, gate)
+        for rel in ("skills/bug-fix", "skills/feature-development"):
+            with self.subTest(skill=rel):
+                self.assertTrue((KIT / rel / "reference/review-gate.md").is_file())
+                text = (KIT / rel / "SKILL.md").read_text(encoding="utf-8")
+                self.assertIn("reference/review-gate.md", text)
+                self.assertIn("REVIEW_GATE: DONE", text)
+        phase2 = (KIT / "skills/feature-development/reference/phase-2-implement-review.md").read_text(encoding="utf-8")
+        self.assertNotIn("Invoke `code-reviewer`", phase2)
 
 
 class SkillAuthor(unittest.TestCase):

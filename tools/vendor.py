@@ -34,6 +34,7 @@ LIB_FOR = {
 
 SHARED_FOR = {
     "conventions.md": ["docs-sync"],
+    "review-gate.md": WORK,
 }
 
 
