@@ -74,7 +74,8 @@ project with a schema, an end-to-end suite and a build runs them all.
 | 3 — Tests *(optional)*        | Subagent 3 | runs the project's tests (and its fast smoke tier, if CI runs one) until they pass; skipped if the project has no automated tests |
 | 4 — E2E verification *(optional, conditional)* | Subagent 4 | runs the project's end-to-end/browser checks when the change touches a user-facing flow — skipped otherwise, or if the project has no such suite; how the test account is provided is decided by the orchestrator itself, before spawning Subagent 4, since that decision needs `AskUserQuestion` |
 | 5 — Build verification *(optional)* | Subagent 5 | runs the project's build locally to catch build failures before CI or the host would; skipped if the project has no build step |
-| 6 — Archive                   | Subagent 6 | proves each requirement, syncs the docs, `openspec-sync-specs <name>` then `openspec-archive-change <name>` (OpenSpec projects), `features-archive <name>` |
+| 6S — Spec proof               | Subagent 6 | `spec-compliance-check` (or a manual proof), unverified scenarios closed with tests; the orchestrator opens the report and checks `Failing` and `Unverified` are both 0 |
+| 6 — Archive                   | Subagent 7 | syncs the docs, `openspec-sync-specs <name>` then `openspec-archive-change <name>` (OpenSpec projects), `features-archive <name>` |
 | 7 — Commit *(only with `--commit`)* | orchestrator | `gitflow` commit action: one local commit holding the implementation, its tests and the backlog move |
 
 ---
@@ -140,7 +141,8 @@ across every phase, and other skills cite these phases by number
 | 3 — Tests *(optional)* | Subagent 3 | running the project's tests | `reference/phase-3-tests.md` |
 | 4 — E2E Verification *(optional)* | Subagent 4 (conditional) | deciding whether the end-to-end check applies and running it | `reference/phase-4-e2e-verification.md` |
 | 5 — Build Verification *(optional)* | Subagent 5 | the local build | `reference/phase-5-build-verification.md` |
-| 6 — Archive | Subagent 6 | requirement check, docs sync, archiving the change and marking the feature implemented | `reference/phase-6-archive.md` |
+| 6S — Spec proof | Subagent 6 | proving each requirement, with the orchestrator's report check |
+| 6 — Archive | Subagent 7 | docs sync, archiving the change and marking the feature implemented | `reference/phase-6-archive.md` |
 
 ---
 ## Placeholder substitution (Phases 1–6)
@@ -179,7 +181,7 @@ them back through the Phase 2R review gate.
 **E2E verification:** ✓ <one-line summary from Phase 4's `E2E: PASS`> (or
 "N/A — <reason>" if `E2E: SKIPPED`, or **⚠ Partial:** <what wasn't covered> if `E2E: PASS_PARTIAL`)
 **Build:** ✓ the build succeeded locally (or N/A — the project has no build step)
-**Spec compliance:** ✓ All scenarios verified (any Unverified scenario `spec-compliance-check` found was closed with new test coverage during Phase 6, Step 1, before archiving — never left as a caveat)
+**Spec compliance:** ✓ All scenarios verified (any Unverified scenario `spec-compliance-check` found was closed with new test coverage during Phase 6S, before archiving — never left as a caveat)
 **Docs sync:** ✓ <one-line summary from `docs-sync`, or "Nothing to sync">
 **SDD change:** ✓ Archived (OpenSpec projects)
 **Feature:** ✓ Marked as implemented
@@ -194,7 +196,8 @@ them back through the Phase 2R review gate.
 | 3 Tests | ✓ / N/A — <reason> |
 | 4 E2E | ✓ / N/A — <reason> |
 | 5 Build | ✓ / N/A — <reason> |
-| 6 Spec proof, docs sync, archive | ✓ / ✗ |
+| 6S Spec proof (report path) | ✓ / ✗ |
+| 6 Docs sync, archive | ✓ / ✗ |
 | 7 Commit | ✓ / N/A — not requested |
 ```
 
@@ -250,17 +253,18 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
 - Do not start Phase 6 until Phase 5 reports `BUILD: PASS` or `BUILD: SKIPPED`.
   If it reports `BUILD: BLOCKED`, surface the details to the user and wait for
   guidance before continuing.
+- Do not start Phase 6 until Phase 6S returned `SPEC_PROOF: PASS` **and the orchestrator opened its report** (`Failing` = 0, `Unverified` = 0). The proof runs in its own subagent, never in the archiving one.
 - Do not display the Final Summary until Phase 6 subagent returns `ARCHIVE: DONE`.
 - **Phase 7 (only with `--commit`):** after `ARCHIVE: DONE`, invoke `gitflow` with "commit `Feature <change-name>: <one-line summary>`" directly in the orchestrator's context. It shows what will be committed, confirms with the user, makes one local commit and does not push. Without the flag record `COMMIT: SKIPPED — not requested`. A refusal or failure is surfaced and stops there; the feature stays archived, uncommitted.
 - **Never collapse the phases to save effort.** Implementing and testing in one go, running only the touched specs, skipping review or build, and giving a lean summary are what this skill exists to prevent. A skip needs its stated condition and a recorded reason.
-  If it returns `ARCHIVE_BLOCKED` instead — Step 1's `spec-compliance-check`
+  If it returns `ARCHIVE_BLOCKED` instead — Phase 6S's `spec-compliance-check`
   found a Failing scenario, a test added to close an Unverified scenario
   itself failed (revealing a real bug), or an Unverified scenario survived
   3 rounds of add-test-and-re-check — the change stays unarchived. Surface
   the scenario(s) to the user and wait for guidance instead of retrying
   Phase 6 automatically.
 - **This workflow never archives a change with a known spec-compliance
-  gap.** Phase 6 Step 1 closes every Unverified scenario with real,
+  gap.** Phase 6S closes every Unverified scenario with real,
   passing test coverage (or escalates via `ARCHIVE_BLOCKED` when it
   genuinely can't) before Step 2 ever runs. There is no
   `UNVERIFIED_SCENARIOS` caveat path anymore — a scenario is either
