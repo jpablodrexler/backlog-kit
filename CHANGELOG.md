@@ -2,6 +2,12 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.3.0
+- **Review gate (`feature-development`, `bug-fix`):** the code, database and security reviews and the viewport check no longer run at the tail of the implementation subagent. A new Phase 2R, run by the orchestrator (`reference/review-gate.md`, vendored from `shared/review-gate.md`), spawns one clean-context subagent per review. The orchestrator computes `CHANGED_FILES` itself and decides which conditional reviews apply, so a wrong "not applicable" from the implementer can no longer skip one.
+- **Verified, not trusted:** before accepting a review signal the orchestrator checks that the dated report exists, that no 🔴/🟡 finding is left unchecked, and that the reviewer skill was actually used (`SKILL_USED:`); a fallback self-review while the skill is installed is re-run, and one without the skill is flagged in the Final Summary. Each gate's outcome is a ledger line (`CODE_REVIEW:`, `DATABASE_REVIEW:`, `SECURITY_REVIEW:`, `VIEWPORTS:`) with a report path or a skip reason.
+- **Spec proof in its own subagent (`feature-development` Phase 6S):** `spec-compliance-check` no longer shares a context with docs sync and archiving. The orchestrator opens the report and requires `Failing` and `Unverified` to be 0 before the archive subagent starts; a manual proof while the skill is installed is re-run.
+- The implementation subagents now return only `IMPLEMENT: DONE` / `FIX_IMPLEMENTED: DONE`; the next phase waits for `REVIEW_GATE: DONE`.
+
 ## 0.2.1
 - **`feature-development` Phase 6:** the delta specs of an OpenSpec change now reach the main specs through `openspec-sync-specs`, run before `openspec-archive-change`; a hand-written merge of `openspec/specs/**` is no longer accepted, and the hand-back reports `SPECS SYNCED`.
 - **`feature-development` Phase 4:** starts a stopped container runtime (Docker) itself instead of reporting it as a blocker, and applies the change's own pending migrations after a dry run shows nothing else pending (otherwise `E2E_BLOCKED — unexpected pending migrations`). The "never writes to a shared database" guardrail is narrowed to match.
