@@ -21,9 +21,9 @@ sys.path.insert(0, str(KIT / "lib"))
 import backlog_kit as bk  # noqa: E402
 
 MAPPING = {"S": "1", "M": "3", "L": "5", "XL": "8"}
-LEGEND = ("- **Effort**: story points on the Fibonacci scale `1` / `2` / `3` / `5` / `8` / `13`; "
-          "`8` or more is too large for one story: a candidate for splitting into several features")
-LEGEND_RE = re.compile(r"^- \*\*Effort\*\*:.*$")
+LEGEND_TEXT = ("story points on the Fibonacci scale `1` / `2` / `3` / `5` / `8` / `13`; "
+               "`8` or more is too large for one story: a candidate for splitting into several features")
+LEGEND_RE = re.compile(r"^- \*\*Effort\*\*(\s*[:—])")      # "- **Effort**: ..." or "- **Effort** — ..."
 
 
 def convert_file(path):
@@ -55,9 +55,12 @@ def convert_file(path):
                     j += 1
                 i = j
                 continue
-        if LEGEND_RE.match(lines[i]) and lines[i] != LEGEND:
-            lines[i] = LEGEND
-            legend = True
+        m = LEGEND_RE.match(lines[i])
+        if m:
+            new = f"- **Effort**{m.group(1)} {LEGEND_TEXT}"
+            if lines[i] != new:
+                lines[i] = new
+                legend = True
         i += 1
     return nl.join(lines), converted, unknown, legend
 
