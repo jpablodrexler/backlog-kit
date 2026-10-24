@@ -59,7 +59,7 @@ Where the backlog-kit skills read and write. This project keeps the files it nee
 
 | Path | What it holds | Checked against |
 | ---- | ------------- | --------------- |
-| `docs/backlog/` | the backlog: `features-planned.md`, `features-implemented.md`, `bugs-open.md`, `bugs-fixed.md`, plus one brief per item in `features/` and `bugs/` | — |
+| `docs/backlog/` | the backlog: `features-planned.md`, `features-implemented.md`, `bugs-open.md`, `bugs-fixed.md`, plus one brief per item in `features/` and `bugs/`, and the optional `definition-of-done.md` (the project-wide checklist every feature must meet) | — |
 | `docs/decisions/` | architecture decision records, numbered and append-only | — |
 | `docs/reports/` | dated reports of the reviewers and the batch runs (gitignored) | — |
 | `docs/architecture.md` | diagrams, the project structure, and an `Architecture review checks` section | `db/migrations/**`, `web/src/routes.ts`, the top-level directory tree |

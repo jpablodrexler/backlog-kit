@@ -123,6 +123,30 @@ class FeatureFlow(unittest.TestCase):
         self.assertIn("bad Summary", out)
         self.assertIn("no docs/backlog/features/001-a.md file", out)
 
+    def test_status_counts_xl_effort(self):
+        skeleton(self.root)
+        add_feature_row(self.root, self.REL, frow(1, "a", "P1", effort="XL"))
+        add_feature_row(self.root, self.REL, frow(2, "b", "P1", effort="L"))
+        out = run("f_status", self.root, "--json")
+        self.assertEqual(out["effort_breakdown"], {"S": 0, "M": 0, "L": 1, "XL": 1, "none": 0})
+        self.assertIn("| XL     | 1 |", run("f_status", self.root, as_json=False))
+
+    def test_status_checks_story_briefs_but_leaves_paragraph_briefs_alone(self):
+        skeleton(self.root)
+        for n, name in ((1, "old"), (2, "story"), (3, "good")):
+            add_feature_row(self.root, self.REL, frow(n, name, "P1"))
+        fdir = self.root / "docs/backlog/features"
+        fdir.mkdir()
+        (fdir / "001-old.md").write_text("# Feature 1 — old\n\nA dense paragraph brief.\n", encoding="utf-8")
+        story = "# Feature {n} — {name}\n\n**As a** caregiver, **I want** x, **so that** y.\n"
+        (fdir / "002-story.md").write_text(story.format(n=2, name="story"), encoding="utf-8")
+        (fdir / "003-good.md").write_text(story.format(n=3, name="good") + "\n## Acceptance Criteria\n- AC1: Given a, when b, then c.\n", encoding="utf-8")
+        out = run("f_status", self.root, "--json")
+        self.assertEqual([b["name"] for b in out["stories_without_acceptance_criteria"]], ["story"])
+        self.assertFalse(out["definition_of_done"])
+        (self.root / "docs/backlog/definition-of-done.md").write_text("- [ ] tests pass\n", encoding="utf-8")
+        self.assertTrue(run("f_status", self.root, "--json")["definition_of_done"])
+
     def test_custom_backlog_dir(self):
         (self.root / ".backlog-kit.toml").write_text('[paths]\nbacklog_dir = "planning"\n', encoding="utf-8")
         skeleton(self.root, "planning")
