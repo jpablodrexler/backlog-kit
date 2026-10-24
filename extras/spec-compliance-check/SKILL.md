@@ -206,6 +206,9 @@ same convention as `<reports>/code-review/`,
 file for that change+date already exists,
 append `-2`, `-3`, etc. rather than overwriting.
 
+The report's first line is the stamp `<!-- backlog-kit: spec-compliance-check -->`, written by this skill and by no other route: the orchestrator of a pipeline reads it to confirm the report came from this skill and not from a hand-written substitute.
+The report states, per scenario, the test or manual check that proves it, and ends with a summary line `Verified N · Failing N · Unverified N` that the orchestrator reads.
+
 ---
 
 ## Guardrails
