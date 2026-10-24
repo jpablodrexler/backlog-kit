@@ -38,6 +38,12 @@ is archived (Phase 7); without it nothing is committed.
 
 `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`; `<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default).
 
+**Working on a branch the user is already on.** When the user is on a topic branch (not `main`/`develop`) and says to stay on it, treat the run as `--skip-branch-setup` even if the flag was not typed: Phase 1 Step 1.5 only confirms the branch and never creates or syncs one. Say so in the first line of the run.
+
+**Committing as you go.** `--commit` means one commit, at Phase 7. When the user asks instead to commit as the work goes, that request is the opt-in for a commit after each phase that changed files (Phase 1, Phase 2, the fixes of each review gate, Phases 3 to 6S, Phase 6), each one made by `gitflow`'s commit action with the message `Feature <change-name>: <phase> — <one-line summary>`; Phase 7 then commits only what is left, or records `COMMIT: nothing left`. The user's request stands in for the per-commit confirmation of the file list and message, but `gitflow` still makes every commit: no phase or subagent runs `git commit` itself.
+
+**Phase ledger.** Right after Phase 0, create a task list with one entry per phase and gate that applies (1, 2, 2R: G1 to G5, 3, 4, 5, 6S, 6, 7) and keep it current: an entry is completed when its signal was verified, or when it was skipped under its own stated condition with the reason written on the entry. The Final Summary is built from this list and is not shown while an entry is open. The order is fixed: archiving (Phase 6, including `openspec-sync-specs` and `openspec-archive-change`) comes after the review gate, the tests and the spec proof, never before; a change archived early, or archived with the `openspec` command instead of those skills, is a deviation to report, not to hide.
+
 **Never run `git commit`, `git push` or open a PR.**
 
 The one exception is `--commit`: Phase 7 asks `gitflow`'s commit action to
@@ -406,8 +412,9 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
   and `develop` and the two look momentarily interchangeable. No phase in
   this workflow may merge, rebase, or pull `main` into the feature branch
   under any circumstance.
-- **No git commits unless `--commit` was passed, and then only through
-  `gitflow`'s commit action in Phase 7.** Neither this skill nor any
+- **Skills run as written, by whoever performs the phase.** A phase that names a skill (`code-reviewer`, `database-reviewer`, `security-reviewer`, `spec-compliance-check`, `docs-sync`, `openspec-sync-specs`, `openspec-archive-change`, `features-archive`) invokes that skill; doing the same checks by hand, or writing its report by hand, is a failed phase even when the content looks right. Reports carry the stamp the reviewer skills write (`<!-- backlog-kit: <skill> -->`), and the orchestrator checks it (review gate G6, Phase 6S check).
+- **No git commits unless `--commit` was passed or the user asked to commit as the work goes, and then only through
+  `gitflow`'s commit action (in Phase 7, or after each phase when the user asked to commit as the work goes).** Neither this skill nor any
   subagent it spawns may run `git commit`, `git push`, or any other git
   write command itself at any point in the workflow. Branch creation and branch sync
   (`git fetch`, `git checkout`, `git checkout -b`, `git merge

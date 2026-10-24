@@ -29,6 +29,7 @@ Why it is separate: the reviewers (`code-reviewer`, `database-reviewer`, `securi
 - The signal line is present and names a report path. A response without it is `BLOCKED`: surface the raw response and the working tree evidence, as the calling skill's missing-signal guardrail says.
 - That report file exists (`ls` it) and sits under `<reports>/code-review/`, `<reports>/database-review/` or `<reports>/security-review/` with a dated `*_FINDINGS_*.md` name.
 - `grep` the report for an unchecked `- [ ]` line carrying 🔴 or 🟡. Any hit means the subagent stopped short: re-spawn that same review subagent once with the unchecked lines quoted; a second miss is `REVIEW_BLOCKED — unresolved findings in <path>`.
+- The report's first line is the stamp `<!-- backlog-kit: <skill> -->` of the reviewer skill that should have written it (`code-reviewer`, `database-reviewer`, `security-reviewer`). `SKILL_USED: <skill>` without that stamp, or with a stamp of another skill, is a failed run: re-spawn once. A report without a stamp is legitimate only for the fallback (skill not installed).
 - The `SKILL_USED:` line says `<skill>` when the reviewer skill is installed. `SKILL_USED: none — fallback` while the skill **is** installed is a failed run: re-spawn once. When the skill is not installed, the fallback is legitimate; carry it into the Final Summary as `⚠ reviewed without the <skill> skill`.
 - For a skipped review you recorded in G2–G4, nothing to verify, but the reason goes into the ledger.
 

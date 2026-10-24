@@ -71,7 +71,8 @@ below), with the following prompt. Archiving is a separate subagent (below): pro
 **Orchestrator check before Phase 6.** Do not trust the signal alone:
 
 - `ls` the report named in the signal (`<reports>/spec-compliance/SPEC_COMPLIANCE_<change-name>_*.md`); for a manual proof, the hand-back must list every requirement as Verified.
-- Read its summary: `Failing` and `Unverified` must both be `0`. Any other count means the subagent stopped short: re-spawn this subagent once with the counts quoted; a second miss is `ARCHIVE_BLOCKED — spec proof incomplete`.
+- The report's first line must be the stamp `<!-- backlog-kit: spec-compliance-check -->`, written by the skill; a report without it, in a project where the skill is installed, is hand-written and is a failed run: re-spawn once with the skill's own report format. The run is also a failed run when the report names no test or manual check for a scenario.
+- Read its summary line (`Verified N · Failing N · Unverified N`): `Failing` and `Unverified` must both be `0`. Any other count means the subagent stopped short: re-spawn this subagent once with the counts quoted; a second miss is `ARCHIVE_BLOCKED — spec proof incomplete`.
 - If `openspec/` exists and the `spec-compliance-check` skill is installed, `SKILL_USED: none — manual proof` is a failed run: re-spawn once. Without the skill (or without OpenSpec) the manual proof is legitimate; carry `⚠ spec proof done manually` into the Final Summary.
 - `ARCHIVE_BLOCKED` from this subagent stops the workflow as described below.
 
