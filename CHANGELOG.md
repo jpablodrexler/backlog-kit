@@ -2,6 +2,10 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.7.0
+- **Estimation rubric in `feature-plan`:** the story-point suggestion now follows a fixed rubric instead of a loose list of factors. Reach (one layer starts at `1`, two or more at `3`), then one step up for breadth (eight or more acceptance criteria, or three or more independent flows), for a schema change on a single-layer story, and for real novelty; one step down for a near copy of an existing feature; a result above `8` is a split candidate. The rubric was calibrated on the finished backlogs of two projects: layers, schema change and the breadth of the acceptance criteria tracked the real size of features, while "a new dependency" and the length of the notes did not, so they no longer count. The scale is documented as ordinal, not proportional.
+- **`<backlog>/estimation-anchors.md` (optional):** a project can list finished features as reference examples of each value; `feature-plan` reads the file when it exists and names the closest example as the reason. The kit never creates or requires it.
+
 ## 0.6.0
 - **`feature-plan` asks for the story points:** after drafting the brief it calculates a suggestion (from the number of acceptance criteria, the layers the technical notes touch, schema changes and what is new to the project), asks the user for the number with the suggestion first and marked "(Recommended)" plus its neighbours on the scale, and takes whatever the user answers; a value off the scale is asked again, never rounded. A value the user gave in the request is the suggestion. Effort is no longer drafted silently with the other attribute columns. If the question cannot be asked, the draft marks the number "(suggested, not confirmed)". An `8` or `13` still offers the split.
 

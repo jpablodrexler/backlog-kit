@@ -1,6 +1,6 @@
 {
   "name": "backlog-kit",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Your backlog is plain markdown in the repo, and Claude works it to done through quality gates. Nothing is committed without you.",
   "author": {
     "name": "Juan Pablo Drexler"

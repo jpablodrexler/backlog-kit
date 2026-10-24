@@ -65,6 +65,10 @@ python3 /path/to/backlog-kit/tools/effort_to_points.py <repo>             # rewr
 
 It converts the Effort cells of both `features-planned.md` and `features-implemented.md` by header name (S=1, M=3, L=5, XL=8), leaves any value that is already a number, replaces the Effort line of the Column legend, and changes nothing else; a second run is a no-op. Skills or scripts of your own that read the Effort column as a size (a Gantt chart, for example) need the same change.
 
+## Estimating with the rubric and anchors (0.7.0)
+
+Nothing to migrate: 0.7.0 only changes how `feature-plan` calculates its story-point suggestion (see [docs/estimation.md](docs/estimation.md)). To make the suggestion fit your project, add `<backlog>/estimation-anchors.md` with a few finished features as examples of each value you use (`1`, `3`, `5`, …), each with the one reason it belongs there. The file is optional and the kit never creates it.
+
 ## Rolling back
 
 `git revert` the migration commit: the deleted skills come back; `.backlog-kit.toml` goes away.
