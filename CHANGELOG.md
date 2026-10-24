@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.6.0
+- **`feature-plan` asks for the story points:** after drafting the brief it calculates a suggestion (from the number of acceptance criteria, the layers the technical notes touch, schema changes and what is new to the project), asks the user for the number with the suggestion first and marked "(Recommended)" plus its neighbours on the scale, and takes whatever the user answers; a value off the scale is asked again, never rounded. A value the user gave in the request is the suggestion. Effort is no longer drafted silently with the other attribute columns. If the question cannot be asked, the draft marks the number "(suggested, not confirmed)". An `8` or `13` still offers the split.
+
 ## 0.5.0
 - **Effort is measured in story points:** the Fibonacci scale `1`/`2`/`3`/`5`/`8`/`13` replaces S/M/L/XL. The column keeps its header, `Effort`, so the skills and scripts that read it by name are unchanged. `8` or more is too large for one story and is offered for splitting (what `XL` was). `feature-plan` drafts points; `features-status` breaks pending features down by points and prints the pending total, and still counts the old sizes (S=1, M=3, L=5, XL=8) in a backlog that has not been converted.
 - **`tools/effort_to_points.py`:** converts the Effort column of both feature tables and the legend line in one pass (`--dry-run` to preview, idempotent). `MIGRATING.md` describes it.
