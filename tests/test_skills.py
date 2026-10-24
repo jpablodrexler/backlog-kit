@@ -406,7 +406,8 @@ class StoryBriefs(unittest.TestCase):
         text = " ".join((KIT / "skills/feature-plan/SKILL.md").read_text(encoding="utf-8").split())
         for needle in ("**As a** <specific role>, **I want** <goal>, **so that** <benefit>.", "## Acceptance Criteria",
                        "Given <context>, when <action>, then", "definition-of-done.md", "never block planning",
-                       "Split into several features", "story points on the Fibonacci scale"):
+                       "Split into several features", "story points on the Fibonacci scale",
+                       "### 5b. Ask for the story points", "(Recommended)", "never silently taken from the estimate"):
             self.assertIn(needle, text)
 
     def test_pipelines_and_proof_read_the_story_brief(self):
