@@ -18,7 +18,7 @@ desktop = "1920x1080"
 
 # Nothing else is configured: the skills ask you when they need to know something about your project.
 #
-# Priorities (P0-P3), efforts (S/M/L/XL), severities (S1-S4), the bug id prefix (BUG), the Schema Change
+# Priorities (P0-P3), efforts (story points 1/2/3/5/8/13), severities (S1-S4), the bug id prefix (BUG), the Schema Change
 # column, the branch names (feature/, fix/, base develop) and OpenSpec's location (openspec/changes) are
 # fixed, as in the projects the kit comes from; the Area and Environment values are whatever the legend
 # of your backlog files says.

@@ -41,7 +41,7 @@ Where projects' own versions differ, the kit follows one choice; none of it is a
 
 - There is no `commit` action in `gitflow`: you commit your own work; `finish` pushes and opens the PR with confirmations before the first push of a branch.
 - Tests, E2E, build, database and security reviews and the viewport check are optional phases inside the pipelines, not project files; a phase that does not apply is skipped with a stated reason.
-- `Schema Change`, the P0–P3 / S/M/L/XL / S1–S4 scales, branch names (`feature/`, `fix/`, base `develop`) and OpenSpec's location are fixed.
+- `Schema Change`, the P0–P3 / story points 1/2/3/5/8/13 / S1–S4 scales, branch names (`feature/`, `fix/`, base `develop`) and OpenSpec's location are fixed.
 - `bugs-next` reads whether a fix needs a schema change from a `- **Schema change:** yes` line in the bug's details file.
 
 ## Moving existing briefs to the user-story format (0.4.0)
@@ -53,6 +53,17 @@ Where projects' own versions differ, the kit follows one choice; none of it is a
 3. **Rewrite the `Summary` cell of planned rows** from the new "I want … so that …" clause (at most 250 characters, no pipes, no links); implemented rows have no Summary column, so there is nothing to convert there. Nothing else in the table changes: the file name, the H1 and the `[brief]` link stay, so `features-status` stays clean.
 4. **Review and check.** One branch for the whole conversion (`doc/` in git-flow), reviewed before merging; then run `status_report.py`: a converted brief with no `- ACn:` line is flagged as advisory.
 5. **Write the Definition of Done.** Run `feature-plan` once and accept the offer, or create `<backlog>/definition-of-done.md` by hand: a `- [ ]` checklist every feature must meet (the phases of your workflow are a good start).
+
+## Moving effort sizes to story points (0.5.0)
+
+0.5.0 measures Effort in story points (`1`, `2`, `3`, `5`, `8`, `13`) instead of S/M/L/XL. The column keeps its name, `Effort`. A backlog that still uses sizes keeps working (`features-status` counts S=1, M=3, L=5, XL=8), but new rows should use points, so convert the existing ones once:
+
+```
+python3 /path/to/backlog-kit/tools/effort_to_points.py <repo> --dry-run   # report only
+python3 /path/to/backlog-kit/tools/effort_to_points.py <repo>             # rewrite
+```
+
+It converts the Effort cells of both `features-planned.md` and `features-implemented.md` by header name (S=1, M=3, L=5, XL=8), leaves any value that is already a number, replaces the Effort line of the Column legend, and changes nothing else; a second run is a no-op. Skills or scripts of your own that read the Effort column as a size (a Gantt chart, for example) need the same change.
 
 ## Rolling back
 
