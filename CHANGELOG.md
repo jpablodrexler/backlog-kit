@@ -4,6 +4,7 @@ Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes
 
 ## 0.3.1
 - **Verifiable skill use:** `code-reviewer`, `database-reviewer`, `security-reviewer` and `spec-compliance-check` stamp the first line of their report with `<!-- backlog-kit: <skill> -->`. The review gate (G6) and the Phase 6S check read the stamp: a report without it, in a project where the skill is installed, is a hand-written report and a failed run (re-spawned once). `SKILL_USED:` alone is no longer enough. `spec-compliance-check` also ends its report with a `Verified N · Failing N · Unverified N` line for the orchestrator to read.
+- **`feature-development` reads natural language:** the flags are shorthand for orchestrators, never something a user must type; a plain request ("develop X", "stay on this branch", "commit as you go") is complete, the skill states how it understood it, and all phases run by default.
 - **`feature-development`:** a run started on a topic branch the user wants to stay on is handled as `--skip-branch-setup`; a request to commit as the work goes means one `gitflow` commit after each phase that changed files (Phase 7 commits what is left); a phase ledger (one task per phase and gate) is created after Phase 0 and the Final Summary waits for it; archiving always comes after the review gate, tests and spec proof, and always through `openspec-sync-specs` and `openspec-archive-change`; a phase that names a skill invokes that skill.
 
 ## 0.3.0
