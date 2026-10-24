@@ -399,3 +399,18 @@ class SkillAuthor(unittest.TestCase):
             with self.subTest(skill=f.parent.name):
                 head = f.read_text(encoding="utf-8").split("\n---\n", 1)[0]
                 self.assertIn("  author: Juan Pablo Drexler", head)
+
+
+class StoryBriefs(unittest.TestCase):
+    def test_feature_plan_writes_story_briefs_and_offers_a_definition_of_done(self):
+        text = " ".join((KIT / "skills/feature-plan/SKILL.md").read_text(encoding="utf-8").split())
+        for needle in ("**As a** <specific role>, **I want** <goal>, **so that** <benefit>.", "## Acceptance Criteria",
+                       "Given <context>, when <action>, then", "definition-of-done.md", "never block planning",
+                       "`XL`", "Split into several features"):
+            self.assertIn(needle, text)
+
+    def test_pipelines_and_proof_read_the_story_brief(self):
+        phase1 = " ".join((KIT / "skills/feature-development/reference/phase-1-propose.md").read_text(encoding="utf-8").replace("> ", "").split())
+        self.assertIn("every acceptance criterion becomes at least one requirement scenario", phase1)
+        proof = (KIT / "extras/spec-compliance-check/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("### Acceptance criteria and Definition of Done", proof)

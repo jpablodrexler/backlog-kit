@@ -2,6 +2,13 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.4.0
+- **Briefs are user stories:** `feature-plan` writes each new brief as `**As a** <role>, **I want** <goal>, **so that** <benefit>.`, followed by `## Acceptance Criteria` (numbered `AC1`…`ACn`, Given/When/Then, each binary and testable), `## Technical notes` (the concrete mechanism the old single paragraph carried), an optional `## Out of scope` and a `## Definition of Done` section that lists only what is extra for the feature. One story per brief. Existing one-paragraph briefs stay valid and are not rewritten by the skills; `MIGRATING.md` describes how to convert them, together with the Summary of planned rows.
+- **Definition of Done file:** `<backlog>/definition-of-done.md` is a project-wide markdown checklist. While it is missing, `feature-plan` asks every run whether to write it (now, or a starter drawn from the project's docs and workflow, or not now); it never blocks planning. `feature-development` lists each item in its Final Summary and `spec-compliance-check` reports the items it can evidence (advisory, outside the proof totals).
+- **`XL` effort:** the scale is `S/M/L/XL`; an `XL` (or a description holding several stories) is a candidate for splitting, and `feature-plan` offers "Split into several features" in its confirmation. `features-status` counts `XL`.
+- **Acceptance criteria flow through the pipeline:** `feature-development` tells `openspec-propose` to turn every AC into at least one scenario and asks the implementation subagent for one `ACCEPTANCE:` line per AC; `spec-compliance-check` lists an AC without a scenario or evidence as Unverified.
+- **`features-status`:** advisory warnings for a story-shaped brief with no acceptance criteria and, as a note, for a missing `definition-of-done.md`.
+
 ## 0.3.1
 - **Verifiable skill use:** `code-reviewer`, `database-reviewer`, `security-reviewer` and `spec-compliance-check` stamp the first line of their report with `<!-- backlog-kit: <skill> -->`. The review gate (G6) and the Phase 6S check read the stamp: a report without it, in a project where the skill is installed, is a hand-written report and a failed run (re-spawned once). `SKILL_USED:` alone is no longer enough. `spec-compliance-check` also ends its report with a `Verified N · Failing N · Unverified N` line for the orchestrator to read.
 - **`feature-development` reads natural language:** the flags are shorthand for orchestrators, never something a user must type; a plain request ("develop X", "stay on this branch", "commit as you go") is complete, the skill states how it understood it, and all phases run by default.

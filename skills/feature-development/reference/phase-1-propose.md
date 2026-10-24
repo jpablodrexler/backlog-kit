@@ -188,6 +188,12 @@ see the foreground guardrail in `../SKILL.md`), with the following prompt (subst
 >    the brief text), so it never has to ask the user for one. The brief
 >    file is the spec input; never pass the row's one-line `Summary` cell,
 >    which exists only for human skimming and `features-next`'s display.
+>    When the brief is written as a user story (it opens with
+>    `**As a** … **I want** … **so that** …` and has an `## Acceptance
+>    Criteria` list), add one instruction to the description: every
+>    acceptance criterion becomes at least one requirement scenario
+>    (`WHEN`/`THEN`) in the spec, `## Technical notes` guide the design, and
+>    `## Definition of Done` is a completion checklist, not a requirement.
 > 4. **If no planned row exists** (an ad hoc change proposed outside the
 >    tracked backlog, or one already moved to `features-implemented.md`):
 >    skip the brief reading above and invoke

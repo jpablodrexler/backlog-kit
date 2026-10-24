@@ -28,6 +28,8 @@ following prompt:
 > done, implement the tasks, and add or update tests so that what must be true
 > is covered by tests where the project's test setup allows it. List those
 > checks in your hand-back as `ACCEPTANCE: <check>` lines; Phase 6S uses them.
+> When the brief lists acceptance criteria (`- AC1: …`), the tasks and the
+> `ACCEPTANCE:` lines follow them: one line per criterion, named `AC1`, `AC2`, ….
 > If you encounter a blocker during implementation, end your response with
 > `IMPLEMENT_BLOCKED — <brief reason>` and stop.
 >

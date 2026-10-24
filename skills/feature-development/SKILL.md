@@ -189,6 +189,7 @@ them back through the Phase 2R review gate.
 **E2E verification:** ✓ <one-line summary from Phase 4's `E2E: PASS`> (or
 "N/A — <reason>" if `E2E: SKIPPED`, or **⚠ Partial:** <what wasn't covered> if `E2E: PASS_PARTIAL`)
 **Build:** ✓ the build succeeded locally (or N/A — the project has no build step)
+**Definition of Done:** ✓ <each item of `<backlog>/definition-of-done.md` and of the brief's own `## Definition of Done` section, met with the phase or report that shows it, or ⚠ not met — why> (or N/A — the project defines none)
 **Spec compliance:** ✓ All scenarios verified (any Unverified scenario `spec-compliance-check` found was closed with new test coverage during Phase 6S, before archiving — never left as a caveat)
 **Docs sync:** ✓ <one-line summary from `docs-sync`, or "Nothing to sync">
 **SDD change:** ✓ Archived (OpenSpec projects)
