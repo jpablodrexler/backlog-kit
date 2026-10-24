@@ -2,6 +2,10 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.5.0
+- **Effort is measured in story points:** the Fibonacci scale `1`/`2`/`3`/`5`/`8`/`13` replaces S/M/L/XL. The column keeps its header, `Effort`, so the skills and scripts that read it by name are unchanged. `8` or more is too large for one story and is offered for splitting (what `XL` was). `feature-plan` drafts points; `features-status` breaks pending features down by points and prints the pending total, and still counts the old sizes (S=1, M=3, L=5, XL=8) in a backlog that has not been converted.
+- **`tools/effort_to_points.py`:** converts the Effort column of both feature tables and the legend line in one pass (`--dry-run` to preview, idempotent). `MIGRATING.md` describes it.
+
 ## 0.4.0
 - **Briefs are user stories:** `feature-plan` writes each new brief as `**As a** <role>, **I want** <goal>, **so that** <benefit>.`, followed by `## Acceptance Criteria` (numbered `AC1`…`ACn`, Given/When/Then, each binary and testable), `## Technical notes` (the concrete mechanism the old single paragraph carried), an optional `## Out of scope` and a `## Definition of Done` section that lists only what is extra for the feature. One story per brief. Existing one-paragraph briefs stay valid and are not rewritten by the skills; `MIGRATING.md` describes how to convert them, together with the Summary of planned rows.
 - **Definition of Done file:** `<backlog>/definition-of-done.md` is a project-wide markdown checklist. While it is missing, `feature-plan` asks every run whether to write it (now, or a starter drawn from the project's docs and workflow, or not now); it never blocks planning. `feature-development` lists each item in its Final Summary and `spec-compliance-check` reports the items it can evidence (advisory, outside the proof totals).

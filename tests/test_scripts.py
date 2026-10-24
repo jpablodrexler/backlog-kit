@@ -39,7 +39,7 @@ def skeleton(root, backlog="docs/backlog"):
     (d / "features-implemented.md").write_text(blocks[1], encoding="utf-8")
 
 
-def frow(n, name, prio="P2", schema="No", effort="M", area="Backend", sdd="⬜ Pending", impl="⬜ Pending", summary=None):
+def frow(n, name, prio="P2", schema="No", effort="3", area="Backend", sdd="⬜ Pending", impl="⬜ Pending", summary=None):
     return (f"| {n} | `{name}` | {prio} | {schema} | {effort} | {area} | {sdd} | {impl} | "
             f"{summary if summary is not None else 'Does ' + name} | [brief](features/{int(n):03d}-{name}.md) |")
 
@@ -73,7 +73,7 @@ class FeatureFlow(unittest.TestCase):
 
     def test_rank_blocks_on_live_prerequisite_and_prefers_in_progress(self):
         skeleton(self.root)
-        for r in (frow(1, "alpha", "P1"), frow(2, "beta", "P0", effort="S"), frow(3, "gamma", "P3", effort="L", area="Frontend", impl="🔶 In Progress")):
+        for r in (frow(1, "alpha", "P1"), frow(2, "beta", "P0", effort="1"), frow(3, "gamma", "P3", effort="5", area="Frontend", impl="🔶 In Progress")):
             add_feature_row(self.root, self.REL, r)
         fdir = self.root / "docs/backlog/features"
         fdir.mkdir()
@@ -123,13 +123,41 @@ class FeatureFlow(unittest.TestCase):
         self.assertIn("bad Summary", out)
         self.assertIn("no docs/backlog/features/001-a.md file", out)
 
-    def test_status_counts_xl_effort(self):
+    def test_status_counts_story_points_and_still_reads_old_sizes(self):
         skeleton(self.root)
-        add_feature_row(self.root, self.REL, frow(1, "a", "P1", effort="XL"))
-        add_feature_row(self.root, self.REL, frow(2, "b", "P1", effort="L"))
+        add_feature_row(self.root, self.REL, frow(1, "a", "P1", effort="8"))
+        add_feature_row(self.root, self.REL, frow(2, "b", "P1", effort="3"))
+        add_feature_row(self.root, self.REL, frow(3, "c", "P1", effort="L"))      # an unconverted size counts as 5
         out = run("f_status", self.root, "--json")
-        self.assertEqual(out["effort_breakdown"], {"S": 0, "M": 0, "L": 1, "XL": 1, "none": 0})
-        self.assertIn("| XL     | 1 |", run("f_status", self.root, as_json=False))
+        self.assertEqual(out["effort_breakdown"], {"1": 0, "2": 0, "3": 1, "5": 1, "8": 1, "13": 0, "none": 0})
+        self.assertEqual(out["pending_points"], 16)
+        text = run("f_status", self.root, as_json=False)
+        self.assertIn("| 8            | 1 |", text)
+        self.assertIn("**Total pending points** | **16**", text)
+
+    def test_effort_to_points_tool_converts_both_tables_and_the_legend_once(self):
+        skeleton(self.root)
+        add_feature_row(self.root, self.REL, frow(1, "a", "P1", effort="S"))
+        add_feature_row(self.root, self.REL, frow(2, "b", "P1", effort="XL"))
+        add_feature_row(self.root, self.REL, frow(3, "c", "P1", effort="5"))
+        impl = self.root / "docs/backlog/features-implemented.md"
+        impl.write_text(impl.read_text(encoding="utf-8").replace(
+            "| - | ------------ | -------- | -------------- | ------ | ---- | -------------------- |",
+            "| - | ------------ | -------- | -------------- | ------ | ---- | -------------------- |\n| 9 | `done` | P2 | No | M | Backend | x |"), encoding="utf-8")
+        tool = KIT / "tools/effort_to_points.py"
+        dry = subprocess.run([sys.executable, str(tool), str(self.root), "--dry-run"], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+        self.assertIn("would convert 3 cell(s)", dry)
+        self.assertIn("| S |", (self.root / self.REL).read_text(encoding="utf-8"))        # dry run wrote nothing
+        out = subprocess.run([sys.executable, str(tool), str(self.root)], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+        self.assertIn("converted 3 cell(s)", out)
+        planned = (self.root / self.REL).read_text(encoding="utf-8")
+        self.assertRegex(planned, r"\| 1 \| `a` \| P1 \| No \| 1 \|")
+        self.assertRegex(planned, r"\| 2 \| `b` \| P1 \| No \| 8 \|")
+        self.assertRegex(planned, r"\| 3 \| `c` \| P1 \| No \| 5 \|")
+        self.assertIn("story points on the Fibonacci scale", planned)
+        self.assertRegex(impl.read_text(encoding="utf-8"), r"\| 9 \| `done` \| P2 \| No \| 3 \|")
+        again = subprocess.run([sys.executable, str(tool), str(self.root)], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+        self.assertIn("converted 0 cell(s)", again)
 
     def test_status_checks_story_briefs_but_leaves_paragraph_briefs_alone(self):
         skeleton(self.root)
