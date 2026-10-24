@@ -15,7 +15,7 @@ A small set of [Claude Code](https://claude.com/claude-code) skills that take a 
 
 Then just talk to Claude:
 
-- "Plan a feature: dark-mode toggle" → `feature-plan` drafts the row and the brief (a user story with acceptance criteria), asks before writing.
+- "Plan a feature: dark-mode toggle" → `feature-plan` drafts the row and the brief (a user story with acceptance criteria), asks for the story points (suggesting a value from its [estimation rubric](docs/estimation.md)) and asks before writing.
 - "What should I work on next?" → `features-next` / `bugs-next`.
 - "Develop the next feature" / "Fix BUG-004" → `feature-development` / `bug-fix`.
 - "Finish the feature, open the PR" → `gitflow`. After merging: "clean up the branches".

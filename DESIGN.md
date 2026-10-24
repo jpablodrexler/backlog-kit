@@ -21,6 +21,7 @@ A small set of skills that takes a feature or a bug from idea to a verified, arc
 - **Optional phases are skipped with a reason**, never silently: tests, E2E and build in the pipelines, database/security reviews and the viewport check inside the fix/implement phase, the version bump and regression suite in a release.
 - **Credentials:** a skill never reads a credentials file and never puts credentials in a prompt; it asks how the test account is provided.
 - **Fixed vocabulary:** priorities P0–P3, efforts in story points (1/2/3/5/8/13), severities S1–S4, bug prefix `BUG`, branch names `feature/`, `fix/`, base `develop`. The only settings are the backlog folder and the viewport check devices.
+- **Estimates follow a rubric, and the user decides.** `feature-plan` suggests story points from reach, breadth, schema change, novelty and familiarity, and the user can always override. The scale is ordinal, not proportional. The factors were chosen by testing them against two finished backlogs; see [docs/estimation.md](docs/estimation.md). A project may add `<backlog>/estimation-anchors.md` with finished features as reference examples.
 - **OpenSpec is optional.** With an `openspec/` folder the pipelines use it; without one, the feature brief is the spec.
 
 ## Extras and project knowledge

@@ -410,6 +410,12 @@ class StoryBriefs(unittest.TestCase):
                        "### 5b. Ask for the story points", "(Recommended)", "never silently taken from the estimate"):
             self.assertIn(needle, text)
 
+    def test_feature_plan_scores_with_the_estimation_rubric(self):
+        text = " ".join((KIT / "skills/feature-plan/SKILL.md").read_text(encoding="utf-8").split())
+        for needle in ("The scale is ordinal, not proportional", "| Reach |", "| Breadth |", "| Schema |", "| Novelty |",
+                       "| Familiarity |", "never add the step on top of the reach", "estimation-anchors.md"):
+            self.assertIn(needle, text)
+
     def test_pipelines_and_proof_read_the_story_brief(self):
         phase1 = " ".join((KIT / "skills/feature-development/reference/phase-1-propose.md").read_text(encoding="utf-8").replace("> ", "").split())
         self.assertIn("every acceptance criterion becomes at least one requirement scenario", phase1)
