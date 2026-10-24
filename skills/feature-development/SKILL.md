@@ -149,7 +149,7 @@ across every phase, and other skills cite these phases by number
 | 3 — Tests *(optional)* | Subagent 3 | running the project's tests | `reference/phase-3-tests.md` |
 | 4 — E2E Verification *(optional)* | Subagent 4 (conditional) | deciding whether the end-to-end check applies and running it | `reference/phase-4-e2e-verification.md` |
 | 5 — Build Verification *(optional)* | Subagent 5 | the local build | `reference/phase-5-build-verification.md` |
-| 6S — Spec proof | Subagent 6 | proving each requirement, with the orchestrator's report check |
+| 6S — Spec proof | Subagent 6 | proving each requirement, with the orchestrator's report check | `reference/phase-6-archive.md` |
 | 6 — Archive | Subagent 7 | docs sync, archiving the change and marking the feature implemented | `reference/phase-6-archive.md` |
 
 ---
@@ -182,9 +182,9 @@ After all phases complete, display:
 **Mobile viewport check:** ✓ <each configured phone viewport: verified, or ⚠ skipped — reason> — <what was checked/caught> (or N/A — no template/CSS changes)
 **Desktop viewport check:** ✓ <the configured desktop viewport: verified, or ⚠ skipped — reason> — <what was checked/caught> (or N/A — no template/CSS changes)
 **Tests:** ✓ All passing (or N/A — the project has no automated tests)
-[if UNREVIEWED_PROD_FIXES was recorded in Phase 3, insert this line here:]
+[if UNREVIEWED_PROD_FIXES was recorded in Phase 3 or Phase 5, insert this line here:]
 **⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while
-chasing test failures in Phase 3; the user chose to proceed without routing
+chasing test or build failures in Phase 3 or 5; the user chose to proceed without routing
 them back through the Phase 2R review gate.
 **E2E verification:** ✓ <one-line summary from Phase 4's `E2E: PASS`> (or
 "N/A — <reason>" if `E2E: SKIPPED`, or **⚠ Partial:** <what wasn't covered> if `E2E: PASS_PARTIAL`)
@@ -254,23 +254,26 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
 - Do not start Phase 5 until Phase 4 reports `E2E: PASS`, `E2E: PASS_PARTIAL`,
   or `E2E: SKIPPED`. If it reports `E2E_BLOCKED`, surface the details to the
   user and wait for guidance before continuing — do not assume it belongs
-  back in Phase 2's code review without the user confirming that (a failure
+  back in the Phase 2R review gate without the user confirming that (a failure
   here can equally be an environment/data problem, not a code defect). If it
   reports `E2E: PASS_PARTIAL`, that's not blocking — carry the caveat into the
   Final Summary's "E2E verification" field.
-- Do not start Phase 6 until Phase 5 reports `BUILD: PASS` or `BUILD: SKIPPED`.
+- Do not start Phase 6S until Phase 5 reports `BUILD: PASS` or `BUILD: SKIPPED`.
   If it reports `BUILD: BLOCKED`, surface the details to the user and wait for
-  guidance before continuing.
+  guidance before continuing. If it reports `PROD_CODE_FIXED:` lines (the build
+  subagent had to edit production source), handle them exactly as Phase 3's
+  (proceed and carry `UNREVIEWED_PROD_FIXES` into the Final Summary, or re-run
+  the Phase 2R review gate and then Phases 3 and 5 again).
 - Do not start Phase 6 until Phase 6S returned `SPEC_PROOF: PASS` **and the orchestrator opened its report** (`Failing` = 0, `Unverified` = 0). The proof runs in its own subagent, never in the archiving one.
 - Do not display the Final Summary until Phase 6 subagent returns `ARCHIVE: DONE`.
-- **Phase 7 (only with `--commit`):** after `ARCHIVE: DONE`, invoke `gitflow` with "commit `Feature <change-name>: <one-line summary>`" directly in the orchestrator's context. It shows what will be committed, confirms with the user, makes one local commit and does not push. Without the flag record `COMMIT: SKIPPED — not requested`. A refusal or failure is surfaced and stops there; the feature stays archived, uncommitted.
+  If Phase 6S or Phase 6 returns `ARCHIVE_BLOCKED` instead — Phase 6S's
+  `spec-compliance-check` found a Failing scenario, a test added to close an
+  Unverified scenario itself failed (revealing a real bug), or an Unverified
+  scenario survived 3 rounds of add-test-and-re-check — the change stays
+  unarchived. Surface the scenario(s) to the user and wait for guidance
+  instead of retrying Phase 6 automatically.
+- **Phase 7 (only with `--commit`):** after `ARCHIVE: DONE`, invoke `gitflow` with "commit `Feature <change-name>: <one-line summary>`" directly in the orchestrator's context. It shows what will be committed, confirms with the user, makes one local commit and does not push. Without the flag (and without a request to commit as the work goes) record `COMMIT: SKIPPED — not requested`. A refusal or failure is surfaced and stops there; the feature stays archived, uncommitted.
 - **Never collapse the phases to save effort.** Implementing and testing in one go, running only the touched specs, skipping review or build, and giving a lean summary are what this skill exists to prevent. A skip needs its stated condition and a recorded reason.
-  If it returns `ARCHIVE_BLOCKED` instead — Phase 6S's `spec-compliance-check`
-  found a Failing scenario, a test added to close an Unverified scenario
-  itself failed (revealing a real bug), or an Unverified scenario survived
-  3 rounds of add-test-and-re-check — the change stays unarchived. Surface
-  the scenario(s) to the user and wait for guidance instead of retrying
-  Phase 6 automatically.
 - **This workflow never archives a change with a known spec-compliance
   gap.** Phase 6S closes every Unverified scenario with real,
   passing test coverage (or escalates via `ARCHIVE_BLOCKED` when it
@@ -278,7 +281,7 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
   `UNVERIFIED_SCENARIOS` caveat path anymore — a scenario is either
   Verified before archiving, or the archive doesn't happen.
 - **Foreground guardrail**: every Agent tool call in this skill (Subagents
-  1–6) must pass `run_in_background: false` where the tool implementation
+  1–7) must pass `run_in_background: false` where the tool implementation
   in use actually supports that parameter. Every phase in this workflow is
   gated on the prior phase's subagent actually finishing ("do not start
   Phase N until Subagent M returns ..."); some Agent tool implementations
@@ -363,7 +366,7 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
   pending (see Phase 4 Step 2) — it never stops to ask the user to do that
   themselves. It starts a stopped container runtime (Docker) itself too. It
   makes no other write against a shared database. Any schema fix needed to
-  make Phase 4 pass belongs back in Phase 2's conditional database review.
+  make Phase 4 pass belongs back in the Phase 2R database review (re-run the gate after fixing it).
 - **Docker is started by the workflow, never reported as a blocker.** Any
   phase whose tooling needs a local container runtime (a local database test
   suite in Phase 3 or 6, Phase 4's environment) starts it and waits for it

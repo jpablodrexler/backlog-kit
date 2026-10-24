@@ -37,22 +37,23 @@ That is all the setup there is. Backlog files are created on first use in `docs/
 **`feature-development` phases** — each runs in a subagent, and the ones that do not apply to your project are skipped (you are asked, or it is stated plainly):
 
 1. Propose — pick the feature, create the branch, write the spec (the brief `features/NNN-name.md` is the spec; [OpenSpec](https://github.com/Fission-AI/OpenSpec) is used only if the repo has an `openspec/` folder).
-2. Implement and review — implement, then code review; database / security / viewport reviews only when the change touches those.
+2. Implement, then a review gate run by the orchestrator — a code review always; database / security / viewport reviews only when the change touches those; each in its own subagent, each report checked before the next step.
 3. Tests *(optional)*  4. E2E *(optional)*  5. Build *(optional)*
-6. Archive — prove each requirement, sync docs, move the item to implemented.
+6. Prove each requirement against the spec (its own subagent), then sync docs, archive the change and move the item to implemented.
+7. Commit *(only when you ask)*.
 
-`bug-fix` is the same shape, starting from a failing regression test. Both leave the result **uncommitted** on the branch for you to review.
+`bug-fix` is the same shape, starting from a failing regression test. You ask in plain words ("develop X", "stay on this branch", "commit as you go"); by default both leave the result **uncommitted** on the branch for you to review.
 
 ## The loop
 
 ```
-plan ──► select ──► branch ──► develop + verify ──► you commit ──► PR ──► review ──► merge ──► clean up ─┐
+plan ──► select ──► branch ──► develop + verify ──► commit ──► PR ──► review ──► merge ──► clean up ─┐
  ▲   feature-plan  features-next   feature-development   (you)       gitflow   (you)    (you)   gitflow  │
  │   bug-report    bugs-next       bug-fix                                                            │
  └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The middle of the loop (`feature-development`, `bug-fix`) never commits: it leaves a verified, archived result uncommitted on a branch for you to review. You commit it yourself; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.
+The middle of the loop (`feature-development`, `bug-fix`) commits nothing unless you ask: by default it leaves a verified, archived result uncommitted on a branch for you to review, and when you ask for commits (one at the end, or as the work goes) `gitflow` makes them. You commit it yourself otherwise; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.
 
 ## Extras (optional)
 
