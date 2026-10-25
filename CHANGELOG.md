@@ -2,6 +2,11 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.7.1
+- **A just-planned feature or bug can be developed right away:** `feature-development` (Phase 1, B2), `bug-fix` (B2) and `gitflow` (`start <topic>`) no longer stop on uncommitted changes confined to `<backlog>/` — the row and brief that `feature-plan` or `bug-report` just wrote. The new branch carries them along. Any other uncommitted change still stops the action.
+- **Phase 2 no longer runs the whole test suite:** the implementation subagent runs only the tests of the files it touched and never ends its response with a command still running in the background. A full suite can outlast the Bash tool's cap, and a leftover background job made the subagent re-send its hand-back long after Phase 3 had taken over.
+- **Review gate G3 is explicit about migrations:** a migration counts as security-sensitive when it adds or changes a policy, grant, role or privileged function, or backfills or rewrites user-owned rows; a purely additive column or index does not count on its own.
+
 ## 0.7.0
 - **Estimation rubric in `feature-plan`:** the story-point suggestion now follows a fixed rubric instead of a loose list of factors. Reach (one layer starts at `1`, two or more at `3`), then one step up for breadth (eight or more acceptance criteria, or three or more independent flows), for a schema change on a single-layer story, and for real novelty; one step down for a near copy of an existing feature; a result above `8` is a split candidate. The rubric was calibrated on the finished backlogs of two projects: layers, schema change and the breadth of the acceptance criteria tracked the real size of features, while "a new dependency" and the length of the notes did not, so they no longer count. The scale is documented as ordinal, not proportional.
 - **`<backlog>/estimation-anchors.md` (optional):** a project can list finished features as reference examples of each value; `feature-plan` reads the file when it exists and names the closest example as the reason. The kit never creates or requires it.
