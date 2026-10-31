@@ -46,11 +46,21 @@ That is all the setup there is. Backlog files are created on first use in `docs/
 
 ## The loop
 
-```
-plan ──► select ──► branch ──► develop + verify ──► commit ──► PR ──► review ──► merge ──► clean up ─┐
- ▲   feature-plan  features-next   feature-development   (you)       gitflow   (you)    (you)   gitflow  │
- │   bug-report    bugs-next       bug-fix                                                            │
- └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "18px"}}}%%
+flowchart TB
+    plan["<b>plan</b> · <i>feature-plan, bug-report</i>"]
+    select["<b>select</b> · <i>features-next, bugs-next</i>"]
+    branch["<b>branch</b>"]
+    develop["<b>develop + verify</b> · <i>feature-development, bug-fix</i>"]
+    commit["<b>commit</b> · <i>you</i>"]
+    pr["<b>PR</b> · <i>gitflow</i>"]
+    review["<b>review</b> · <i>you</i>"]
+    merge["<b>merge</b> · <i>you</i>"]
+    cleanup["<b>clean up</b> · <i>gitflow</i>"]
+
+    plan --> select --> branch --> develop --> commit --> pr --> review --> merge --> cleanup
+    cleanup -. next item .-> plan
 ```
 
 The middle of the loop (`feature-development`, `bug-fix`) commits nothing unless you ask: by default it leaves a verified, archived result uncommitted on a branch for you to review, and when you ask for commits (one at the end, or as the work goes) `gitflow` makes them. You commit it yourself otherwise; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.
