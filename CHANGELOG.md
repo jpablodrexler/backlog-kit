@@ -2,6 +2,10 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.7.2
+- **Backlog files are written as UTF-8 and checked:** `features-archive`, `bugs-archive`, `feature-plan` and `bug-report` now say to write the backlog files as UTF-8 explicitly and to read them back as UTF-8 afterwards. An ad-hoc script that opened a file with the system's default text encoding saved the `·` of a new row as one invalid byte, and every script that reads the backlog then stopped with a decoding error.
+- **A badly encoded line no longer stops the scripts:** `read_lines` reads an invalid byte as a replacement character instead of raising, and `features-status` and `bugs-status` list the file and line numbers under **Data integrity** so the line can be re-saved.
+
 ## 0.7.1
 - **A just-planned feature or bug can be developed right away:** `feature-development` (Phase 1, B2), `bug-fix` (B2) and `gitflow` (`start <topic>`) no longer stop on uncommitted changes confined to `<backlog>/` — the row and brief that `feature-plan` or `bug-report` just wrote. The new branch carries them along. Any other uncommitted change still stops the action.
 - **Phase 2 no longer runs the whole test suite:** the implementation subagent runs only the tests of the files it touched and never ends its response with a command still running in the background. A full suite can outlast the Bash tool's cap, and a leftover background job made the subagent re-send its hand-back long after Phase 3 had taken over.
