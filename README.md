@@ -77,7 +77,7 @@ Claude Code, git, Python 3.11+ for the helper scripts (standard library only). `
 
 ## Limitations
 
-Early software (0.2), exercised on real repositories but not exhaustively. `gitflow` has been tested against real git repositories, not yet against GitHub (PR creation, remote deletion). Subagent hand-backs are claims: the orchestrator spot-checks the important ones. GitHub only for PRs. A skill of the same name in your project shadows the kit's when you install by copying (the plugin namespaces them).
+Pre-1.0 software, exercised on real repositories but not exhaustively. `gitflow` has been used against real git repositories and GitHub. Subagent hand-backs are claims: the orchestrator spot-checks the important ones. `gitflow` assumes the git-flow layout (a `develop` integration branch and `main`) and opens PRs on GitHub only. The story-point suggestion in `feature-plan` is a starting point: its [rubric](docs/estimation.md) was calibrated on two projects, and only the values `1`, `3` and `5` occurred in that data. A skill of the same name in your project shadows the kit's when you install by copying (the plugin namespaces them).
 
 ## For maintainers
 
