@@ -1,6 +1,6 @@
 # backlog-kit
 
-[![CI](https://github.com/jpablodrexler/backlog-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/jpablodrexler/backlog-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/jpablodrexler/backlog-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/jpablodrexler/backlog-kit/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/jpablodrexler/backlog-kit)](https://github.com/jpablodrexler/backlog-kit/releases)
 
 **Your backlog is plain markdown in the repo, and Claude works it to done through quality gates. Nothing is committed without you.**
 
@@ -91,7 +91,7 @@ Pre-1.0 software, exercised on real repositories but not exhaustively. `gitflow`
 
 ## For maintainers
 
-[INSTALL.md](INSTALL.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md) · [DESIGN.md](DESIGN.md) (design) · [MIGRATING.md](MIGRATING.md) (replacing a project's own copies of these skills)
+[INSTALL.md](INSTALL.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md) · [Releases](https://github.com/jpablodrexler/backlog-kit/releases) (one per version, with the changelog notes) · [DESIGN.md](DESIGN.md) (design) · [MIGRATING.md](MIGRATING.md) (replacing a project's own copies of these skills)
 
 ```
 python3 tools/vendor.py --check
