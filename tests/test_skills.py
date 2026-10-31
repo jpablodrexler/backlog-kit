@@ -210,7 +210,7 @@ class ReleaseHygieneTest(unittest.TestCase):
     def test_readme_states_its_limits_and_the_loop(self):
         readme = (self.ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("## Limitations", readme)
-        self.assertIn("has been tested against real git repositories, not yet against GitHub", readme)
+        self.assertIn("has been used against real git repositories and GitHub", readme)
         self.assertIn("## The loop", readme)
 
 
