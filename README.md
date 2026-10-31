@@ -46,11 +46,20 @@ That is all the setup there is. Backlog files are created on first use in `docs/
 
 ## The loop
 
-```
-plan ──► select ──► branch ──► develop + verify ──► commit ──► PR ──► review ──► merge ──► clean up ─┐
- ▲   feature-plan  features-next   feature-development   (you)       gitflow   (you)    (you)   gitflow  │
- │   bug-report    bugs-next       bug-fix                                                            │
- └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    plan["plan<br/><i>feature-plan<br/>bug-report</i>"]
+    select["select<br/><i>features-next<br/>bugs-next</i>"]
+    branch["branch"]
+    develop["develop + verify<br/><i>feature-development<br/>bug-fix</i>"]
+    commit["commit<br/><i>you</i>"]
+    pr["PR<br/><i>gitflow</i>"]
+    review["review<br/><i>you</i>"]
+    merge["merge<br/><i>you</i>"]
+    cleanup["clean up<br/><i>gitflow</i>"]
+
+    plan --> select --> branch --> develop --> commit --> pr --> review --> merge --> cleanup
+    cleanup --> plan
 ```
 
 The middle of the loop (`feature-development`, `bug-fix`) commits nothing unless you ask: by default it leaves a verified, archived result uncommitted on a branch for you to review, and when you ask for commits (one at the end, or as the work goes) `gitflow` makes them. You commit it yourself otherwise; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.
