@@ -123,6 +123,15 @@ class FeatureFlow(unittest.TestCase):
         self.assertIn("bad Summary", out)
         self.assertIn("no docs/backlog/features/001-a.md file", out)
 
+    def test_status_flags_a_file_saved_in_a_legacy_codepage_instead_of_crashing(self):
+        skeleton(self.root)
+        add_feature_row(self.root, self.REL, frow(1, "a", "P1"))
+        planned = Path(self.root) / "docs/backlog/features-planned.md"
+        planned.write_bytes(planned.read_bytes() + "\n<!-- a \u00b7 b -->\n".encode("cp1252"))
+        out = run("f_status", self.root, as_json=False)
+        self.assertIn("Total features", out)
+        self.assertIn("docs/backlog/features-planned.md is not valid UTF-8 at line(s)", out)
+
     def test_status_counts_story_points_and_still_reads_old_sizes(self):
         skeleton(self.root)
         add_feature_row(self.root, self.REL, frow(1, "a", "P1", effort="8"))
@@ -242,6 +251,15 @@ class BugFlow(unittest.TestCase):
         self.assertEqual(ok["selected"]["id"], "BUG-001")
         for stale in ("BUG-002", "BUG-003", "BUG-099"):
             self.assertIn("error", run("b_rank", self.root, "--select", stale, "--json"), stale)
+
+    def test_status_flags_a_file_saved_in_a_legacy_codepage_instead_of_crashing(self):
+        bug_skeleton(self.root)
+        self.add_bug("BUG-001", "S1", "prod")
+        opened = self.root / "docs/backlog/bugs-open.md"
+        opened.write_bytes(opened.read_bytes() + "\n<!-- a \u00b7 b -->\n".encode("cp1252"))
+        out = run("b_status", self.root, as_json=False)
+        self.assertRegex(out, r"\| ⬜ Open\s+\| 1 \|")
+        self.assertIn("docs/backlog/bugs-open.md is not valid UTF-8 at line(s)", out)
 
     def test_status_counts_and_integrity(self):
         bug_skeleton(self.root)
