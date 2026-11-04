@@ -53,24 +53,28 @@ Version tags on `<production>` use the `v<major>.<minor>.<patch>` format (e.g. `
 
 ---
 
-## GitHub access method
+## Hosting access method
 
-This skill needs to open pull requests and check PR merge status on GitHub. Before the first action that touches GitHub in a given invocation (i.e. before 3c, 3d, 3e, or 3f — 3b/sync is local-only and never touches GitHub), determine which access method is available:
+This skill opens pull requests (merge requests on GitLab) and checks whether they merged. Before the first action that touches the host in a given invocation (before 3c, 3d, 3e or 3f; 3b/sync is local-only), find out the host and the access method:
 
-1. Run `gh --version`. If it succeeds, use the **gh CLI** for every GitHub operation below — it already knows the repo from the current working directory.
-2. If `gh --version` fails or `gh` is not found, use the **GitHub MCP tools** (`mcp__github__create_pull_request`, `mcp__github__list_pull_requests`, `mcp__github__pull_request_read`) instead.
-   This is the required path in Claude Code Remote / web sessions, which have no `gh` binary. These tools take explicit `owner`/`repo` parameters — derive them once by running `git remote get-url origin` and parsing the `owner/repo` portion out of the URL (works for the `https://github.com/<owner>/<repo>.git` form, the `git@github.com:<owner>/<repo>.git` form, and the local proxy rewrite used in some sandboxed environments, `.../git/<owner>/<repo>`).
-3. If neither is available, stop and tell the user GitHub access isn't configured for this session — do not fall back to raw REST/curl calls.
+1. **Host.** `[git] host` in `.backlog-kit.toml` is `auto`, `github`, `gitlab` or `other` (default `auto`). With `auto`, run `git remote get-url origin`: `github.com` means GitHub, a host whose name contains `gitlab` means GitLab, anything else is `other`. A self-hosted GitHub or GitLab needs `host` set explicitly.
+2. **GitHub.** Run `gh --version`. If it succeeds, use the **gh CLI** for every operation below; it already knows the repo from the working directory.
+   If it fails, use the **GitHub MCP tools** (`mcp__github__create_pull_request`, `mcp__github__list_pull_requests`, `mcp__github__pull_request_read`), the required path in Claude Code Remote / web sessions, which have no `gh` binary.
+   These take explicit `owner`/`repo`: derive them once from `git remote get-url origin` (the `https://github.com/<owner>/<repo>.git` form, the `git@github.com:<owner>/<repo>.git` form, and the local proxy rewrite used in some sandboxed environments, `.../git/<owner>/<repo>`).
+3. **GitLab.** Run `glab --version`. If it succeeds, use the **glab CLI**; it reads the project from the working directory. If a glab flag below is rejected, run `glab mr <command> --help` and use the equivalent; do not guess a different command.
+4. **Anything else** (Bitbucket, Gitea, GitLab without `glab`, GitHub without `gh` or MCP): the skill cannot open or look up a PR. Say so, print the PR title, the description from "Writing the PR description" and the push command for the user to run, and for a step that needs a merge check ask the user whether it merged (see "Checking PR merge status"). Never fall back to raw REST/curl calls.
 
-Wherever a step below says "open a PR" or "check merge status," use whichever method was selected here, per the equivalences below.
+Wherever a step says "open a PR" or "check merge status", use the method selected here, per the equivalences below. "PR" means merge request on GitLab.
 
 ### Opening a PR
 
 - **gh CLI**: `gh pr create --base <base> --head <branch> --title "<title>" --body "<description>"`. Capture the printed PR URL.
+- **glab CLI**: `glab mr create --source-branch <branch> --target-branch <base> --title "<title>" --description "<description>" --yes`. Capture the printed MR URL.
+- **Other hosts**: print the title and description and tell the user to open the PR from `<branch>` into `<base>`; ask for its URL afterwards if a later step needs it.
 - **GitHub MCP**: `mcp__github__create_pull_request` with `owner`, `repo`, `head: <branch>`, `base: <base>`, `title: "<title>"`, `body: "<description>"`. The result includes the PR URL and number.
 
 **Never write `#<digits>` immediately before a backlog feature number, in a
-PR title or body** — GitHub auto-links any `#<digits>` it finds in a title
+PR title or body** — GitHub and GitLab auto-link any `#<digits>` it finds in a title
 or description as a cross-reference to an issue/PR in the same repo,
 regardless of surrounding text or intent. A feature number from
 `<backlog>/features-planned.md` (e.g. feature 32) is not a GitHub
@@ -86,6 +90,8 @@ PR or issue.
 ### Checking PR merge status
 
 - **gh CLI**: `gh pr list --state merged --head <branch> --base <base> --json number,mergedAt`. A non-empty result means merged. For a single known PR number, `gh pr view <number> --json state,mergedAt` is equivalent.
+- **glab CLI**: `glab mr list --merged --source-branch <branch> --target-branch <base> --output json`. A non-empty list means merged.
+- **Other hosts**: ask the user whether the PR from `<branch>` into `<base>` has merged, and say that you are relying on their answer. As supporting evidence run `git fetch origin` and `git merge-base --is-ancestor origin/<branch> origin/<base>`: exit 0 supports the answer; a non-zero exit does not contradict it, because a squash or rebase merge leaves the branch commits out of `<base>`. If the user is not sure, treat it as not merged.
 - **GitHub MCP**: `mcp__github__list_pull_requests` with `owner`, `repo`, `head: "<owner>:<branch>"` (the `owner:` prefix is required here — GitHub's `head` filter for listing PRs only accepts `owner:branch-name`, never a bare branch name;
   a bare branch silently matches nothing and would make every merge check falsely report "not merged", unlike `gh pr list --head`, which is a CLI-only convenience that accepts a bare branch name for same-repo PRs), `base: <base>`, `state: "closed"`, then check each returned PR's `merged_at` — a PR that's `closed` but not `merged` doesn't count (GitHub's API has no native "merged" state;
   `gh pr list --state merged` is itself just wrapping this closed-plus-merged_at check, so this reproduces it exactly).
@@ -183,7 +189,7 @@ Steps:
 - Never tag without explicit user confirmation immediately before the `git push origin <tag>` — pushing a tag is visible to the whole team and awkward to undo.
 - Never create `CHANGELOG.md` silently, on either call site — see "Drafting release notes". From 3d (the normal path, on the release/hotfix branch before its PR), a changelog commit is an ordinary commit under review, so a single commit confirmation is enough. From 3e's fallback (writing directly to `<production>`, only when 3d's draft was skipped or declined), there is no PR/review step protecting it, so commit and push need separate explicit confirmations, with the same care as the tag push.
 - Never state whether a PR has or hasn't merged based on local git state (e.g. `git log`/`git diff` against a local branch, or `git pull` reporting "already up to date"). Local branches can be stale or a PR can be merged manually on GitHub outside of any local fetch. Always check directly per "Checking PR merge status" above before reporting merge status to the user.
-- Never shell out to raw GitHub REST/curl calls as a substitute for `gh` or the GitHub MCP tools — use whichever of those two was selected under "GitHub access method" above.
+- Never shell out to raw REST/curl calls as a substitute for `gh`, `glab` or the GitHub MCP tools — use whichever was selected under "Hosting access method" above, or the manual path for other hosts.
 - More generally, never assert any repo-state claim (a branch contains/is missing a given change, two branches have diverged or are identical, a commit is or isn't an ancestor of another) from a narrative of prior actions or timing assumptions. Run the direct check in the moment: `git log A..B --oneline` / `git diff A..B --stat` to compare branches, `git branch --contains <sha>` to check ancestry. A fix scoped to one specific claim (e.g. PR-merged status) does not generalize on its own — re-verify every distinct kind of claim the same way.
 - If the working tree has uncommitted changes at the start of any action, stop and report — never stash or discard automatically.
 - If `git pull` on the base branch doesn't fast-forward cleanly, stop and report — never force-merge or rebase automatically.

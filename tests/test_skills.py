@@ -458,10 +458,16 @@ class ConfigurableBranches(unittest.TestCase):
         sys.path.insert(0, str(KIT / "lib"))
         import backlog_kit
         with tempfile.TemporaryDirectory() as d:
-            self.assertEqual(backlog_kit.load_config(Path(d))["git"], {"integration_branch": "develop", "production_branch": "main"})
+            self.assertEqual(backlog_kit.load_config(Path(d))["git"], {"integration_branch": "develop", "production_branch": "main", "host": "auto"})
             (Path(d) / ".backlog-kit.toml").write_text('[git]\nintegration_branch = "main"\n', encoding="utf-8")
             cfg = backlog_kit.load_config(Path(d))["git"]
             self.assertEqual((cfg["integration_branch"], cfg["production_branch"]), ("main", "main"))
+
+    def test_gitflow_supports_github_gitlab_and_a_manual_path(self):
+        text = (KIT / "skills/gitflow/SKILL.md").read_text(encoding="utf-8")
+        for needle in ("## Hosting access method", "`glab mr create", "`glab mr list --merged", "Other hosts", "`[git] host`",
+                       "relying on their answer", "Never fall back to raw REST/curl calls"):
+            self.assertIn(needle, text)
 
     def test_gitflow_and_pipelines_name_branches_through_placeholders(self):
         # A literal develop/main in a command would ignore the configuration.

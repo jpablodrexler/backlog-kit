@@ -1,6 +1,6 @@
 # Gitflow — Finish a topic branch, release or hotfix
 
-_Part of the `gitflow` skill — see `../SKILL.md` for the conventions, GitHub access method, action mapping, working-tree check and guardrails. Read this file in full before running this action._
+_Part of the `gitflow` skill — see `../SKILL.md` for the conventions, hosting access method, action mapping, working-tree check and guardrails. Read this file in full before running this action._
 
 ### 3c. Finish a topic branch (open PR)
 
