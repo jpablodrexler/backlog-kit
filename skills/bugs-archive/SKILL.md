@@ -4,7 +4,6 @@ description: Marks bugs resolved in the backlog's bugs-open.md and moves them to
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Close one or more bugs: move the table row from

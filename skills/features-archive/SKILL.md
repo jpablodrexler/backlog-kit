@@ -4,7 +4,6 @@ description: Mark features as implemented in the backlog's features-planned.md a
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Archive one or more implemented features from `<backlog>/features-planned.md` into `<backlog>/features-implemented.md`.

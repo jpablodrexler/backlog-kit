@@ -4,7 +4,6 @@ description: Reports bug-backlog progress by counting rows in the backlog's bugs
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Report bug-tracking progress by counting rows in

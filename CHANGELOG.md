@@ -3,6 +3,7 @@
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
 ## Unreleased
+- **Skills no longer declare a `version`:** every `SKILL.md` said `0.1` while the kit was at 0.7.x. The kit is versioned only by `.claude-plugin/plugin.json`, and a test fails if a skill adds a version of its own.
 - **`bug-fix` loads one phase at a time:** its `SKILL.md` went from 539 to ~260 lines. The prompt and orchestrator steps of Phases 1 to 6 now live in `reference/phase-N-*.md`, as in `feature-development`; Phase 0, the placeholder substitution, Phase 7, the Final Summary and the guardrails stay in `SKILL.md`. Phase numbers, signals and behaviour are unchanged.
 - **`gitflow` loads one action at a time:** its `SKILL.md` went from 290 to ~180 lines. Start (3a), finish and the PR description (3c, 3d), tag and release notes (3e) and cleanup (3f) moved to `reference/`; the conventions, GitHub access method, sync (3b), commit (3g) and guardrails stay. Step numbers and behaviour are unchanged.
 - **`features-archive` states rules, not their history:** the notes about earlier versions of the skill ("as an earlier version did", "back when") became plain rules, and the longest paragraphs (data-safety ordering, `IMPLEMENTED_SET`, `A → B` resolution) were shortened. No step, signal or output changed. `feature-development` lost its "closes the gap that previously…" aside, and a new lint in `tests/test_skills.py` fails on phrases that tell a skill's own history.

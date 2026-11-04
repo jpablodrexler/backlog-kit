@@ -410,6 +410,15 @@ class SkillAuthor(unittest.TestCase):
                 self.assertIn("  author: Juan Pablo Drexler", head)
 
 
+class SkillVersion(unittest.TestCase):
+    def test_skills_carry_no_version_of_their_own(self):
+        # The kit is versioned once, in .claude-plugin/plugin.json; a per-skill version would only drift from it.
+        for f in sorted(list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "extras").glob("*/SKILL.md"))):
+            with self.subTest(skill=f.parent.name):
+                head = f.read_text(encoding="utf-8").split("\n---\n", 1)[0]
+                self.assertNotRegex(head, r"(?m)^\s*version:")
+
+
 class StoryBriefs(unittest.TestCase):
     def test_feature_plan_writes_story_briefs_and_offers_a_definition_of_done(self):
         text = " ".join((KIT / "skills/feature-plan/SKILL.md").read_text(encoding="utf-8").split())

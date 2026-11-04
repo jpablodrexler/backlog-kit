@@ -4,7 +4,6 @@ description: Whole-system architecture health check, qualitative and grounded in
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Assess the shape of the system as a whole, not a diff. This is the kind of problem a per-change review rarely catches: implicit coupling that builds up one individually reasonable change at a time, where every review saw only its own diff.

@@ -4,7 +4,6 @@ description: Adds a new feature to the backlog's features-planned.md — drafts 
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Add a new feature to the backlog — its full brief file `<backlog>/features/NNN-<change-name>.md` plus a row in `<backlog>/features-planned.md` — drafted from the user's description and confirmed before writing.

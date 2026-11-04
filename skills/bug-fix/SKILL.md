@@ -17,7 +17,6 @@ description: >-
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Orchestrate one bug fix from selection to close, using dedicated subagents
