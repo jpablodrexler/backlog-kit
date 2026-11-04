@@ -23,13 +23,14 @@ Then just talk to Claude:
 
 That is all the setup there is. Backlog files are created on first use in `docs/backlog/`.
 
-## The core (13 skills)
+## The core (14 skills)
 
 | Skill | What it does |
 | --- | --- |
 | `feature-plan`, `bug-report` | add an item to the backlog (row + brief) |
 | `features-next`, `bugs-next` | recommend what to do next |
 | `features-status`, `bugs-status` | show the state of the backlog |
+| `bugs-triage` | find bugs that are not ready to fix, duplicates and regressions |
 | `backlog-report` | what was delivered per week, velocity, and weeks left at that pace |
 | `features-archive`, `bugs-archive` | move finished items to the implemented / fixed tables |
 | `feature-development`, `bug-fix` | do one item end to end (below) |
@@ -81,7 +82,7 @@ The skills share a few fixed locations, so every project that uses the kit looks
 
 If your project fits the workflow, use it as is. If not, take ideas from the skills: fork the repo, or copy the `SKILL.md` files into `.claude/skills/` and edit them. They are plain markdown.
 
-Everything is optional. `.backlog-kit.toml` at the repo root has two settings, both documented in [`backlog-kit.example.toml`](backlog-kit.example.toml): the backlog folder (`[paths] backlog_dir`, default `docs/backlog`) and the devices the UI viewport check uses (`[viewports]`, default Galaxy S23 Ultra 384×824 and desktop 1920×1080).
+Everything is optional. `.backlog-kit.toml` at the repo root has three settings, all documented in [`backlog-kit.example.toml`](backlog-kit.example.toml): the backlog folder (`[paths] backlog_dir`, default `docs/backlog`), the long-lived branches (`[git]`, default `develop` and `main`) and the devices the UI viewport check uses (`[viewports]`, default Galaxy S23 Ultra 384×824 and desktop 1920×1080).
 
 ## Requirements
 

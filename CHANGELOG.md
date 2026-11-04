@@ -3,6 +3,7 @@
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
 ## Unreleased
+- **New skill `bugs-triage`:** finds the open bugs that `bug-fix` could not start from (no usable steps to reproduce, no Expected or Actual), possible duplicates, bugs that look like one already fixed, vague summaries and bugs missing from the fix order, then proposes what to do. Read-only; changes go through `bug-report`, `bugs-archive` and `bugs-next` after the user agrees. The core is now 14 skills.
 - **Golden scenarios for the scripts:** `tests/test_golden.py` runs the ranking, status, id and report scripts over a small backlog in `tests/fixtures/backlog/` and compares their JSON with `tests/golden/`. Ranking, counting and date changes now show up as a diff; regenerate with `UPDATE_GOLDEN=1` after an intended change.
 - **New skill `backlog-report`:** what the backlog delivered over a period (default the last 8 weeks, or `--since`): features and story points archived and bugs fixed per week, bugs by severity, the velocity (average points per week over the last four complete weeks) and the weeks the pending points would take at that pace. Bug dates come from the `Fixed` column; features have no date column, so a feature's date is the day of the first commit that added its row (one allowlisted `git log`). Read-only; the core is now 13 skills.
 - **`tools/migrate_check.py` reads `[git]`:** the base-branch check uses the configured integration branch instead of `develop`.

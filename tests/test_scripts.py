@@ -341,5 +341,45 @@ class BacklogReport(unittest.TestCase):
             self.assertEqual(r["features_delivered"], 0)
 
 
+class BugsTriage(unittest.TestCase):
+    OPEN = ("# Open Bugs\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Status | Fix | Summary |\n| --- | --- | --- | --- | --- | --- | --- |\n"
+            "| [BUG-010](bugs/BUG-010.md) | S2 | /settings | deployed | ⬜ Open | | Saving settings shows a blank page after submit. |\n"
+            "| [BUG-011](bugs/BUG-011.md) | S2 | /settings | deployed | ⬜ Open | | Settings page is blank after saving the form. |\n"
+            "| [BUG-012](bugs/BUG-012.md) | S3 | nav | local | ⬜ Open | | Broken. |\n"
+            "| [BUG-013](bugs/BUG-013.md) | S3 | import | local | ⬜ Open | | Import creates duplicate rows again for every file. |\n\n"
+            "## Recommended fix order\n\n- BUG-010 — x\n- BUG-011 — y\n- BUG-012 — z\n")
+    FIXED = ("# Fixed Bugs\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Fixed | Fix | Summary |\n| --- | --- | --- | --- | --- | --- | --- |\n"
+             "| [BUG-001](bugs/BUG-001.md) | S2 | import | deployed | 2026-10-01 | abc | Import creates duplicate rows for every file. |\n")
+
+    def brief(self, n, repro="1. Open it.", expected="It saves.", actual="Blank page."):
+        return f"# BUG-{n} — t\n\n- **Steps to reproduce:**\n  {repro}\n- **Expected:** {expected}\n- **Actual:** {actual}\n- **Environment:** local\n"
+
+    def test_findings(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = Path(d) / "docs/backlog"
+            (b / "bugs").mkdir(parents=True)
+            (b / "bugs-open.md").write_text(self.OPEN, encoding="utf-8")
+            (b / "bugs-fixed.md").write_text(self.FIXED, encoding="utf-8")
+            (b / "bugs/BUG-010.md").write_text(self.brief("010"), encoding="utf-8")
+            (b / "bugs/BUG-011.md").write_text(self.brief("011"), encoding="utf-8")
+            (b / "bugs/BUG-012.md").write_text(self.brief("012", repro="<unknown — needs repro>", actual=""), encoding="utf-8")
+            (b / "bugs/BUG-013.md").write_text(self.brief("013"), encoding="utf-8")
+            script = Path(__file__).resolve().parents[1] / "skills/bugs-triage/scripts/triage.py"
+            out = subprocess.run([sys.executable, str(script), d, "--json"], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            f = json.loads(out)["findings"]
+            self.assertEqual(f["missing_repro"], ["BUG-012"])
+            self.assertEqual(f["missing_expected"], ["BUG-012"])
+            self.assertEqual(f["vague_summary"], ["BUG-012"])
+            self.assertEqual([x["bugs"] for x in f["duplicates"]], [["BUG-010", "BUG-011"]])
+            self.assertEqual([(x["bug"], x["looks_like_fixed"]) for x in f["regressions"]], [("BUG-013", "BUG-001")])
+            self.assertEqual(f["not_in_fix_order"], ["BUG-013"])
+
+    def test_missing_backlog_is_reported(self):
+        with tempfile.TemporaryDirectory() as d:
+            script = Path(__file__).resolve().parents[1] / "skills/bugs-triage/scripts/triage.py"
+            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            self.assertIn("nothing to triage", out)
+
+
 if __name__ == "__main__":
     unittest.main()

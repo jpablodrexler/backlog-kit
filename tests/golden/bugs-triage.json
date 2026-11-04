@@ -1,0 +1,17 @@
+{
+  "available": {
+    "fixed": true,
+    "open": true
+  },
+  "findings": {
+    "duplicates": [],
+    "missing_expected": [],
+    "missing_repro": [],
+    "not_in_fix_order": [
+      "BUG-003"
+    ],
+    "regressions": [],
+    "vague_summary": []
+  },
+  "open_bugs": 3
+}

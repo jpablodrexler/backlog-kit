@@ -8,7 +8,7 @@ A small set of skills that takes a feature or a bug from idea to a verified, arc
 
 ## Shape
 
-- **Core (`skills/`, 13 skills):** planning (`feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`), `backlog-report`, `decision-record`, the two pipelines (`feature-development`, `bug-fix`) and `gitflow`.
+- **Core (`skills/`, 14 skills):** planning (`feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`), `backlog-report`, `bugs-triage`, `decision-record`, the two pipelines (`feature-development`, `bug-fix`) and `gitflow`.
 - **Extras (`extras/`, 10 skills):** the reviewers, `docs-sync`, `dependency-upgrade`, `spec-compliance-check` and the two batch runners. Installed on request (`tools/install.py --extras`).
 - **Scripts (`lib/`, `skills/*/scripts`):** ranking, status counts, table checks and ids. Mechanics are code; judgment is Claude. They are read-only and standard library only. `lib/` is the single source and `tools/vendor.py` copies it into each skill so every skill works installed alone.
 - **State:** markdown. `<backlog>/features-planned.md`, `features-implemented.md`, `bugs-open.md`, `bugs-fixed.md`, one brief per item under `features/` and `bugs/`. No database, no service.
