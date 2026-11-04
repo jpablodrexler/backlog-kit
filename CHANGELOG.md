@@ -5,6 +5,7 @@ Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes
 ## Unreleased
 - **`bug-fix` loads one phase at a time:** its `SKILL.md` went from 539 to ~260 lines. The prompt and orchestrator steps of Phases 1 to 6 now live in `reference/phase-N-*.md`, as in `feature-development`; Phase 0, the placeholder substitution, Phase 7, the Final Summary and the guardrails stay in `SKILL.md`. Phase numbers, signals and behaviour are unchanged.
 - **`gitflow` loads one action at a time:** its `SKILL.md` went from 290 to ~180 lines. Start (3a), finish and the PR description (3c, 3d), tag and release notes (3e) and cleanup (3f) moved to `reference/`; the conventions, GitHub access method, sync (3b), commit (3g) and guardrails stay. Step numbers and behaviour are unchanged.
+- **`features-archive` states rules, not their history:** the notes about earlier versions of the skill ("as an earlier version did", "back when") became plain rules, and the longest paragraphs (data-safety ordering, `IMPLEMENTED_SET`, `A → B` resolution) were shortened. No step, signal or output changed.
 
 ## 0.7.2
 - **Backlog files are written as UTF-8 and checked:** `features-archive`, `bugs-archive`, `feature-plan` and `bug-report` now say to write the backlog files as UTF-8 explicitly and to read them back as UTF-8 afterwards. An ad-hoc script that opened a file with the system's default text encoding saved the `·` of a new row as one invalid byte, and every script that reads the backlog then stopped with a decoding error.
