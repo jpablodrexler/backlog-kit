@@ -28,7 +28,7 @@ CORE = ["feature-plan", "features-next", "features-status", "bug-report",
 WORK = ["bug-fix", "feature-development"]                      
 
 LIB_FOR = {
-    "backlog_kit.py": CORE + ["features-archive", "backlog-report", "bugs-triage"],
+    "backlog_kit.py": CORE + ["features-archive", "backlog-report", "bugs-triage", "backlog-import"],
     "gitread.py": ["gitflow", "backlog-report"],
 }
 
