@@ -280,7 +280,66 @@ class AdrNumbering(unittest.TestCase):
             self.assertEqual(run("adr", tmp)["next_number"], "0032")
 
 
+class BacklogReport(unittest.TestCase):
+    """The velocity report: bug dates from the Fixed column, feature dates from git history."""
+
+    IMPLEMENTED = ("# Implemented\n\n## Feature List\n\n| # | Change name | Priority | Schema Change | Effort | Area | Details |\n"
+                   "| --- | --- | --- | --- | --- | --- | --- |\n")
+    PLANNED = ("# Planned\n\n## Feature List\n\n| # | Change name | Priority | Schema Change | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |\n"
+               "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
+               "| 3 | `gamma` | P2 | No | 8 | UI | — | ⬜ Pending | s | [brief](features/003-gamma.md) |\n"
+               "| 4 | `delta` | P2 | No | 5 | UI | — | 🔶 In Progress | s | [brief](features/004-delta.md) |\n")
+    FIXED = ("# Fixed\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Fixed | Fix |\n| --- | --- | --- | --- | --- | --- |\n"
+             "| BUG-001 | S2 | UI | web | 2026-10-21 | x |\n")
+
+    def run_report(self, root, *extra):
+        script = Path(__file__).resolve().parents[1] / "skills/backlog-report/scripts/backlog_report.py"
+        out = subprocess.run([sys.executable, str(script), str(root), "--today", "2026-11-04", "--json", *extra],
+                             capture_output=True, text=True, encoding="utf-8", check=True).stdout
+        return json.loads(out)
+
+    def test_dates_points_velocity_and_projection(self):
+        import os
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            b = root / "docs/backlog"
+            b.mkdir(parents=True)
+            (b / "features-planned.md").write_text(self.PLANNED, encoding="utf-8")
+            (b / "bugs-fixed.md").write_text(self.FIXED, encoding="utf-8")
+
+            def commit(day, msg):
+                env = {**os.environ, "GIT_AUTHOR_DATE": f"{day}T10:00:00Z", "GIT_COMMITTER_DATE": f"{day}T10:00:00Z"}
+                subprocess.run(["git", "-C", d, "add", "-A"], check=True, capture_output=True, env=env)
+                subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "commit", "-qm", msg],
+                               check=True, capture_output=True, env=env)
+            subprocess.run(["git", "-C", d, "init", "-q", "-b", "main"], check=True, capture_output=True)
+            (b / "features-implemented.md").write_text(self.IMPLEMENTED + "| 1 | `alpha` | P1 | No | 3 | UI | [brief](features/001-alpha.md) |\n", encoding="utf-8")
+            commit("2026-10-13", "a")
+            with open(b / "features-implemented.md", "a", encoding="utf-8") as fh:
+                fh.write("| 2 | `beta` | P1 | No | 5 | UI | [brief](features/002-beta.md) |\n")
+            commit("2026-10-28", "b")
+            with open(b / "features-implemented.md", "a", encoding="utf-8") as fh:
+                fh.write("| 5 | `eps` | P1 | No | 2 | UI | [brief](features/005-eps.md) |\n")   # not committed
+
+            r = self.run_report(root, "--weeks", "4")
+            self.assertEqual([w["week"] for w in r["weeks"]], ["2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02"])
+            self.assertEqual([w["points"] for w in r["weeks"]], [3, 0, 5, 2])
+            self.assertEqual([w["bugs"] for w in r["weeks"]], [0, 1, 0, 0])
+            self.assertEqual((r["features_delivered"], r["points_delivered"], r["bugs_fixed"]), (3, 10, 1))
+            self.assertEqual(r["bugs_by_severity"], {"S2": 1})
+            self.assertEqual(r["velocity"], {"points_per_week": 2.7, "over_weeks": 3})   # (3 + 0 + 5) / 3
+            self.assertEqual(r["pending"], {"features": 2, "points": 13, "weeks_at_that_pace": 4.8})
+            self.assertTrue(any(i["id"] == "#5" and i["uncommitted"] for i in r["delivered"]))
+            # a period that starts after the first commits leaves them out
+            self.assertEqual(self.run_report(root, "--since", "2026-10-26")["features_delivered"], 2)
+
+    def test_missing_files_are_reported_not_guessed(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = self.run_report(d)
+            self.assertEqual(r["available"], {"features": False, "pending": False, "bugs": False})
+            self.assertIsNone(r["velocity"]["points_per_week"])
+            self.assertEqual(r["features_delivered"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
-
-

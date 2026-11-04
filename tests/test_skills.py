@@ -333,6 +333,22 @@ class MigrateCheck(unittest.TestCase):
             self.assertIn("develop contains the kit's skills", out)
 
 
+class MigrateCheckBranches(unittest.TestCase):
+    def test_uses_the_configured_integration_branch(self):
+        import subprocess, tempfile
+        script = KIT / "tools/migrate_check.py"
+        with tempfile.TemporaryDirectory() as d:
+            def g(*a):
+                subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a], check=True, capture_output=True)
+            g("init", "-q", "-b", "main")
+            (Path(d) / ".backlog-kit.toml").write_text('[git]\nintegration_branch = "dev"\nproduction_branch = "trunk"\n', encoding="utf-8")
+            g("add", "-A"); g("commit", "-q", "-m", "x")
+            run = lambda: subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            self.assertIn("no local dev branch: gitflow will create it from trunk", run())
+            g("branch", "dev")
+            self.assertIn("WARNING dev does not contain the kit's skills", run())
+
+
 class HandBackContract(unittest.TestCase):
     """The shared hand-back paragraph exists and every skill that spawns subagents tells the orchestrator to append it."""
 

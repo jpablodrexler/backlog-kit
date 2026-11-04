@@ -3,6 +3,8 @@
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
 ## Unreleased
+- **New skill `backlog-report`:** what the backlog delivered over a period (default the last 8 weeks, or `--since`): features and story points archived and bugs fixed per week, bugs by severity, the velocity (average points per week over the last four complete weeks) and the weeks the pending points would take at that pace. Bug dates come from the `Fixed` column; features have no date column, so a feature's date is the day of the first commit that added its row (one allowlisted `git log`). Read-only; the core is now 13 skills.
+- **`tools/migrate_check.py` reads `[git]`:** the base-branch check uses the configured integration branch instead of `develop`.
 - **The long-lived branches are configurable:** `[git] integration_branch` (default `develop`) and `production_branch` (default `main`) in `.backlog-kit.toml`. `gitflow`, `feature-development`, `bug-fix`, `features-batch-development`, `bugs-batch-fix` and the review gate use `<integration>` / `<production>` instead of the literal names. Setting both to the same branch gives trunk-based development: `finish release` / `finish hotfix` open one PR and the `develop` bootstrap is skipped. Defaults keep the old behaviour.
 - **Prompt size can only shrink:** `tests/test_skills.py` fails when a `SKILL.md` or `reference/` file gains a line over 600 characters (existing ones are listed per file, to be lowered as they are shortened) or a `SKILL.md` passes 460 lines.
 - **CI treats Windows and macOS as blocking:** they passed in the last four runs.
