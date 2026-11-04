@@ -40,9 +40,11 @@ after it closes (Phase 7); without it nothing is committed.
 
 `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`; `<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default).
 
+`<integration>` is `develop` and `<production>` is `main` unless `.backlog-kit.toml` sets `[git] integration_branch` / `production_branch`.
+
 **The user talks, the skill reads flags.** `--skip-branch-setup` and `--commit` are shorthand for orchestrators; a user never needs to type them or to phrase a request in any special way. "Fix BUG-004", "fix BUG-004, stay on this branch", "fix BUG-004 and commit as you go" are complete requests: map what the user said to the behaviour below, state in one line how it was understood (branch handling, commit cadence), and run every phase regardless of how short the request was. Every phase runs by default; only a skip condition written in this skill may skip one.
 
-**Working on a branch the user is already on.** When the user is on a topic branch (not `main`/`develop`) and says to stay on it, treat the run as `--skip-branch-setup` even if the flag was not typed: Phase 1 Step 1 only confirms the branch and never creates or syncs one. Say so in the first line of the run.
+**Working on a branch the user is already on.** When the user is on a topic branch (not `<production>`/`<integration>`) and says to stay on it, treat the run as `--skip-branch-setup` even if the flag was not typed: Phase 1 Step 1 only confirms the branch and never creates or syncs one. Say so in the first line of the run.
 
 **Committing as you go.** `--commit` means one commit, at Phase 7. When the user asks instead to commit as the work goes, that request is the opt-in for a commit after each phase that changed files (Phase 1, Phase 2, the fixes of each review gate, Phases 3 to 5, Phase 6), each one made by `gitflow`'s commit action with the message `Fix <bug-id>: <phase> — <one-line summary>`; Phase 7 then commits only what is left, or records `COMMIT: nothing left`. The user's request stands in for the per-commit confirmation of the file list and message, but `gitflow` still makes every commit: no phase or subagent runs `git commit` itself. The review gate's scope follows the commit mode (see `reference/review-gate.md`, G0).
 
@@ -121,7 +123,7 @@ will be `fix/<slug>`.
 
 ## Placeholder substitution (Phases 1–6)
 
-Before spawning any subagent, replace every `<bug-id>`, `<slug>`, and
+Before spawning any subagent, replace every `<bug-id>`, `<slug>`, `<integration>`, `<production>` and
 `<repro-details>` (the pasted Steps / Expected / Actual / Notes from Phase
 0) in its prompt with the actual values. From Phase 2 onward, also
 substitute `<repro-test-path>` with the path captured from Phase 1's
@@ -244,11 +246,11 @@ If no commit was requested: nothing was committed. The fix (and its regression t
   may run `git commit` / `git push` / any git write itself. The sole other
   exceptions are
   Phase 1 Step 1's branch creation and sync (`git fetch`, `git checkout`,
-  `git checkout -b`, `git merge origin/develop` via `gitflow`'s
+  `git checkout -b`, `git merge origin/<integration>` via `gitflow`'s
   start-fix/sync-fix, and `git merge origin/fix/<slug>` to pick up
   another device's already-pushed commits on this same fix).
-- **The fix branch is synced from `develop` only, never `main`** — via
-  `gitflow`'s sync-fix action, which merges `origin/develop` and nothing
+- **The fix branch is synced from `<integration>` only, never `<production>`** — via
+  `gitflow`'s sync-fix action, which merges `origin/<integration>` and nothing
   else. This holds even right after a release merges into both.
 - **`--skip-branch-setup` (batch mode) only affects Phase 1 Step 1.** No
   other phase changes — Phases 2–6 already operate on "whatever branch is

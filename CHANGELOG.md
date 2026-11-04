@@ -3,6 +3,9 @@
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
 ## Unreleased
+- **The long-lived branches are configurable:** `[git] integration_branch` (default `develop`) and `production_branch` (default `main`) in `.backlog-kit.toml`. `gitflow`, `feature-development`, `bug-fix`, `features-batch-development`, `bugs-batch-fix` and the review gate use `<integration>` / `<production>` instead of the literal names. Setting both to the same branch gives trunk-based development: `finish release` / `finish hotfix` open one PR and the `develop` bootstrap is skipped. Defaults keep the old behaviour.
+- **Prompt size can only shrink:** `tests/test_skills.py` fails when a `SKILL.md` or `reference/` file gains a line over 600 characters (existing ones are listed per file, to be lowered as they are shortened) or a `SKILL.md` passes 460 lines.
+- **CI treats Windows and macOS as blocking:** they passed in the last four runs.
 - **Skills no longer declare a `version`:** every `SKILL.md` said `0.1` while the kit was at 0.7.x. The kit is versioned only by `.claude-plugin/plugin.json`, and a test fails if a skill adds a version of its own.
 - **`bug-fix` loads one phase at a time:** its `SKILL.md` went from 539 to ~260 lines. The prompt and orchestrator steps of Phases 1 to 6 now live in `reference/phase-N-*.md`, as in `feature-development`; Phase 0, the placeholder substitution, Phase 7, the Final Summary and the guardrails stay in `SKILL.md`. Phase numbers, signals and behaviour are unchanged.
 - **`gitflow` loads one action at a time:** its `SKILL.md` went from 290 to ~180 lines. Start (3a), finish and the PR description (3c, 3d), tag and release notes (3e) and cleanup (3f) moved to `reference/`; the conventions, GitHub access method, sync (3b), commit (3g) and guardrails stay. Step numbers and behaviour are unchanged.

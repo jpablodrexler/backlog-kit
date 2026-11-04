@@ -410,6 +410,73 @@ class SkillAuthor(unittest.TestCase):
                 self.assertIn("  author: Juan Pablo Drexler", head)
 
 
+class PromptSize(unittest.TestCase):
+    """A ratchet, not a target: long lines and long SKILL.md files may not grow. Shorten one, then lower its number."""
+    MAX_LINE = 600
+    MAX_SKILL_LINES = 460
+    # Files that still hold lines over MAX_LINE, with how many. A file not listed must have none.
+    LONG_LINES = {
+    "extras/architecture-reviewer/SKILL.md": 6,
+    "extras/features-batch-development/SKILL.md": 1,
+    "extras/product-scope-roaster/SKILL.md": 2,
+    "skills/bug-fix/SKILL.md": 1,
+    "skills/bug-fix/reference/review-gate.md": 4,
+    "skills/bug-report/SKILL.md": 1,
+    "skills/bugs-archive/SKILL.md": 1,
+    "skills/bugs-status/SKILL.md": 1,
+    "skills/feature-development/SKILL.md": 3,
+    "skills/feature-development/reference/review-gate.md": 4,
+    "skills/feature-plan/SKILL.md": 4,
+    "skills/features-archive/SKILL.md": 2,
+    "skills/features-next/SKILL.md": 7,
+    "skills/gitflow/SKILL.md": 8,
+    "skills/gitflow/reference/cleanup.md": 1,
+    "skills/gitflow/reference/finish.md": 3,
+    "skills/gitflow/reference/start.md": 3,
+    }
+
+    def files(self):
+        for d in SKILLS:
+            for f in [d / "SKILL.md"] + sorted((d / "reference").glob("*.md")):
+                if f.is_file():
+                    yield f
+
+    def test_no_new_long_lines(self):
+        for f in self.files():
+            rel = str(f.relative_to(KIT))
+            n = sum(len(l) > self.MAX_LINE for l in f.read_text(encoding="utf-8").split("\n"))
+            with self.subTest(file=rel):
+                self.assertLessEqual(n, self.LONG_LINES.get(rel, 0), f"{rel}: {n} lines over {self.MAX_LINE} characters")
+
+    def test_skill_files_stay_loadable(self):
+        for d in SKILLS:
+            with self.subTest(skill=d.name):
+                self.assertLessEqual(len((d / "SKILL.md").read_text(encoding="utf-8").split("\n")), self.MAX_SKILL_LINES,
+                                     "split the phases or actions into reference/ files")
+
+
+class ConfigurableBranches(unittest.TestCase):
+    def test_default_and_overridden_branches(self):
+        import tempfile
+        sys.path.insert(0, str(KIT / "lib"))
+        import backlog_kit
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(backlog_kit.load_config(Path(d))["git"], {"integration_branch": "develop", "production_branch": "main"})
+            (Path(d) / ".backlog-kit.toml").write_text('[git]\nintegration_branch = "main"\n', encoding="utf-8")
+            cfg = backlog_kit.load_config(Path(d))["git"]
+            self.assertEqual((cfg["integration_branch"], cfg["production_branch"]), ("main", "main"))
+
+    def test_gitflow_and_pipelines_name_branches_through_placeholders(self):
+        # A literal develop/main in a command would ignore the configuration.
+        literal = re.compile(r"(git (checkout|pull|fetch|merge|rev-parse)[^\n]*\b(origin/)?(develop|main)\b|base: (develop|main)\b)")
+        for name in ("gitflow", "feature-development", "bug-fix", "features-batch-development", "bugs-batch-fix"):
+            d = sdir(name)
+            for f in [d / "SKILL.md"] + sorted((d / "reference").glob("*.md")):
+                if f.is_file():
+                    with self.subTest(file=str(f.relative_to(KIT))):
+                        self.assertIsNone(literal.search(f.read_text(encoding="utf-8")))
+
+
 class SkillVersion(unittest.TestCase):
     def test_skills_carry_no_version_of_their_own(self):
         # The kit is versioned once, in .claude-plugin/plugin.json; a per-skill version would only drift from it.
