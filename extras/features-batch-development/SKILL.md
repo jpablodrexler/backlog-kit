@@ -104,7 +104,8 @@ Order the resulting list as follows:
 3. For anything not covered by 1 or 2, fall back to the table's own row
    order.
 
-Each planned row's full brief lives in `<backlog>/features/NNN-<change-name>.md` (its `Brief` cell links it). Batch mode does not read it here: `feature-development` reads that file itself in its Propose phase and hands it to `openspec-propose` for any feature whose SDD artifacts don't exist yet, and a missing or empty brief file stops that feature with `PROPOSE_BLOCKED` (handled as any other Blocked outcome in Step 4). A feature whose artifacts are already `done` never needs its brief file. When confirming the derived list, it is worth checking that each feature's brief file exists, so a missing one surfaces before a multi-hour run rather than during it.
+Each planned row's full brief lives in `<backlog>/features/NNN-<change-name>.md` (its `Brief` cell links it). Batch mode does not read it here: `feature-development` reads that file itself in its Propose phase and hands it to `openspec-propose` for any feature whose SDD artifacts don't exist yet, and a missing or empty brief file stops that feature with `PROPOSE_BLOCKED` (handled as any other Blocked outcome in Step 4).
+A feature whose artifacts are already `done` never needs its brief file. When confirming the derived list, it is worth checking that each feature's brief file exists, so a missing one surfaces before a multi-hour run rather than during it.
 
 An empty backlog (no rows) is not an error — tell the user there's nothing
 pending and stop here.
