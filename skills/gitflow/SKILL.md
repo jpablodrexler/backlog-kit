@@ -111,21 +111,18 @@ The same normalization applies to **start `<topic>`** / **start release** / **st
 
 Run `git status`. (Not for **commit**, whose whole point is the uncommitted changes — see 3g.) If there are uncommitted changes, stop and tell the user — do not stash or discard automatically. One exception, for **start `<topic>`** only: changes confined to paths under `<backlog>/` (the row and brief `feature-plan` just wrote, or the entry `bug-report` just wrote) do not stop the action; the new branch carries them along, and the report says so. (For **cleanup branches**, this only matters if the current branch is itself a deletion candidate — see 3f. For **start `<topic>`** specifically, when the current branch already starts with a topic prefix (`feature/`, `fix/`, `doc/`, `skill/`, or `chore/`), resolve 3a's branch-continuation question first, before applying this check — it may turn out this check doesn't even apply, since continuing on the current branch involves no checkout and tolerates an uncommitted tree just fine.)
 
-### 3a. Start feature / fix / doc / skill / chore / release / hotfix
+### Where each action lives
 
-**For `start <topic>` only (feature/fix/doc/skill/chore) — if already on a topic branch:** before anything else in this action (including the working-tree check in step 2 above — that check assumes a branch switch is about to happen, which may turn out not to be true here), check the current branch: `git branch --show-current`. If it already starts with `feature/`, `fix/`, `doc/`, `skill/`, or `chore/` — any topic prefix, not only the one matching the requested action (e.g. starting a `fix/` while already on a `feature/*` branch counts too) — this is a fork in the road for the user to resolve, not something to decide silently — jumping back to `develop` and spinning up a new branch could sideline in-progress work the user isn't ready to commit yet. Ask the user (via **AskUserQuestion**) whether they want to:
+Starting, finishing, tagging and cleaning up are long, and a run needs only one of them, so each lives in its own file under `reference/`. **Before running an action, read its file in full**, then follow it exactly. The step numbers (3a to 3g) are stable: other skills and the guardrails below cite them. Sync (3b) and Commit (3g) are short and stay in this file.
 
-- **Continue working on the current branch** instead of starting a separate one — appropriate when the new ask is really an extension of what's already in flight here. If chosen: skip the rest of this action entirely — no base checkout, no new branch, and step 2's working-tree check does not apply, since nothing is being switched. Then, if the current branch has **not** been pushed to the remote yet (`git rev-parse --verify --quiet origin/<current-branch>` returns nothing), ask a second, separate question: whether to **rename** it to better reflect the now-combined scope (e.g. `feature/task-filters` → `feature/task-filters-and-postpone`, or across topic types if the scope genuinely shifted, e.g. `fix/login-redirect` → `feature/login-redirect-and-remember-me`). Only offer this for an unpushed branch — renaming one that's already on the remote (and possibly backing an open PR) would orphan that PR's `head` ref, so leave a pushed branch's name alone even if asked, and say why. If the user wants the rename, confirm the exact new name with them, then run `git branch -m <old-name> <new-name>` (a local-only rename; nothing is pushed as a side effect). Report the final state — still on `<branch>`, or renamed to `<new-name>` — and stop; no further steps in this action run.
-- **Start a brand-new branch as normal**, from `develop` — leaving the current branch untouched. If chosen, proceed with steps 1–6 below exactly as written, with step 2's working-tree check now applying in the usual way (the checkout to `develop` is about to happen for real).
-
-Never pick either option without asking — always let the user decide.
-
-1. Determine the base branch: `develop` for feature/fix/doc/skill/chore/release, `main` for hotfix.
-2. **Bootstrap `develop` if it doesn't exist yet** (only relevant when the base is `develop`): run `git rev-parse --verify --quiet develop` and `git rev-parse --verify --quiet origin/develop`. If both fail, this repo hasn't adopted the `develop` integration branch yet — confirm with the user before creating it (a new long-lived branch other people's future PRs will target is worth a one-time explicit confirmation, unlike an ordinary topic branch). Once confirmed: `git checkout main`, `git pull origin main`, `git checkout -b develop`, `git push -u origin develop`. Proceed to step 3 with `develop` as the now-existing base. If `develop` already exists (locally or remotely), skip this step entirely.
-3. `git checkout <base>`
-4. `git pull origin <base>` — fail loudly if this doesn't fast-forward cleanly (don't force).
-5. `git checkout -b <prefix>/<name-or-version>` where prefix is `feature`, `fix`, `doc`, `skill`, `chore`, `release`, or `hotfix`.
-6. Report the new branch name and its base. Do not push automatically — let the user decide when to push.
+| Action | Step | File |
+| ------ | ---- | ---- |
+| start `<topic>` / release / hotfix | 3a | `reference/start.md` |
+| sync `<topic>` | 3b | below |
+| finish `<topic>`; finish release / hotfix; "Writing the PR description" | 3c, 3d | `reference/finish.md` |
+| tag release / hotfix; "Drafting release notes" | 3e | `reference/tag-and-release-notes.md` |
+| commit | 3g | below |
+| cleanup branches | 3f | `reference/cleanup.md` |
 
 ### 3b. Sync a topic branch (update from develop)
 
@@ -142,97 +139,6 @@ Steps:
 
 This step never touches `main`. Do not push automatically — let the user decide when to push the merge commit.
 
-### 3c. Finish a topic branch (open PR)
-
-Preconditions:
-- Current branch (or the one named explicitly) must start with `feature/`, `fix/`, `doc/`, `skill/`, or `chore/`.
-- Branch must exist on the remote — if not, push it first: `git push -u origin <branch>` (confirm with the user before pushing if this is the first push of the branch).
-
-Steps:
-1. Build the PR description (see "Writing the PR description" below).
-2. Open a PR into `develop` per "Opening a PR" above, with `base: develop`, `head: <branch>`, title `"<Type> <name>"` — `"Feature <name>"`, `"Fix <name>"`, `"Doc <name>"`, `"Skill <name>"`, or `"Chore <name>"`, matching the branch's own prefix — and the description from step 1.
-3. Report the PR URL to the user.
-
-This step **only opens the PR** — it does not merge it. Merging goes through normal GitHub review. Do not auto-merge. Topic branches never target `main` directly and are never tagged — only `release/*` and `hotfix/*` branches that land on `main` get a version tag.
-
-### 3d. Finish release / Finish hotfix (open PRs)
-
-Preconditions:
-- Current branch (or the one named explicitly) must start with `release/` or `hotfix/` matching the action.
-
-Steps:
-1. Draft or update the `CHANGELOG.md` entry for this release/hotfix on the current `release/`/`hotfix/` branch itself, per "Drafting release notes" below, using the version embedded in the branch name (e.g. `release/v2.3.0` → `v2.3.0`). Do this **before** the branch is pushed and before either PR is opened. This is the one thing this step changed about the old flow: the changelog entry used to get drafted after the tag, which meant committing it directly to `main` with no PR/review in front of it. Drafting it here instead means it ships as an ordinary commit on the branch under review, like everything else in the release/hotfix — no more out-of-band `main` commits.
-2. **Optional — bump the app version.** Only if the project keeps a version in a manifest (for example `package.json`, `pyproject.toml`, `Cargo.toml`); otherwise skip this step. Using the version embedded in the branch name (e.g. `release/v2.3.0` → `2.3.0`, stripped of the `v` prefix), update the manifest's `version` field with the ecosystem's own command or by editing the file, **without** creating a tag or commit through it (for npm: `npm version 2.3.0 --no-git-tag-version`) — this skill's own commit and tag (3e) supersede it. Stage and show the diff, then ask for confirmation before committing: `git commit -m "chore: bump version to 2.3.0"`. Skipping it leaves any version the app displays stale.
-3. **Optional — run the project's regression suite** (end-to-end or full test suite) before pushing, if it has one — a release/hotfix is exactly the point where full-app regression coverage matters most. Ask the user (**AskUserQuestion**) for the command to run, and if the suite needs a test account, how the credentials are provided; never read a credentials file yourself and never put credentials in a prompt. If every test passes, continue. If any test fails, **stop here** — do not push the branch or open either PR with known-failing coverage; report the failure(s), and once fixed (by you or the user) re-run the suite before continuing. A flaky-looking single failure should be re-run once before concluding it's real. If the project has no such suite, or it can't run (no credentials, say), tell the user plainly that the check is being skipped and why (never skip it silently), and ask whether to proceed without it or pause.
-4. Push the branch (including the changelog commit from step 1, if the user chose to write one, and the version-bump commit from step 2): `git push -u origin <branch>` if the branch doesn't exist on the remote yet, or a plain `git push` if it does (e.g. this branch was already pushed earlier in the session and the steps above just added commits on top) — confirm with the user before the first push of the branch either way.
-5. Build the PR description (see "Writing the PR description" below) — the same description is used for both PRs since they carry the same commits. The description's diff/commit inspection will naturally include the changelog commit from step 1 and the version-bump commit; that's fine, they're a real part of what the branch changed. If step 3 ran the regression suite, note that it passed in the PR's Test plan section.
-6. Open a PR into `main` per "Opening a PR" above, with `base: main`, `head: <branch>`, and title `"<Release|Hotfix> <version>"`.
-7. Open a PR into `develop` per "Opening a PR" above, with `base: develop`, `head: <branch>`, and the same title.
-8. Report both PR URLs to the user.
-
-This step **only opens the PRs** — it does not merge them. Merging goes through normal GitHub review. Do not auto-merge.
-
-Note in the summary: once the PR into `main` is merged, run the **tag release/hotfix** action to tag `main` with the version. The changelog entry and the version bump (if any) are already merged at that point via steps 1–2 above — 3e below only tags; it drafts release notes itself solely as a fallback for the rare case where step 1 was declined or the branch was tagged without ever going through this step.
-
-### Writing the PR description
-
-Every PR opened by this skill needs a description detailed enough for a reviewer to understand what's actually changing, not a placeholder:
-
-1. Refresh the base branch first: `git fetch origin <base>`. Local `<base>` (`develop` or `main`) was only guaranteed fresh at branch-creation time (3a's `git pull`) — by the time you're finishing a branch, other PRs may have merged into it since, and diffing against a stale local branch skews what "new" means. Do not run `git pull origin <base>` here — that would switch/update the checked-out branch; a plain `fetch` is enough since the next step diffs against `origin/<base>` directly.
-2. Inspect the actual content of the change: `git log origin/<base>..<branch> --oneline` for the commit list, and `git diff origin/<base>..<branch> --stat` for the files touched — against the freshly fetched `origin/<base>`, not local `<base>`. Read individual commit messages (and diffs, for anything non-obvious) rather than guessing from branch/file names alone.
-3. Write the PR body using this structure:
-   - **Summary** — 2-4 bullet points describing the substantive changes (what behavior changed and why, not a mechanical commit list).
-   - **Changes** — grouped by area/component if the diff spans multiple concerns (e.g. domain, UI, migrations).
-   - **Test plan** — how this was verified (tests run, manual checks) if that's discoverable from the commits; omit rather than fabricate if it isn't.
-4. Do not use a generic placeholder body like `"..."`, `"Merge <branch>"`, or the PR title repeated — the description must reflect the real diff.
-5. If a commit message read in step 2 references a backlog feature number as `feature #N`/`(feature #N)`, reformat it to `feature N`/`(feature N)` when it appears in the PR body — never carry the `#` through into GitHub-rendered PR text, per "Opening a PR" above's guardrail.
-
-### 3e. Tag release / Tag hotfix
-
-This step must run **after** the PR into `main` has actually been merged — it tags the resulting commit on `main`, matching Gitflow's convention of tagging production merges.
-
-1. Verify the merge happened: check merge status per "Checking PR merge status" above, with `base: main`, `head: <release/hotfix-branch>`. If no merged PR is found, stop and tell the user to merge the PR into `main` first — do not tag speculatively.
-2. `git checkout main`
-3. `git pull origin main`
-4. Confirm the tag name with the user: `v<version>` (strip any `release/`/`hotfix/` prefix and leading `v` from the input, then re-add a single `v`).
-5. Check the tag doesn't already exist: `git tag --list v<version>`.
-6. Ask the user to confirm before pushing the tag (this is a shared, hard-to-reverse action visible to everyone with repo access).
-7. `git tag -a v<version> -m "<Release|Hotfix> <version>"`
-8. `git push origin v<version>`
-9. Report the pushed tag.
-10. Check whether `CHANGELOG.md` already documents this version — look for a `v<version>` heading (`grep`/read the file). This should normally already be true: 3d drafts and merges the entry as part of the release/hotfix PR, before this tagging step ever runs.
-    - **If found**: nothing further to do — report that release notes for this version were already included in the merge. Do not draft a second entry.
-    - **If not found** (3d's draft was declined at the time, or `main` was tagged without going through 3d at all): fall back to drafting it now per "Drafting release notes" below, called from this post-tag context — the resulting commit has no PR/review step in front of it, so treat it with the heavier care described there for this call site.
-
-### Drafting release notes
-
-Draft a changelog entry for a release/hotfix version. This runs from two possible call sites, and which one you're in changes where the commit lands and how much confirmation weight that carries:
-
-- **Normally, from 3d step 1**, on the `release/`/`hotfix/` branch itself, before its PR is opened — the commit is just another commit on a branch about to go through normal PR review.
-- **As a fallback, from 3e step 10**, directly on `main`, only when no entry exists yet for the version being tagged — there is no PR/review step protecting `main`, so this path needs the heavier treatment noted in step 6 below.
-
-Steps (the same either way except where noted):
-
-1. Determine the version and the commit range to draft from:
-   - **From 3d**: the version is embedded in the current branch name (`release/v2.3.0`/`hotfix/v2.3.0` → `v2.3.0`); the tag for it doesn't exist yet.
-   - **From 3e's fallback**: the version is the `<version>` already confirmed and tagged in step 4 of that section.
-2. Find the previous tag: `git tag --sort=-v:refname`.
-   - **From 3d** (tag doesn't exist yet): take the first (most recent) entry in that list as the previous tag.
-   - **From 3e's fallback** (tag already exists, since it was just pushed in step 8): take the entry immediately after `v<version>` in the list (i.e. the one before it chronologically).
-   - Either way, skip this step and treat everything as new if there is no usable previous tag (this is the first release ever).
-3. List the commits it contains:
-   - **From 3d**: `git log <previous-tag>..HEAD --oneline`, where `HEAD` is the tip of the current release/hotfix branch.
-   - **From 3e's fallback**: `git log <previous-tag>..v<version> --oneline`.
-   - Read individual commit messages — don't just dump the oneline list verbatim, since commit subjects vary in how self-explanatory they are.
-4. Group the entries into **Added**, **Changed**, **Fixed**, and **Removed** (omit any category with nothing in it) based on what each commit actually did, not its raw message text — a commit titled "update X" might be a fix, a feature, or a removal depending on the diff; check the diff for anything ambiguous rather than guessing from the subject line.
-5. Check whether `CHANGELOG.md` exists at the repo root.
-   - **If it exists**: read its existing format (heading style, section ordering) and match it. Insert the new version's section in the same position newer entries already occupy (top-of-file "Keep a Changelog" style is the common convention — follow whatever this file already does, don't impose a different structure).
-   - **If it doesn't exist**: don't create it silently — this is a new top-level file and a one-time structural decision the user should make, not something to add as a side effect of finishing a release or tagging one. Show the drafted entry in chat instead and ask whether to create `CHANGELOG.md` now. If they decline, stop here — the drafted entry stays in the chat response, not in the repo (from 3d, this means the branch proceeds to its PR without a changelog commit; from 3e's fallback, it means `main` is left without one).
-6. If writing to the file (existing or newly approved), stage and show the diff, then ask for explicit confirmation before committing:
-   - **From 3d** (on the release/hotfix branch): confirm before committing, the same as any other commit this skill makes on a branch under review — `git add CHANGELOG.md && git commit -m "docs: add v<version> release notes"`. No separate push confirmation is needed here beyond 3d step 2's existing branch-push confirmation, since the changelog commit is just one of the commits that push carries.
-   - **From 3e's fallback** (on `main`): treat this with the same care as the tag push in 3e — a commit here lands directly on `main` with no PR/review step in front of it. `git add CHANGELOG.md && git commit -m "docs: add v<version> release notes"`, then ask **separately** whether to push it (`git push origin main`) — don't bundle the commit and push confirmations into one yes, since a local commit is still easy to amend/undo but a push is not.
-7. Report what was recorded (or, if the user declined, that the drafted notes were not saved anywhere).
-
 ### 3g. Commit
 
 Makes one local commit of the work in the tree, on request only — for example when `bug-fix --commit` or `feature-development --commit` hands one closed item over, or after each phase when the user asked to commit as the work goes. Never pushes.
@@ -247,30 +153,11 @@ Steps:
 3. `git commit -m "<message>"`. Never `--no-verify`, never `--amend`. If a hook fails, show its output and stop; fix the cause and run the action again.
 4. Report the short hash and the branch. Do not push.
 
-### 3f. Cleanup branches
-
-Finds `feature/*`, `fix/*`, `doc/*`, `skill/*`, `chore/*`, `release/*`, and `hotfix/*` branches that have already been merged, and deletes only the ones the user explicitly confirms — never speculatively, never with `-D`/`--force`.
-
-1-2. Run `python3 scripts/list_merge_candidates.py <repo-root>` — it runs `git fetch origin --prune` (sync remote-tracking refs so branches already deleted on GitHub, e.g. auto-deleted on merge, aren't listed), enumerates every local/remote branch matching the 7 prefixes, and unions them by name with a `where: [local, remote]` flag per branch. This is local-git-only — it never calls `gh`/the GitHub API and never claims a branch is merged; that check is still step 3 below, per branch.
-3. For each candidate branch the script returned, determine merged status with a direct check (per the repo-state guardrail below — never infer this from timing or narrative):
-   - `feature/<name>`, `fix/<name>`, `doc/<name>`, `skill/<name>`, or `chore/<name>` (any topic branch): merged if checking merge status per "Checking PR merge status" above (with `head: <branch>`, `base: develop`) returns at least one merged result.
-   - `release/<version>` or `hotfix/<version>`: merged if **both** hold — checking merge status per "Checking PR merge status" above (with `head: <branch>`, `base: main`) returns a merged result, **and** `git merge-base --is-ancestor origin/<branch> origin/develop` exits 0 (confirms `develop` also has the commits, whether via its own merged PR or because `develop` already contained them).
-   - A branch with no merged PR found this way is **not** a candidate — leave it alone and don't list it, even if it looks stale. This only recognizes merges that went through a PR; branches merged some other way won't be flagged, which is the safe direction to be wrong in.
-4. If no merged branches are found, report that and stop — nothing to clean up.
-5. Print every merged candidate to the user as plain text (not through `AskUserQuestion`'s options — a repo that's accumulated several merged-but-undeleted branches can easily produce more candidates than the tool's 4-option-per-question limit allows): branch name, type (feature/fix/doc/skill/chore/release/hotfix), and where it exists (local/remote/both). Then, if there's more than one, use **AskUserQuestion** with a small fixed set of options — "Delete all listed", "Delete specific ones (I'll list the names)", "Cancel" — and resolve "specific ones" from the user's free-text follow-up matched against the printed list, rather than trying to enumerate every branch as its own option. If there's exactly one candidate, a plain yes/no/cancel confirmation is enough.
-6. For whichever branches the user selected, ask whether to delete the **local** branch, the **remote** branch, or **both** — per branch if they exist in different places, or once for the whole batch if that's simpler for the user to answer.
-7. Do one final explicit confirmation of exactly what's about to be deleted (branch names × local/remote) before running anything — deletion of a shared remote branch is hard to reverse.
-8. Delete only what was confirmed:
-   - Before deleting anything, verify `<branch>` is not `main` or `develop` (case-insensitive) — refuse and report an error if it is, even if somehow confirmed by the user. These two branches are never deletion candidates (see 3f step 2 and the guardrail below) and this check exists as a last-resort safety net against that invariant ever being violated upstream.
-   - Local: `git branch -d <branch>` — never `-D`. If the branch to delete is the current branch, `git checkout` its base first (`develop` for a topic branch/release, `main` for a hotfix) before deleting.
-   - Remote: `git push origin --delete <branch>`. If the ref is already gone (common — GitHub auto-deletes on merge), report that rather than treating it as an error.
-9. Report exactly what was deleted (and what was already gone / skipped).
-
 ---
 
 ## Guardrails
 
-- Never force-push, force-create branches over existing ones, or force-delete a branch (`git branch -D`, `git push --force`). The only sanctioned branch deletion is the **Cleanup branches** action, and only for branches confirmed merged per its steps — never delete speculatively.
+- Never force-push, force-create branches over existing ones, or force-delete a branch (`git branch -D`, `git push --force`). The only sanctioned branch deletion is the **Cleanup branches** action, and only for branches confirmed merged per its steps — never delete speculatively. Local deletes use `git branch -d`, never `-D`.
 - **Never delete `main` or `develop`, under any circumstances, local or remote.** Cleanup branches only ever enumerates `feature/*`, `fix/*`, `doc/*`, `skill/*`, `chore/*`, `release/*`, and `hotfix/*` candidates (3f step 2), so `main`/`develop` should never reach the confirmation prompts in the first place — but treat that as defense-in-depth, not the only guard: 3f step 8 also refuses the deletion outright if `<branch>` resolves to `main` or `develop`, even if a user instruction, a typo in a branch name, or a confirmation somehow points at one of them. No action in this skill ever deletes, force-resets, or overwrites these two branches.
 - Cleanup branches never deletes anything without the user explicitly confirming: which branches (from the listed candidates), and for each, whether to delete local, remote, or both. Do not skip either confirmation step or bundle them into a single implicit approval.
 - **Commit** is local only and happens only on request, on a topic branch, with the file list and message confirmed first. It never pushes, amends, or skips hooks.
