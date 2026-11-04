@@ -1,0 +1,37 @@
+{
+  "runners_up": [
+    {
+      "area": "auth",
+      "environment": "both",
+      "id": "BUG-004",
+      "in_progress": false,
+      "order_position": 1,
+      "schema": false,
+      "score": 435,
+      "severity": "S1",
+      "summary": "Login loops after password reset."
+    },
+    {
+      "area": "/settings",
+      "environment": "deployed",
+      "id": "BUG-002",
+      "in_progress": false,
+      "order_position": 2,
+      "schema": false,
+      "score": 335,
+      "severity": "S2",
+      "summary": "Saving settings shows a blank page."
+    }
+  ],
+  "top": {
+    "area": "nav",
+    "environment": "local",
+    "id": "BUG-003",
+    "in_progress": true,
+    "order_position": null,
+    "schema": false,
+    "score": 1205,
+    "severity": "S3",
+    "summary": "Menu overlaps the title on small screens."
+  }
+}
