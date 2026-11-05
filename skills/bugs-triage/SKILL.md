@@ -7,7 +7,7 @@ description: >-
   summaries, and bugs missing from the recommended fix order, then proposes
   what to do about each. Read-only: it never edits the backlog; the fixes go
   through bug-report, bugs-archive and bugs-next once the user agrees.
-  TRIGGER when asked to triage, clean up, groom or review the bug backlog, to
+  TRIGGER when asked to triage, clean up, refine or review the bug backlog, to
   find duplicate bugs, or to check which bugs are ready to be fixed. For
   counts and progress use bugs-status instead.
 license: MIT
