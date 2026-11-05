@@ -8,7 +8,7 @@ description: >-
   exist, features marked In Progress with no branch, possible duplicates, and
   features missing from the implementation order, then proposes what to do
   about each. Read-only: changes go through feature-plan, features-next and
-  features-archive once the user agrees. TRIGGER when asked to triage, groom,
+  features-archive once the user agrees. TRIGGER when asked to triage,
   refine or review the feature backlog, to find features that are not ready
   to build, to split big features, or to check what has been unblocked. For
   counts and progress use features-status instead.
