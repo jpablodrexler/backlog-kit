@@ -434,5 +434,62 @@ class BacklogImport(unittest.TestCase):
             self.assertEqual(([i["number"] for i in r["importable"]], r["not_shown"]), ([1, 2], 3))
 
 
+class FeaturesTriage(unittest.TestCase):
+    PLANNED = ("# Planned\n\n## Feature List\n\n| # | Change name | Priority | Schema Change | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |\n"
+               "| - | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
+               "| 2 | `alpha` | P1 | No | | UI | — | ⬜ Pending | Export the task list as a CSV file. | [brief](features/002-alpha.md) |\n"
+               "| 3 | `beta` | P1 | No | 13 | UI | — | ⬜ Pending | Export the task list as CSV file download. | [brief](features/003-beta.md) |\n"
+               "| 4 | `gamma` | P2 | No | M | API | — | ⬜ Pending | Rate limit the API per key. | [brief](features/004-gamma.md) |\n"
+               "| 5 | `delta` | P2 | No | 3 | API | — | 🔶 In Progress | Webhook retries. | [brief](features/005-delta.md) |\n"
+               "| 6 | `eps` | P2 | No | 2 | API | — | ⬜ Pending | Audit log. | [brief](features/006-eps.md) |\n\n"
+               "## Dependencies\n\n### Hard implementation dependencies\n\n**Feature 6 → Feature 1** (hard)\n\n**Feature 4 → Feature 99** (hard)\n\n"
+               "### Recommended implementation order\n\n- `alpha` (#2)\n- `beta` (#3)\n")
+    IMPLEMENTED = ("# Implemented\n\n## Feature List\n\n| # | Change name | Priority | Schema Change | Effort | Area | Details |\n| - | --- | --- | --- | --- | --- | --- |\n"
+                   "| 1 | `base` | P1 | No | 3 | API | [brief](features/001-base.md) |\n")
+    STORY = "# Feature {n} — x\n\n**As a** dev, **I want** x, **so that** y.\n\n## Acceptance Criteria\n\n- AC1: Given a, when b, then c.\n"
+
+    def test_findings(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = Path(d) / "docs/backlog"
+            (b / "features").mkdir(parents=True)
+            (b / "features-planned.md").write_text(self.PLANNED, encoding="utf-8")
+            (b / "features-implemented.md").write_text(self.IMPLEMENTED, encoding="utf-8")
+            for n, slug in ((2, "alpha"), (3, "beta"), (4, "gamma"), (5, "delta"), (6, "eps")):
+                body = self.STORY.format(n=n)
+                if n == 4:
+                    body = "# Feature 4 — gamma\n\nJust do the thing.\n"      # no story, no acceptance criteria
+                (b / "features" / f"{n:03d}-{slug}.md").write_text(body, encoding="utf-8")
+            script = Path(__file__).resolve().parents[1] / "skills/features-triage/scripts/triage.py"
+            out = subprocess.run([sys.executable, str(script), d, "--json"], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            r = json.loads(out)
+            f = r["findings"]
+            nums = lambda key: [x["number"] for x in f[key]]
+            self.assertFalse(r["branches_checked"])                                   # not a git repository
+            self.assertEqual(nums("unestimated"), ["2"])
+            self.assertEqual(nums("legacy_size"), ["4"])
+            self.assertEqual(nums("oversized"), ["3"])
+            self.assertEqual(nums("missing_story"), ["4"])
+            self.assertEqual(nums("missing_acceptance"), ["4"])
+            self.assertEqual([(x["number"], x["prerequisite"]) for x in f["now_unblocked"]], [("6", "1")])
+            self.assertEqual([(x["number"], x["prerequisite"]) for x in f["dangling_dependency"]], [("4", "99")])
+            self.assertEqual([x["features"] for x in f["duplicates"]], [["2", "3"]])
+            self.assertEqual(nums("not_in_order"), ["4", "6"])
+            self.assertEqual(f["stale_in_progress"], [])
+
+    def test_stale_in_progress_needs_a_branch(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = Path(d) / "docs/backlog"
+            (b / "features").mkdir(parents=True)
+            (b / "features-planned.md").write_text(self.PLANNED, encoding="utf-8")
+            (b / "features-implemented.md").write_text(self.IMPLEMENTED, encoding="utf-8")
+            git = lambda *a: subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a], check=True, capture_output=True)
+            git("init", "-q", "-b", "main"); git("add", "-A"); git("commit", "-qm", "x")
+            script = Path(__file__).resolve().parents[1] / "skills/features-triage/scripts/triage.py"
+            run = lambda: json.loads(subprocess.run([sys.executable, str(script), d, "--json"], capture_output=True, text=True, encoding="utf-8", check=True).stdout)
+            self.assertEqual([x["name"] for x in run()["findings"]["stale_in_progress"]], ["delta"])
+            git("branch", "feature/delta")
+            self.assertEqual(run()["findings"]["stale_in_progress"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

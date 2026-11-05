@@ -23,14 +23,14 @@ Then just talk to Claude:
 
 That is all the setup there is. Backlog files are created on first use in `docs/backlog/`.
 
-## The core (15 skills)
+## The core (16 skills)
 
 | Skill | What it does |
 | --- | --- |
 | `feature-plan`, `bug-report` | add an item to the backlog (row + brief) |
 | `features-next`, `bugs-next` | recommend what to do next |
 | `features-status`, `bugs-status` | show the state of the backlog |
-| `bugs-triage` | find bugs that are not ready to fix, duplicates and regressions |
+| `features-triage`, `bugs-triage` | find items that are not ready to build or fix: no estimate, too big, no repro, duplicates |
 | `backlog-import` | bring open GitHub / GitLab issues into the backlog, reviewed one by one |
 | `backlog-report` | what was delivered per week, velocity, and weeks left at that pace |
 | `features-archive`, `bugs-archive` | move finished items to the implemented / fixed tables |

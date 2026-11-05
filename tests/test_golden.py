@@ -24,6 +24,7 @@ SCENARIOS = {
     "features-status": ["skills/features-status/scripts/status_report.py", "{root}", "--json"],
     "bugs-status": ["skills/bugs-status/scripts/status_report.py", "{root}", "--json"],
     "backlog-report": ["skills/backlog-report/scripts/backlog_report.py", "{root}", "--today", TODAY, "--weeks", "6", "--json"],
+    "features-triage": ["skills/features-triage/scripts/triage.py", "{root}", "--json"],
     "bugs-triage": ["skills/bugs-triage/scripts/triage.py", "{root}", "--json"],
     "next-feature-id": ["skills/feature-plan/scripts/next_id.py", "{root}"],
 }
