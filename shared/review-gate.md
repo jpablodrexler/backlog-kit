@@ -8,16 +8,16 @@ Why it is separate: the reviewers (`code-reviewer`, `database-reviewer`, `securi
 2. **The orchestrator decides which conditional reviews apply**, from its own G0 computation, never from the implementation subagent's word.
 3. **The orchestrator verifies the artifacts** (report files and their checkboxes) before it accepts a signal. A signal without a matching report is not accepted.
 
-`<work-id>` below is the change name (`feature-development`) or the Bug ID (`bug-fix`); substitute it, and `<reports>`, in every prompt before spawning. Append the standard **Hand-back** paragraph of the calling skill to every prompt, unchanged.
+`<work-id>` below is the change name (`feature-development`) or the Bug ID (`bug-fix`); substitute it, and `<reports>`, `<integration>`, in every prompt before spawning. Append the standard **Hand-back** paragraph of the calling skill to every prompt, unchanged.
 
 ## Orchestrator procedure
 
 **G0 — Compute the scope yourself.** The rule depends on whether this run commits (`--commit`, or the user asked to commit as the work goes; the same fact `gitflow`'s commit action is called on):
 
 - **Not committing (the default):** `CHANGED_FILES` is the uncommitted files. Run `git status --porcelain` and parse every path, untracked (`??`) entries included.
-- **Committing:** `CHANGED_FILES` is the files that differ between the work branch and `develop`, plus the uncommitted files. Take the first with `git diff --name-only develop...HEAD` (three dots: from the merge base, so `develop`'s own newer commits are not counted; use `origin/develop` when there is no local `develop`, and `main` in a repository that has no `develop`), take the second as above, and merge the two lists without duplicates. A shared batch branch therefore includes the files of the batch's earlier committed work as well.
+- **Committing:** `CHANGED_FILES` is the files that differ between the work branch and `<integration>`, plus the uncommitted files. Take the first with `git diff --name-only <integration>...HEAD` (three dots: from the merge base, so `<integration>`'s own newer commits are not counted; use `origin/<integration>` when there is no local `<integration>`, and `<production>` in a repository that has no `<integration>`), take the second as above, and merge the two lists without duplicates. A shared batch branch therefore includes the files of the batch's earlier committed work as well.
 
-Never use `git diff --name-only HEAD` on its own (it misses new files), and never conclude from an empty list that nothing needs review before you have applied the rule for the mode you are in. Recompute `CHANGED_FILES` fresh before every gate below, and pass the list into each subagent prompt as an explicit argument, together with the rule that produced it, which replaces `<G0 MODE>` in the prompts below (`uncommitted files, untracked included` or `files differing from develop, plus uncommitted files, untracked included`). Also note whether each reviewer skill is installed (a folder `code-reviewer`, `database-reviewer` or `security-reviewer` under `.claude/skills/` or the plugin's skills).
+Never use `git diff --name-only HEAD` on its own (it misses new files), and never conclude from an empty list that nothing needs review before you have applied the rule for the mode you are in. Recompute `CHANGED_FILES` fresh before every gate below, and pass the list into each subagent prompt as an explicit argument, together with the rule that produced it, which replaces `<G0 MODE>` in the prompts below (`uncommitted files, untracked included` or `files differing from <integration>, plus uncommitted files, untracked included`). Also note whether each reviewer skill is installed (a folder `code-reviewer`, `database-reviewer` or `security-reviewer` under `.claude/skills/` or the plugin's skills).
 
 **G1 — Code review.** Always applies. Spawn the code-review subagent.
 

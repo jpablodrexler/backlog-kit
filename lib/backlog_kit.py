@@ -34,6 +34,11 @@ DEFAULTS = {
     "paths": {
         "backlog_dir": "docs/backlog",
     },
+    # The two long-lived branches. Equal values mean trunk-based development (one branch, one PR per release).
+    "git": {
+        "integration_branch": "develop",
+        "production_branch": "main",
+    },
     # Devices the viewport check of feature-development / bug-fix verifies, as "Name WIDTHxHEIGHT"
     # (CSS pixels). The skills read this table themselves; no script uses it.
     "viewports": {

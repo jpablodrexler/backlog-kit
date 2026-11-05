@@ -12,22 +12,16 @@ jobs:
   test:
     name: tests (${{ matrix.os }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         python: ["3.11", "3.12", "3.13"]
-        experimental: [false]
         include:
-          # The kit is used on Windows, but its tests have only been run on Linux so far:
-          # report Windows failures without blocking until they are known to be clean.
           - os: windows-latest
             python: "3.12"
-            experimental: true
           - os: macos-latest
             python: "3.12"
-            experimental: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

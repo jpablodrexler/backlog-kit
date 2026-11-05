@@ -15,7 +15,7 @@ Spawn a **general-purpose subagent** (`run_in_background: false`) with:
 > **Step 1 — Set up the fix branch**
 >
 > **Batch mode (`--skip-branch-setup` was passed):** run `git branch
-> --show-current` once; if it is `main` or `develop`, end with
+> --show-current` once; if it is `<production>` or `<integration>`, end with
 > `FIX_BLOCKED — batch mode requires an existing fix branch already
 > checked out` and stop. Otherwise continue on the current
 > branch. Do not check for uncommitted changes, and do not create, switch,
@@ -49,8 +49,8 @@ Spawn a **general-purpose subagent** (`run_in_background: false`) with:
 >      doesn't merge cleanly, end with `FIX_BLOCKED — fix branch diverged
 >      from origin, needs manual resolution` and stop). Then invoke
 >      `gitflow` with "sync fix `<slug>`" to bring it up to date with
->      `develop`. On an unresolvable conflict, end with `FIX_BLOCKED — fix
->      branch sync conflict with develop` and stop.
+>      `<integration>`. On an unresolvable conflict, end with `FIX_BLOCKED — fix
+>      branch sync conflict with <integration>` and stop.
 >    - Fails locally but `git rev-parse --verify --quiet origin/fix/<slug>`
 >      succeeds → another device pushed it first: `git checkout -b
 >      fix/<slug> origin/fix/<slug>`, then `gitflow` "sync fix `<slug>`",

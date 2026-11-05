@@ -30,16 +30,18 @@ recommendation step and jump straight to confirmation for that feature.
 skill — that have already checked out a shared branch and are running
 multiple features on it without committing between them; see Phase 1 Step
 1.5's batch-mode branch below. Omit it for normal single-feature use —
-default behavior (create/resume `feature/<change-name>` from `develop`) is
+default behavior (create/resume `feature/<change-name>` from `<integration>`) is
 unchanged. `--commit` is an explicit opt-in that the user (or an orchestrator
 acting on their request) passes to get one commit for this feature after it
 is archived (Phase 7); without it nothing is committed.
 
 `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`; `<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default).
 
+`<integration>` is `develop` and `<production>` is `main` unless `.backlog-kit.toml` sets `[git] integration_branch` / `production_branch`.
+
 **The user talks, the skill reads flags.** `--skip-branch-setup` and `--commit` are shorthand for orchestrators; a user never needs to type them or to phrase a request in any special way. "Develop the feature X", "develop X, stay on this branch", "develop X and commit as you go" are complete requests: map what the user said to the behaviour below, state in one line how it was understood (branch handling, commit cadence), and run every phase regardless of how short the request was. Every phase runs by default; nothing in the request needs to ask for it, and only a skip condition written in this skill may skip one.
 
-**Working on a branch the user is already on.** When the user is on a topic branch (not `main`/`develop`) and says to stay on it, treat the run as `--skip-branch-setup` even if the flag was not typed: Phase 1 Step 1.5 only confirms the branch and never creates or syncs one. Say so in the first line of the run.
+**Working on a branch the user is already on.** When the user is on a topic branch (not `<production>`/`<integration>`) and says to stay on it, treat the run as `--skip-branch-setup` even if the flag was not typed: Phase 1 Step 1.5 only confirms the branch and never creates or syncs one. Say so in the first line of the run.
 
 **Committing as you go.** `--commit` means one commit, at Phase 7. When the user asks instead to commit as the work goes, that request is the opt-in for a commit after each phase that changed files (Phase 1, Phase 2, the fixes of each review gate, Phases 3 to 6S, Phase 6), each one made by `gitflow`'s commit action with the message `Feature <change-name>: <phase> — <one-line summary>`; Phase 7 then commits only what is left, or records `COMMIT: nothing left`. The user's request stands in for the per-commit confirmation of the file list and message, but `gitflow` still makes every commit: no phase or subagent runs `git commit` itself.
 
@@ -75,7 +77,7 @@ project with a schema, an end-to-end suite and a build runs them all.
 | Phase                        | Subagent   | Skills / actions                                                                                                                                  |
 | ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0 — Select & Confirm          | *(orchestrator's own context — never a subagent)* | `features-next` (recommend + mandatory `AskUserQuestion` confirmation) |
-| 1 — Propose                   | Subagent 1 | `git fetch origin --prune` to detect a branch/commits pushed from another device → `gitflow` (start feature to create `feature/<change-name>`, resume + merge in another device's pushed commits, or sync feature to catch up an existing one with `develop`) → mark the feature `🔶 In Progress` in `<backlog>/features-planned.md` → `openspec-propose` (if artifacts missing) |
+| 1 — Propose                   | Subagent 1 | `git fetch origin --prune` to detect a branch/commits pushed from another device → `gitflow` (start feature to create `feature/<change-name>`, resume + merge in another device's pushed commits, or sync feature to catch up an existing one with `<integration>`) → mark the feature `🔶 In Progress` in `<backlog>/features-planned.md` → `openspec-propose` (if artifacts missing) |
 | 2 — Implement                 | Subagent 2 | implement from the brief (`openspec-apply-change <name>` in an OpenSpec project); reviews are not its job |
 | 2R — Review gate              | orchestrator + one subagent per review | the orchestrator computes `CHANGED_FILES`, decides which conditional reviews apply and verifies every report; separate subagents run `code-reviewer`, then — only when the change touches them — `database-reviewer`, `security-reviewer` and the mobile/desktop viewport check; findings fixed before done (`reference/review-gate.md`) |
 | 3 — Tests *(optional)*        | Subagent 3 | runs the project's tests (and its fast smoke tier, if CI runs one) until they pass; skipped if the project has no automated tests |
@@ -154,7 +156,7 @@ across every phase, and other skills cite these phases by number
 ---
 ## Placeholder substitution (Phases 1–6)
 
-Before spawning any subagent in Phases 1–6, replace every occurrence of
+Before spawning any subagent in Phases 1–6, replace every `<integration>` / `<production>` with the branch names above, and every occurrence of
 `<change-name>` in that subagent's prompt with the actual change name
 confirmed in Phase 0, and every `<backlog>` / `<reports>` with the folder
 named above.
@@ -398,23 +400,23 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
   branch, or tracking `origin/feature/<change-name>` directly if only the
   remote copy exists — merging in any commits pushed from another device,
   and, via `gitflow`'s sync feature action, bringing it up to date with
-  `develop`), before any file in the repository is created or modified,
+  `<integration>`), before any file in the repository is created or modified,
   including the SDD artifacts written by `openspec-propose`. In batch mode
   (`--skip-branch-setup`), Step 1.5 performs none of that — it only
-  confirms the current branch isn't `main`/`develop` and otherwise leaves
+  confirms the current branch isn't `<production>`/`<integration>` and otherwise leaves
   branch state entirely to the caller. Either way, Phases 2–6 must stay on
   whatever branch was current when Phase 1 finished; none of them may run
   `git checkout`, `git switch`, `git merge`, invoke `gitflow`, or create
   another branch. If a subagent finds itself on a different branch, that is
   a bug in the workflow — surface it to the user rather than silently
   switching.
-- **The feature branch is never synced from `main`, only `develop`.**
+- **The feature branch is never synced from `<production>`, only `<integration>`.**
   Step 1.5's resume path uses `gitflow`'s sync feature action exclusively,
-  which merges `origin/develop` and nothing else — matching `gitflow`'s own
-  guardrail that `main` is never a valid source for a feature branch's
-  content, even right after a release/hotfix has merged into both `main`
-  and `develop` and the two look momentarily interchangeable. No phase in
-  this workflow may merge, rebase, or pull `main` into the feature branch
+  which merges `origin/<integration>` and nothing else — matching `gitflow`'s own
+  guardrail that `<production>` is never a valid source for a feature branch's
+  content, even right after a release/hotfix has merged into both `<production>`
+  and `<integration>` and the two look momentarily interchangeable. No phase in
+  this workflow may merge, rebase, or pull `<production>` into the feature branch
   under any circumstance.
 - **Skills run as written, by whoever performs the phase.** A phase that names a skill (`code-reviewer`, `database-reviewer`, `security-reviewer`, `spec-compliance-check`, `docs-sync`, `openspec-sync-specs`, `openspec-archive-change`, `features-archive`) invokes that skill; doing the same checks by hand, or writing its report by hand, is a failed phase even when the content looks right. Reports carry the stamp the reviewer skills write (`<!-- backlog-kit: <skill> -->`), and the orchestrator checks it (review gate G6, Phase 6S check).
 - **No git commits unless `--commit` was passed or the user asked to commit as the work goes, and then only through
@@ -422,11 +424,11 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
   subagent it spawns may run `git commit`, `git push`, or any other git
   write command itself at any point in the workflow. Branch creation and branch sync
   (`git fetch`, `git checkout`, `git checkout -b`, `git merge
-  origin/develop`, and `git merge origin/feature/<change-name>` to pick up
+  origin/<integration>`, and `git merge origin/feature/<change-name>` to pick up
   commits pushed from another device — all only in Phase 1's Step 1.5, the
   latter two either directly or via `gitflow`'s start-feature/sync-feature
   actions) are the sole exceptions. A sync-feature merge commit brings in
-  already-reviewed upstream work from `develop`, and an
+  already-reviewed upstream work from `<integration>`, and an
   `origin/feature/<change-name>` merge brings in already-pushed work on
   this same change from another device; neither is uncommitted
   implementation of new work, so neither conflicts with the reason this
