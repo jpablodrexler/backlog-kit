@@ -4,7 +4,6 @@ description: Recommends which feature to implement next based on the backlog's f
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Recommend the next feature to implement and return the confirmed change name to the caller.

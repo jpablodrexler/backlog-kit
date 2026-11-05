@@ -4,7 +4,6 @@ description: Deliberately harsh, non-technical product-management review of the 
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 # Product Scope Roaster

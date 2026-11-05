@@ -16,7 +16,6 @@ description: >-
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Add a new bug row to `<backlog>/bugs-open.md` and create its details

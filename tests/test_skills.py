@@ -51,6 +51,15 @@ class SkillLint(unittest.TestCase):
                 self.assertGreater(len(fm["description"]), 80)
                 self.assertRegex(fm["description"], r"TRIGGER|Use when", "description must say when to trigger")
 
+    def test_skills_state_rules_not_their_own_history(self):
+        # Rules only: the story of past mistakes belongs in CHANGELOG.md / DESIGN.md, not in the prompt.
+        history = re.compile(r"(an? )?earlier version of this skill|this skill used to|as an earlier version|closes the gap that previously", re.I)
+        for d in SKILLS:
+            for f in [d / "SKILL.md"] + sorted((d / "reference").glob("*.md")):
+                if f.is_file():
+                    with self.subTest(file=str(f.relative_to(KIT))):
+                        self.assertIsNone(history.search(f.read_text(encoding="utf-8")))
+
     def test_referenced_scripts_exist(self):
         for d in SKILLS:
             text = (d / "SKILL.md").read_text(encoding="utf-8")
@@ -399,6 +408,15 @@ class SkillAuthor(unittest.TestCase):
             with self.subTest(skill=f.parent.name):
                 head = f.read_text(encoding="utf-8").split("\n---\n", 1)[0]
                 self.assertIn("  author: Juan Pablo Drexler", head)
+
+
+class SkillVersion(unittest.TestCase):
+    def test_skills_carry_no_version_of_their_own(self):
+        # The kit is versioned once, in .claude-plugin/plugin.json; a per-skill version would only drift from it.
+        for f in sorted(list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "extras").glob("*/SKILL.md"))):
+            with self.subTest(skill=f.parent.name):
+                head = f.read_text(encoding="utf-8").split("\n---\n", 1)[0]
+                self.assertNotRegex(head, r"(?m)^\s*version:")
 
 
 class StoryBriefs(unittest.TestCase):

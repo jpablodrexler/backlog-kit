@@ -16,7 +16,6 @@ description: >
 license: MIT
 metadata:
   author: Juan Pablo Drexler
-  version: "0.1"
 ---
 
 Orchestrate the full feature lifecycle from selection to archive using
@@ -232,9 +231,8 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
   into implementing a feature that Step 3.5 just discovered depends on
   something not yet built. Resolve it through the AskUserQuestion decision
   point described under Phase 1 first; only an explicit "proceed anyway"
-  answer continues to Phase 2. This is what closes the gap that previously
-  let a feature's missing dependency surface as a surprise mid-implementation
-  instead of being caught, recorded, and decided on right after design.
+  answer continues to Phase 2. This catches a missing dependency right after
+  design, instead of as a surprise mid-implementation.
 - **The reviews are never run inside the implementation subagent.** Phase 2R runs each in its own subagent, and the orchestrator — not Subagent 2 — decides which conditional reviews apply (from its own `git status --porcelain`) and verifies each report file and its checkboxes before accepting a signal (`reference/review-gate.md`, G6). A skip is recorded with the orchestrator's reason; a review signal without its report is treated as `BLOCKED`.
 - Do not start Phase 2R until Phase 2 returns `IMPLEMENT: DONE`, and do not start Phase 3 until the gate returns `REVIEW_GATE: DONE`. If Phase 2 or the gate
   returns `IMPLEMENT_BLOCKED`, `REVIEW_BLOCKED`, `DATABASE_BLOCKED`, or
