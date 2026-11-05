@@ -51,22 +51,52 @@ That is all the setup there is. Backlog files are created on first use in `docs/
 ## The loop
 
 ```mermaid
-%%{init: {"themeVariables": {"fontSize": "18px"}}}%%
+%%{init: {"themeVariables": {"fontSize": "16px"}}}%%
 flowchart TB
-    plan["<b>plan</b> · <i>feature-plan, bug-report</i>"]
-    select["<b>select</b> · <i>features-next, bugs-next</i>"]
-    branch["<b>branch</b>"]
-    develop["<b>develop + verify</b> · <i>feature-development, bug-fix</i>"]
-    commit["<b>commit</b> · <i>you</i>"]
-    pr["<b>PR</b> · <i>gitflow</i>"]
-    review["<b>review</b> · <i>you</i>"]
-    merge["<b>merge</b> · <i>you</i>"]
-    cleanup["<b>clean up</b> · <i>gitflow</i>"]
+    subgraph backlog["Backlog"]
+        direction LR
+        import["<b>import</b><br/><i>backlog-import</i>"]
+        plan["<b>plan</b><br/><i>feature-plan<br/>bug-report</i>"]
+        refine["<b>refine</b><br/><i>features-triage<br/>bugs-triage</i>"]
+        select["<b>select</b><br/><i>features-next<br/>bugs-next</i>"]
+        import --> plan --> refine --> select
+    end
 
-    plan --> select --> branch --> develop --> commit --> pr --> review --> merge --> cleanup
-    cleanup -. next item .-> plan
+    subgraph develop["Develop + verify"]
+        direction LR
+        branch["<b>branch</b><br/><i>gitflow</i>"]
+        implement["<b>implement</b><br/><i>feature-development<br/>bug-fix</i>"]
+        gate["<b>review gate</b><br/><i>code-reviewer<br/>database-reviewer<br/>security-reviewer</i>"]
+        prove["<b>prove + sync docs</b><br/><i>spec-compliance-check<br/>docs-sync</i>"]
+        archive["<b>archive</b><br/><i>features-archive<br/>bugs-archive</i>"]
+        batch["<b>batch</b><br/><i>features-batch-development<br/>bugs-batch-fix</i>"]
+        branch --> implement --> gate --> prove --> archive
+        batch -. "unattended, over a list" .-> branch
+    end
+
+    subgraph ship["Ship"]
+        direction LR
+        commit["<b>commit</b><br/><i>you, or gitflow</i>"]
+        pr["<b>PR</b><br/><i>gitflow</i>"]
+        review["<b>review</b><br/><i>you</i>"]
+        merge["<b>merge</b><br/><i>you</i>"]
+        cleanup["<b>clean up</b><br/><i>gitflow</i>"]
+        commit --> pr --> review --> merge --> cleanup
+    end
+
+    subgraph around["Around the loop, any time"]
+        direction LR
+        observe["<b>observe</b><br/><i>features-status<br/>bugs-status<br/>backlog-report</i>"]
+        decide["<b>decide</b><br/><i>decision-record</i>"]
+        advise["<b>advise</b><br/><i>architecture-reviewer<br/>product-scope-roaster<br/>dependency-upgrade</i>"]
+        observe ~~~ decide ~~~ advise
+    end
+
+    backlog --> develop --> ship
+    ship ~~~ around
 ```
 
+After the clean up, the next item starts again in the Backlog. The core skills run the loop; the review gate's reviewers, the proof (`spec-compliance-check`, `docs-sync`), the batch runners and the advisors are [extras](#extras-optional).
 The middle of the loop (`feature-development`, `bug-fix`) commits nothing unless you ask: by default it leaves a verified, archived result uncommitted on a branch for you to review, and when you ask for commits (one at the end, or as the work goes) `gitflow` makes them. You commit it yourself otherwise; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.
 
 ## Extras (optional)

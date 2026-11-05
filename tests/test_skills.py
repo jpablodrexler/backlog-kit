@@ -216,6 +216,14 @@ class ReleaseHygieneTest(unittest.TestCase):
         self.assertIn("tools/vendor.py --check", ci)
         self.assertIn("unittest discover -s tests", ci)
 
+    def test_readme_diagram_shows_every_skill(self):
+        readme = (self.ROOT / "README.md").read_text(encoding="utf-8")
+        start = readme.index("```mermaid")
+        diagram = readme[start:readme.index("```", start + 10)]
+        for d in SKILLS:
+            with self.subTest(skill=d.name):
+                self.assertRegex(diagram, rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", f"{d.name} is missing from the README diagram")
+
     def test_readme_states_its_limits_and_the_loop(self):
         readme = (self.ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("## Limitations", readme)
