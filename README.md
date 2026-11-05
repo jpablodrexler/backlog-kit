@@ -51,44 +51,75 @@ That is all the setup there is. Backlog files are created on first use in `docs/
 ## The loop
 
 ```mermaid
-%%{init: {"themeVariables": {"fontSize": "16px"}}}%%
+%%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
-    subgraph backlog["Backlog"]
+    subgraph backlog["`Backlog`"]
         direction LR
-        import["<b>import</b><br/><i>backlog-import</i>"]
-        plan["<b>plan</b><br/><i>feature-plan<br/>bug-report</i>"]
-        refine["<b>refine</b><br/><i>features-triage<br/>bugs-triage</i>"]
-        select["<b>select</b><br/><i>features-next<br/>bugs-next</i>"]
+        import["`**import**
+*backlog-import*`"]
+        plan["`**plan**
+*feature-plan*
+*bug-report*`"]
+        refine["`**refine**
+*features-triage*
+*bugs-triage*`"]
+        select["`**select**
+*features-next*
+*bugs-next*`"]
         import --> plan --> refine --> select
     end
 
-    subgraph develop["Develop + verify"]
+    subgraph develop["`Develop + verify`"]
         direction LR
-        branch["<b>branch</b><br/><i>gitflow</i>"]
-        implement["<b>implement</b><br/><i>feature-development<br/>bug-fix</i>"]
-        gate["<b>review gate</b><br/><i>code-reviewer<br/>database-reviewer<br/>security-reviewer</i>"]
-        prove["<b>prove + sync docs</b><br/><i>spec-compliance-check<br/>docs-sync</i>"]
-        archive["<b>archive</b><br/><i>features-archive<br/>bugs-archive</i>"]
-        batch["<b>batch</b><br/><i>features-batch-development<br/>bugs-batch-fix</i>"]
+        branch["`**branch**
+*gitflow*`"]
+        implement["`**implement**
+*feature-development*
+*bug-fix*`"]
+        gate["`**review gate**
+*code-reviewer*
+*database-reviewer*
+*security-reviewer*`"]
+        prove["`**prove + sync docs**
+*spec-compliance-check*
+*docs-sync*`"]
+        archive["`**archive**
+*features-archive*
+*bugs-archive*`"]
+        batch["`**batch**
+*features-batch-development*
+*bugs-batch-fix*`"]
         branch --> implement --> gate --> prove --> archive
         batch -. "unattended, over a list" .-> branch
     end
 
-    subgraph ship["Ship"]
+    subgraph ship["`Ship`"]
         direction LR
-        commit["<b>commit</b><br/><i>you, or gitflow</i>"]
-        pr["<b>PR</b><br/><i>gitflow</i>"]
-        review["<b>review</b><br/><i>you</i>"]
-        merge["<b>merge</b><br/><i>you</i>"]
-        cleanup["<b>clean up</b><br/><i>gitflow</i>"]
+        commit["`**commit**
+*you, or gitflow*`"]
+        pr["`**PR**
+*gitflow*`"]
+        review["`**review**
+*you*`"]
+        merge["`**merge**
+*you*`"]
+        cleanup["`**clean up**
+*gitflow*`"]
         commit --> pr --> review --> merge --> cleanup
     end
 
-    subgraph around["Around the loop, any time"]
+    subgraph around["`Around the loop, any time`"]
         direction LR
-        observe["<b>observe</b><br/><i>features-status<br/>bugs-status<br/>backlog-report</i>"]
-        decide["<b>decide</b><br/><i>decision-record</i>"]
-        advise["<b>advise</b><br/><i>architecture-reviewer<br/>product-scope-roaster<br/>dependency-upgrade</i>"]
+        observe["`**observe**
+*features-status*
+*bugs-status*
+*backlog-report*`"]
+        decide["`**decide**
+*decision-record*`"]
+        advise["`**advise**
+*architecture-reviewer*
+*product-scope-roaster*
+*dependency-upgrade*`"]
         observe ~~~ decide ~~~ advise
     end
 
