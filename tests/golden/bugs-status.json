@@ -1,0 +1,58 @@
+{
+  "active_rows": [
+    {
+      "environment": "deployed",
+      "id": "BUG-002",
+      "in_progress": false,
+      "severity": "S2",
+      "summary": "Saving settings shows a blank page."
+    },
+    {
+      "environment": "local",
+      "id": "BUG-003",
+      "in_progress": true,
+      "severity": "S3",
+      "summary": "Menu overlaps the title on small screens."
+    },
+    {
+      "environment": "both",
+      "id": "BUG-004",
+      "in_progress": false,
+      "severity": "S1",
+      "summary": "Login loops after password reset."
+    }
+  ],
+  "area_breakdown": {
+    "/settings": 1,
+    "auth": 1,
+    "nav": 1
+  },
+  "cannot_repro": 0,
+  "duplicate_ids": [],
+  "env_breakdown": {
+    "both": 1,
+    "deployed": 1,
+    "local": 1
+  },
+  "files_bad_h1": [],
+  "files_without_row": [],
+  "fixed": 1,
+  "fixed_available": true,
+  "fixed_here": [],
+  "fixed_missing_resolution": [],
+  "in_progress": 1,
+  "invalid_encoding": [],
+  "open_available": true,
+  "open_strict": 2,
+  "percent": "25.0% resolved",
+  "rows_missing_file": [],
+  "severity_breakdown": {
+    "S1": 1,
+    "S2": 1,
+    "S3": 1,
+    "S4": 0,
+    "none": 0
+  },
+  "total": 4,
+  "wont_fix": 0
+}

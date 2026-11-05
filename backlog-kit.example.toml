@@ -11,6 +11,7 @@ backlog_dir = "docs/backlog"        # features-*.md, bugs-*.md, features/, bugs/
 # Trunk-based project: set both to the same branch (e.g. "main"); releases then open one PR instead of two.
 integration_branch = "develop"      # topic branches start here and PR into it
 production_branch = "main"          # releases and hotfixes land here and get the version tag
+host = "auto"                        # github | gitlab | other; auto reads the origin URL (set it for a self-hosted GitHub or GitLab)
 
 [viewports]
 # Devices the viewport check of feature-development and bug-fix verifies when a change touches the UI

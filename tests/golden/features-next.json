@@ -1,0 +1,54 @@
+{
+  "blocked": [
+    {
+      "blocked_on": "4",
+      "name": "share-links",
+      "number": "5"
+    }
+  ],
+  "has_sdd": true,
+  "runners_up": [
+    {
+      "area": "Backend",
+      "artifacts_ready": false,
+      "brief": "Share a list with other users.",
+      "brief_file": "docs/backlog/features/004-team-sharing.md",
+      "effort": "8",
+      "in_progress": false,
+      "name": "team-sharing",
+      "number": "4",
+      "order_position": 1,
+      "priority": "P0",
+      "schema_change": "Yes",
+      "score": 410
+    },
+    {
+      "area": "Frontend",
+      "artifacts_ready": false,
+      "brief": "Toggle between light and dark themes.",
+      "brief_file": "docs/backlog/features/002-dark-mode.md",
+      "effort": "3",
+      "in_progress": false,
+      "name": "dark-mode",
+      "number": "2",
+      "order_position": 2,
+      "priority": "P1",
+      "schema_change": "No",
+      "score": 315
+    }
+  ],
+  "top": {
+    "area": "Backend",
+    "artifacts_ready": false,
+    "brief": "Export the task list as CSV.",
+    "brief_file": "docs/backlog/features/003-export-csv.md",
+    "effort": "5",
+    "in_progress": true,
+    "name": "export-csv",
+    "number": "3",
+    "order_position": null,
+    "priority": "P2",
+    "schema_change": "No",
+    "score": 1205
+  }
+}

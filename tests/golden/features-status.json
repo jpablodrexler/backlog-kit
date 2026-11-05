@@ -1,0 +1,65 @@
+{
+  "bad_feature_headings": [],
+  "bad_planned_summaries": [],
+  "definition_of_done": false,
+  "duplicate_numbers": [],
+  "effort_breakdown": {
+    "1": 0,
+    "13": 0,
+    "2": 1,
+    "3": 1,
+    "5": 1,
+    "8": 1,
+    "none": 0
+  },
+  "implemented": 1,
+  "implemented_available": true,
+  "in_progress": 1,
+  "invalid_encoding": [],
+  "leftover_implemented_in_planned": [],
+  "missing_brief_links": [],
+  "missing_feature_files": [],
+  "missing_spec_targets": [],
+  "orphan_feature_files": [],
+  "pending_points": 18,
+  "pending_rows": [
+    {
+      "in_progress": false,
+      "name": "dark-mode",
+      "number": "2",
+      "priority": "P1"
+    },
+    {
+      "in_progress": true,
+      "name": "export-csv",
+      "number": "3",
+      "priority": "P2"
+    },
+    {
+      "in_progress": false,
+      "name": "team-sharing",
+      "number": "4",
+      "priority": "P0"
+    },
+    {
+      "in_progress": false,
+      "name": "share-links",
+      "number": "5",
+      "priority": "P1"
+    }
+  ],
+  "pending_strict": 3,
+  "percent": "20.0%",
+  "planned_available": true,
+  "priority_breakdown": {
+    "P0": 1,
+    "P1": 2,
+    "P2": 1,
+    "P3": 0,
+    "none": 0
+  },
+  "sdd_ready": 0,
+  "stale_dependency_notes": [],
+  "stories_without_acceptance_criteria": [],
+  "total": 5
+}

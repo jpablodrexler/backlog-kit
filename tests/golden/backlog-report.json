@@ -1,0 +1,90 @@
+{
+  "available": {
+    "bugs": true,
+    "features": true,
+    "pending": true
+  },
+  "bugs_by_severity": {
+    "S2": 1
+  },
+  "bugs_fixed": 1,
+  "delivered": [
+    {
+      "date": "2026-10-21",
+      "id": "BUG-001",
+      "kind": "bug",
+      "name": "",
+      "points": null,
+      "severity": "S2",
+      "uncommitted": false
+    },
+    {
+      "date": "2026-11-04",
+      "id": "#1",
+      "kind": "feature",
+      "name": "task-due-dates",
+      "points": 5,
+      "uncommitted": true
+    }
+  ],
+  "features_delivered": 1,
+  "pending": {
+    "features": 4,
+    "points": 18,
+    "weeks_at_that_pace": null
+  },
+  "period": {
+    "end": "2026-11-04",
+    "start": "2026-09-28"
+  },
+  "points_delivered": 5,
+  "unestimated": [],
+  "velocity": {
+    "over_weeks": 4,
+    "points_per_week": 0.0
+  },
+  "weeks": [
+    {
+      "bugs": 0,
+      "complete": true,
+      "features": 0,
+      "points": 0,
+      "week": "2026-09-28"
+    },
+    {
+      "bugs": 0,
+      "complete": true,
+      "features": 0,
+      "points": 0,
+      "week": "2026-10-05"
+    },
+    {
+      "bugs": 0,
+      "complete": true,
+      "features": 0,
+      "points": 0,
+      "week": "2026-10-12"
+    },
+    {
+      "bugs": 1,
+      "complete": true,
+      "features": 0,
+      "points": 0,
+      "week": "2026-10-19"
+    },
+    {
+      "bugs": 0,
+      "complete": true,
+      "features": 0,
+      "points": 0,
+      "week": "2026-10-26"
+    },
+    {
+      "bugs": 0,
+      "complete": false,
+      "features": 1,
+      "points": 5,
+      "week": "2026-11-02"
+    }
+  ]
+}

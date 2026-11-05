@@ -341,5 +341,98 @@ class BacklogReport(unittest.TestCase):
             self.assertEqual(r["features_delivered"], 0)
 
 
+class BugsTriage(unittest.TestCase):
+    OPEN = ("# Open Bugs\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Status | Fix | Summary |\n| --- | --- | --- | --- | --- | --- | --- |\n"
+            "| [BUG-010](bugs/BUG-010.md) | S2 | /settings | deployed | ⬜ Open | | Saving settings shows a blank page after submit. |\n"
+            "| [BUG-011](bugs/BUG-011.md) | S2 | /settings | deployed | ⬜ Open | | Settings page is blank after saving the form. |\n"
+            "| [BUG-012](bugs/BUG-012.md) | S3 | nav | local | ⬜ Open | | Broken. |\n"
+            "| [BUG-013](bugs/BUG-013.md) | S3 | import | local | ⬜ Open | | Import creates duplicate rows again for every file. |\n\n"
+            "## Recommended fix order\n\n- BUG-010 — x\n- BUG-011 — y\n- BUG-012 — z\n")
+    FIXED = ("# Fixed Bugs\n\n## Bug List\n\n| Bug ID | Severity | Area | Environment | Fixed | Fix | Summary |\n| --- | --- | --- | --- | --- | --- | --- |\n"
+             "| [BUG-001](bugs/BUG-001.md) | S2 | import | deployed | 2026-10-01 | abc | Import creates duplicate rows for every file. |\n")
+
+    def brief(self, n, repro="1. Open it.", expected="It saves.", actual="Blank page."):
+        return f"# BUG-{n} — t\n\n- **Steps to reproduce:**\n  {repro}\n- **Expected:** {expected}\n- **Actual:** {actual}\n- **Environment:** local\n"
+
+    def test_findings(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = Path(d) / "docs/backlog"
+            (b / "bugs").mkdir(parents=True)
+            (b / "bugs-open.md").write_text(self.OPEN, encoding="utf-8")
+            (b / "bugs-fixed.md").write_text(self.FIXED, encoding="utf-8")
+            (b / "bugs/BUG-010.md").write_text(self.brief("010"), encoding="utf-8")
+            (b / "bugs/BUG-011.md").write_text(self.brief("011"), encoding="utf-8")
+            (b / "bugs/BUG-012.md").write_text(self.brief("012", repro="<unknown — needs repro>", actual=""), encoding="utf-8")
+            (b / "bugs/BUG-013.md").write_text(self.brief("013"), encoding="utf-8")
+            script = Path(__file__).resolve().parents[1] / "skills/bugs-triage/scripts/triage.py"
+            out = subprocess.run([sys.executable, str(script), d, "--json"], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            f = json.loads(out)["findings"]
+            self.assertEqual(f["missing_repro"], ["BUG-012"])
+            self.assertEqual(f["missing_expected"], ["BUG-012"])
+            self.assertEqual(f["vague_summary"], ["BUG-012"])
+            self.assertEqual([x["bugs"] for x in f["duplicates"]], [["BUG-010", "BUG-011"]])
+            self.assertEqual([(x["bug"], x["looks_like_fixed"]) for x in f["regressions"]], [("BUG-013", "BUG-001")])
+            self.assertEqual(f["not_in_fix_order"], ["BUG-013"])
+
+    def test_missing_backlog_is_reported(self):
+        with tempfile.TemporaryDirectory() as d:
+            script = Path(__file__).resolve().parents[1] / "skills/bugs-triage/scripts/triage.py"
+            out = subprocess.run([sys.executable, str(script), d], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            self.assertIn("nothing to triage", out)
+
+
+class BacklogImport(unittest.TestCase):
+    ISSUES = [
+        {"number": 21, "title": "Export the task list as CSV", "body": "Users want CSV.", "url": "https://github.com/o/r/issues/21", "state": "open",
+         "labels": [{"name": "enhancement"}, {"name": "priority: high"}, {"name": "points: 5"}, {"name": "area: backend"}]},
+        {"number": 22, "title": "Login loops after password reset", "body": "Steps", "url": "https://github.com/o/r/issues/22", "state": "open",
+         "labels": [{"name": "bug"}, {"name": "priority/critical"}]},
+        {"number": 23, "title": "A pull request", "url": "https://github.com/o/r/pull/23", "state": "open", "pull_request": {}, "labels": []},
+        {"number": 24, "title": "Closed one", "url": "https://github.com/o/r/issues/24", "state": "closed", "labels": []},
+        {"number": 2, "title": "Dark mode", "url": "https://github.com/o/r/issues/2", "state": "open", "labels": []},
+        {"iid": 5, "title": "Gitlab shaped bug", "description": "d", "web_url": "https://gitlab.com/o/r/-/issues/5", "state": "opened", "labels": ["defect", "severity::major"]},
+    ]
+
+    def plan(self, root, issues, *extra):
+        script = Path(__file__).resolve().parents[1] / "skills/backlog-import/scripts/plan_import.py"
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "issues.json"
+            f.write_text(json.dumps(issues), encoding="utf-8")
+            out = subprocess.run([sys.executable, str(script), str(root), str(f), "--json", *extra], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+        return json.loads(out)
+
+    def test_classification_labels_and_skips(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = Path(d) / "docs/backlog/features"
+            b.mkdir(parents=True)
+            (b / "002-dark-mode.md").write_text("# Feature 2 — dark-mode\n\nImported from https://github.com/o/r/issues/2\n", encoding="utf-8")
+            r = self.plan(d, self.ISSUES)
+            by = {i["number"]: i for i in r["importable"]}
+            self.assertEqual(sorted(by), [5, 21, 22])
+            self.assertEqual((by[21]["kind"], by[21]["priority"], by[21]["points"], by[21]["area"]), ("feature", "P1", "5", "backend"))
+            self.assertEqual((by[22]["kind"], by[22]["severity"]), ("bug", "S1"))          # no severity label: taken from the priority
+            self.assertEqual((by[5]["kind"], by[5]["severity"]), ("bug", "S2"))            # GitLab shape, severity::major
+            self.assertEqual(by[21]["suggested_name"], "export-task-list-csv")
+            reasons = {s["number"]: s["reason"] for s in r["skipped"]}
+            self.assertEqual(reasons[23], "pull request")
+            self.assertEqual(reasons[24], "closed")
+            self.assertEqual(reasons[2], "already imported as 002-dark-mode")
+            self.assertNotIn(2, by)
+
+    def test_an_issue_url_does_not_match_a_longer_number(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = Path(d) / "docs/backlog/bugs"
+            b.mkdir(parents=True)
+            (b / "BUG-001.md").write_text("Imported from https://github.com/o/r/issues/210\n", encoding="utf-8")
+            r = self.plan(d, [{"number": 21, "title": "Short one", "url": "https://github.com/o/r/issues/21", "state": "open", "labels": []}])
+            self.assertEqual([i["number"] for i in r["importable"]], [21])
+
+    def test_limit_reports_what_is_left(self):
+        with tempfile.TemporaryDirectory() as d:
+            issues = [{"number": n, "title": f"Thing {n}", "url": f"https://github.com/o/r/issues/{n}", "state": "open", "labels": []} for n in range(1, 6)]
+            r = self.plan(d, issues, "--limit", "2")
+            self.assertEqual(([i["number"] for i in r["importable"]], r["not_shown"]), ([1, 2], 3))
+
+
 if __name__ == "__main__":
     unittest.main()

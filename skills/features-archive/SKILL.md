@@ -33,7 +33,10 @@ To detect candidates at step 5:
 
 a. **List archived SDD changes**: read all directory names under `openspec/changes/archive/`. Strip the leading `YYYY-MM-DD-` date prefix from each directory name to get the raw change names (e.g. `2026-06-21-task-due-dates` → `task-due-dates`).
 
-b. **Cross-reference with <backlog>/features-planned.md**: read `<backlog>/features-planned.md`. For each archived change name, look for a row in the `## Feature List` table whose `Change name` column (the backtick-wrapped value, e.g. `` `task-due-dates` ``) matches. Collect only the rows still showing `⬜ Pending` or `🔶 In Progress` in the Implementation column — rows already showing `✅ Implemented` are excluded. The common case is `🔶 In Progress`, since `feature-development` marks a feature that way as soon as it starts (see that skill's Step 1.6) and this skill is normally invoked at the end of that same run; `⬜ Pending` only shows up here for a row archived some other way (e.g. manually, or via an ad hoc change never marked in progress).
+b. **Cross-reference with <backlog>/features-planned.md**: read `<backlog>/features-planned.md`. For each archived change name, look for a row in the `## Feature List` table whose `Change name` column (the backtick-wrapped value, e.g. `` `task-due-dates` ``) matches.
+Collect only the rows still showing `⬜ Pending` or `🔶 In Progress` in the Implementation column — rows already showing `✅ Implemented` are excluded.
+The common case is `🔶 In Progress`, since `feature-development` marks a feature that way as soon as it starts (see that skill's Step 1.6) and this skill is normally invoked at the end of that same run;
+`⬜ Pending` only shows up here for a row archived some other way (e.g. manually, or via an ad hoc change never marked in progress).
 
 c. **Present candidates to the user**: `AskUserQuestion` only accepts 2–4 options per question (even with `multiSelect`), so how to present candidates depends on the count:
    - **4 or fewer matches**: use the **AskUserQuestion tool** with `multiSelect: true`, one option per candidate (number + name), and ask which to archive.
@@ -63,7 +66,10 @@ Copy the full table row (the `|` delimited line) for each selected feature. **In
 
 - keep `#`, `Change name`, `Priority`, `Schema Change`, `Effort`, `Area` exactly as they are — plain text, the name still backtick-wrapped, no links;
 - **drop** the `SDD Artifacts`, `Implementation`, `Summary` and `Brief` cells (an implemented row has no status columns and no summary — "implemented" is decided only by which table holds the row, so there is no `✅ Implemented` text to write);
-- add the `Details` cell: `[brief](features/NNN-<change-name>.md) · [spec](<path to openspec/changes/archive/<archive-dir>/proposal.md>)`, paths relative to `<backlog>/` (so `../../openspec/changes/archive/…` when the backlog is `docs/backlog`; `NNN` = zero-padded feature number). `<archive-dir>` is the directory under the repo-root `openspec/changes/archive/` named `YYYY-MM-DD-<change-name>` — find it by listing that folder and matching the slug after the date prefix (if several match, take the most recent date). If no archive directory exists (the SDD change was never archived — e.g. an ad hoc feature), warn the user and write only the `[brief]` link, with no `[spec]` part. The `[brief]` link is the same one as the planned row's `Brief` cell;
+- add the `Details` cell: `[brief](features/NNN-<change-name>.md) · [spec](<path to openspec/changes/archive/<archive-dir>/proposal.md>)`, paths relative to `<backlog>/` (so `../../openspec/changes/archive/…` when the backlog is `docs/backlog`;
+  `NNN` = zero-padded feature number). `<archive-dir>` is the directory under the repo-root `openspec/changes/archive/` named `YYYY-MM-DD-<change-name>` — find it by listing that folder and matching the slug after the date prefix (if several match, take the most recent date).
+  If no archive directory exists (the SDD change was never archived — e.g. an ad hoc feature), warn the user and write only the `[brief]` link, with no `[spec]` part.
+  The `[brief]` link is the same one as the planned row's `Brief` cell;
 
 The finished row reads `| N | `name` | P | Schema | Effort | Area | [brief](features/NNN-<name>.md) · [spec](<path to openspec/changes/archive/<archive-dir>/proposal.md>) |`. This copy is what step 7 writes into `<backlog>/features-implemented.md`; do not defer the rewrite to step 8, since the planned row is about to be deleted there regardless. The feature's brief file under `<backlog>/features/` is never moved, copied or changed. Do not edit the actual `<backlog>/features-planned.md` file yet.
 
