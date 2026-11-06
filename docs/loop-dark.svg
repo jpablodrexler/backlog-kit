@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1029 740" width="1029" height="740" role="img" aria-labelledby="t d">
+<title id="t">The loop</title>
+<desc id="d">Backlog: backlog-import, feature-plan, bug-report, features-triage, bugs-triage, features-next, bugs-next; Develop + verify: feature-development, bug-fix, code-reviewer, database-reviewer, security-reviewer, spec-compliance-check, docs-sync, features-archive, bugs-archive, features-batch-development, bugs-batch-fix; Ship: ; Around the loop, any time: features-status, bugs-status, backlog-report, decision-record, architecture-reviewer, product-scope-roaster, dependency-upgrade</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9da7b3"/></marker></defs>
+<rect x="154" y="14" width="721" height="121" rx="8" fill="#161b22" stroke="#30363d"/>
+<text x="168" y="34" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#9da7b3">Backlog</text>
+<rect x="172" y="52" width="145" height="56" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="244.5" y="76" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">import</text>
+<text x="244.5" y="93" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">backlog-import</text>
+<rect x="357" y="44" width="130" height="73" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="422" y="68" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">plan</text>
+<text x="422" y="85" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">feature-plan</text>
+<text x="422" y="102" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">bug-report</text>
+<rect x="527" y="44" width="153" height="73" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="603.5" y="68" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">refine</text>
+<text x="603.5" y="85" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">features-triage</text>
+<text x="603.5" y="102" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">bugs-triage</text>
+<rect x="720" y="44" width="137" height="73" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="788.5" y="68" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">select</text>
+<text x="788.5" y="85" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">features-next</text>
+<text x="788.5" y="102" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">bugs-next</text>
+<line x1="317" y1="80" x2="354" y2="80" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="487" y1="80" x2="524" y2="80" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="680" y1="80" x2="717" y2="80" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="514" y1="135" x2="514" y2="172" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="14" y="175" width="1001" height="229" rx="8" fill="#161b22" stroke="#30363d"/>
+<text x="28" y="195" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#9da7b3">Develop + verify</text>
+<rect x="32" y="222" width="91" height="56" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="77.5" y="246" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">branch</text>
+<text x="77.5" y="263" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">gitflow</text>
+<rect x="163" y="213" width="184" height="73" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="255" y="237" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">implement</text>
+<text x="255" y="254" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">feature-development</text>
+<text x="255" y="271" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">bug-fix</text>
+<rect x="387" y="205" width="169" height="90" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="471.5" y="229" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">review gate</text>
+<text x="471.5" y="246" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">code-reviewer</text>
+<text x="471.5" y="263" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">database-reviewer</text>
+<text x="471.5" y="280" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">security-reviewer</text>
+<rect x="596" y="213" width="200" height="73" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="696" y="237" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">prove + sync docs</text>
+<text x="696" y="254" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">spec-compliance-check</text>
+<text x="696" y="271" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">docs-sync</text>
+<rect x="836" y="213" width="161" height="73" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="916.5" y="237" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">archive</text>
+<text x="916.5" y="254" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">features-archive</text>
+<text x="916.5" y="271" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">bugs-archive</text>
+<line x1="123" y1="250" x2="160" y2="250" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="347" y1="250" x2="384" y2="250" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="556" y1="250" x2="593" y2="250" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="796" y1="250" x2="833" y2="250" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="136" y="313" width="239" height="73" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="255.5" y="337" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">batch</text>
+<text x="255.5" y="354" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">features-batch-development</text>
+<text x="255.5" y="371" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">bugs-batch-fix</text>
+<line x1="255" y1="313" x2="255" y2="289" stroke="#9da7b3" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a)"/>
+<text x="265" y="303" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#9da7b3">unattended, over a list</text>
+<line x1="514" y1="404" x2="514" y2="441" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="162" y="444" width="704" height="104" rx="8" fill="#161b22" stroke="#30363d"/>
+<text x="176" y="464" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#9da7b3">Ship</text>
+<rect x="180" y="474" width="153" height="56" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="256.5" y="498" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">commit</text>
+<text x="256.5" y="515" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">you, or gitflow</text>
+<rect x="373" y="474" width="91" height="56" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="418.5" y="498" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">PR</text>
+<text x="418.5" y="515" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">gitflow</text>
+<rect x="504" y="474" width="85" height="56" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="546.5" y="498" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">review</text>
+<text x="546.5" y="515" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">you</text>
+<rect x="629" y="474" width="77" height="56" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="667.5" y="498" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">merge</text>
+<text x="667.5" y="515" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">you</text>
+<rect x="746" y="474" width="102" height="56" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="797" y="498" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">clean up</text>
+<text x="797" y="515" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">gitflow</text>
+<line x1="333" y1="502" x2="370" y2="502" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="464" y1="502" x2="501" y2="502" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="589" y1="502" x2="626" y2="502" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<line x1="706" y1="502" x2="743" y2="502" stroke="#9da7b3" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="204" y="588" width="622" height="138" rx="8" fill="#161b22" stroke="#30363d"/>
+<text x="218" y="608" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#9da7b3">Around the loop, any time</text>
+<rect x="222" y="618" width="153" height="90" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="298.5" y="642" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">observe</text>
+<text x="298.5" y="659" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">features-status</text>
+<text x="298.5" y="676" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">bugs-status</text>
+<text x="298.5" y="693" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">backlog-report</text>
+<rect x="415" y="635" width="153" height="56" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="491.5" y="659" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">decide</text>
+<text x="491.5" y="676" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">decision-record</text>
+<rect x="608" y="618" width="200" height="90" rx="6" fill="#0d1117" stroke="#6e7681"/>
+<text x="708" y="642" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">advise</text>
+<text x="708" y="659" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">architecture-reviewer</text>
+<text x="708" y="676" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">product-scope-roaster</text>
+<text x="708" y="693" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" fill="#9da7b3">dependency-upgrade</text>
+</svg>

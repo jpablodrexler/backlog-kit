@@ -1,3 +1,4 @@
 tests/fixtures/** text eol=lf
 tests/golden/** text eol=lf
 docs/loop.svg text eol=lf
+docs/loop-dark.svg text eol=lf
