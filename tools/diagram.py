@@ -56,7 +56,7 @@ GROUPS = [
     ]),
     ("Around the loop, any time", [
         {"nodes": [
-            ("observe", ["features-status", "bugs-status", "backlog-report"]),
+            ("observe", ["features-status", "bugs-status", "backlog-report", "backlog-forecast"]),
             ("decide", ["decision-record"]),
             ("advise", ["architecture-reviewer", "product-scope-roaster", "dependency-upgrade"])]},
     ]),
