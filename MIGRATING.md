@@ -14,9 +14,9 @@ What the replaced skills knew about your stack does not disappear. Test, build a
 
 Run these from a clean working tree, on a branch.
 
-1. **Look first:** `python3 /path/to/backlog-kit/tools/migrate_check.py <repo>` lists the project skills to delete, the files that still mention them, the `.backlog-kit.toml` you need (if any), whether OpenSpec is there, and whether `develop` already has the kit's skills.
+1. **Look first:** `python3 /path/to/backlog-kit/tools/migrate_check.py <repo>` lists the project skills to delete, the files that still mention them, the `.backlog-kit.toml` you need (if any), whether OpenSpec is there, and whether the integration branch (`develop`, or `[git] integration_branch`) already has the kit's skills.
 2. **Optional project checks.** Put the checklists your extras should use into sections of your docs (see [docs/extras.md](docs/extras.md)), or start with none: the extras then work from `CLAUDE.md` and your docs.
-3. **Settings, if you need any.** `.backlog-kit.toml` is optional: the backlog folder (default `docs/backlog`) and the viewport check devices. See `backlog-kit.example.toml`.
+3. **Settings, if you need any.** `.backlog-kit.toml` is optional: the backlog folder (default `docs/backlog`), the long-lived branches (`[git]`: `integration_branch` default `develop`, `production_branch` default `main`, and the PR `host`; set both branches to `main` if you work trunk-based) and the viewport check devices. See `backlog-kit.example.toml` and [INSTALL.md](INSTALL.md).
 4. **Delete the project skills, then install the kit's.**
    ```
    git rm -r .claude/skills/<each skill from step 1>
@@ -25,7 +25,7 @@ Run these from a clean working tree, on a branch.
    ```
    Use `--only a,b,c` to take a subset. If you keep a project skill of the same name (for example your own `architecture-reviewer`), leave it out of the install.
 5. **Fix the references** the check listed: skills or docs citing a removed skill name, an index of skills (a `manifest.json`), README mentions. Reviewer section numbers (§N) now live in your project notes, if you kept them.
-6. **Get the migration into `develop` before the first real run.** `feature-development` and `bug-fix` cut their branch from `develop`, so a migration that only exists on its own branch disappears on the new branch and the old skills come back. Merge it first, or cut the work branch from the migration branch and pass `--skip-branch-setup`.
+6. **Get the migration into the integration branch (`develop` unless `[git]` says otherwise) before the first real run.** `feature-development` and `bug-fix` cut their branch from it, so a migration that only exists on its own branch disappears on the new branch and the old skills come back. Merge it first, or cut the work branch from the migration branch and pass `--skip-branch-setup`.
 7. **Verify.** From the repository root:
    ```
    python3 .claude/skills/features-status/scripts/status_report.py .
@@ -39,9 +39,9 @@ Run these from a clean working tree, on a branch.
 
 Where projects' own versions differ, the kit follows one choice; none of it is a setting.
 
-- There is no `commit` action in `gitflow`: you commit your own work; `finish` pushes and opens the PR with confirmations before the first push of a branch.
+- `gitflow` commits only when you ask (its `commit` action, or `--commit` on the pipelines); otherwise you commit your own work. `finish` pushes and opens the PR with confirmations before the first push of a branch.
 - Tests, E2E, build, database and security reviews and the viewport check are optional phases inside the pipelines, not project files; a phase that does not apply is skipped with a stated reason.
-- `Schema Change`, the P0–P3 / story points 1/2/3/5/8/13 / S1–S4 scales, branch names (`feature/`, `fix/`, base `develop`) and OpenSpec's location are fixed.
+- `Schema Change`, the P0–P3 / story points 1/2/3/5/8/13 / S1–S4 scales, the branch prefixes (`feature/`, `fix/`, …) and OpenSpec's location are fixed; the base branches are the `[git]` settings.
 - `bugs-next` reads whether a fix needs a schema change from a `- **Schema change:** yes` line in the bug's details file.
 
 ## Moving existing briefs to the user-story format (0.4.0)
