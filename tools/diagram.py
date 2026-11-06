@@ -13,6 +13,7 @@ the table or when the committed file is out of date.
 """
 import sys
 from html import escape
+from types import SimpleNamespace
 from pathlib import Path
 
 KIT = Path(__file__).resolve().parents[1]
@@ -74,7 +75,7 @@ def node_size(title, lines):
 
 
 def build(theme="light"):
-    c = PALETTES[theme]
+    c = SimpleNamespace(**PALETTES[theme])
     # lay out: x/y of every node and group
     placed, groups = {}, []
     y = MARGIN
@@ -118,30 +119,30 @@ def build(theme="light"):
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {round(canvas_w)} {round(canvas_h)}" width="{round(canvas_w)}" height="{round(canvas_h)}" role="img" aria-labelledby="t d">',
            '<title id="t">The loop</title>',
            f'<desc id="d">{escape(describe())}</desc>',
-           f'<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{c['arrow']}"/></marker></defs>',
+           f'<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{c.arrow}"/></marker></defs>',
            ]
     for gi, (gtitle, gx, gy, gw, gh, row_boxes) in enumerate(groups):
-        out.append(f'<rect x="{gx}" y="{gy}" width="{gw}" height="{gh}" rx="8" fill="{c['group']}" stroke="{c['group_line']}"/>')
-        out.append(f'<text x="{gx + 14}" y="{gy + 20}" font-family="{SANS}" font-size="13" font-weight="600" fill="{c['group_title']}">{escape(gtitle)}</text>')
+        out.append(f'<rect x="{gx}" y="{gy}" width="{gw}" height="{gh}" rx="8" fill="{c.group}" stroke="{c.group_line}"/>')
+        out.append(f'<text x="{gx + 14}" y="{gy + 20}" font-family="{SANS}" font-size="13" font-weight="600" fill="{c.group_title}">{escape(gtitle)}</text>')
         for row, boxes, ry, rh in row_boxes:
             for title, lines, x, top, w, h in boxes:
-                out.append(f'<rect x="{x}" y="{top}" width="{w}" height="{h}" rx="6" fill="{c['node']}" stroke="{c['node_line']}"/>')
+                out.append(f'<rect x="{x}" y="{top}" width="{w}" height="{h}" rx="6" fill="{c.node}" stroke="{c.node_line}"/>')
                 tx = x + w / 2
-                out.append(f'<text x="{tx:g}" y="{top + NODE_PAD_Y + 13}" text-anchor="middle" font-family="{SANS}" font-size="13" font-weight="600" fill="{c['title']}">{escape(title)}</text>')
+                out.append(f'<text x="{tx:g}" y="{top + NODE_PAD_Y + 13}" text-anchor="middle" font-family="{SANS}" font-size="13" font-weight="600" fill="{c.title}">{escape(title)}</text>')
                 for i, line in enumerate(lines):
-                    out.append(f'<text x="{tx:g}" y="{top + NODE_PAD_Y + 13 + LINE_H * (i + 1)}" text-anchor="middle" font-family="{MONO}" font-size="12" fill="{c['names']}">{escape(line)}</text>')
+                    out.append(f'<text x="{tx:g}" y="{top + NODE_PAD_Y + 13 + LINE_H * (i + 1)}" text-anchor="middle" font-family="{MONO}" font-size="12" fill="{c.names}">{escape(line)}</text>')
             if row.get("chain"):
                 for (_, _, x1, t1, w1, h1), (_, _, x2, _, _, _) in zip(boxes, boxes[1:]):
                     ay = ry + rh // 2
-                    out.append(f'<line x1="{x1 + w1}" y1="{ay}" x2="{x2 - 3}" y2="{ay}" stroke="{c['arrow']}" stroke-width="1.4" marker-end="url(#a)"/>')
+                    out.append(f'<line x1="{x1 + w1}" y1="{ay}" x2="{x2 - 3}" y2="{ay}" stroke="{c.arrow}" stroke-width="1.4" marker-end="url(#a)"/>')
             if "under" in row:
                 title, lines, x, top, w, h = boxes[0]
                 ux, uy, uw, uh = placed[row["under"]]
                 mx = round(ux + uw / 2)
-                out.append(f'<line x1="{mx}" y1="{top}" x2="{mx}" y2="{uy + uh + 3}" stroke="{c['arrow']}" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a)"/>')
-                out.append(f'<text x="{mx + 10}" y="{(top + uy + uh) // 2 + 4}" font-family="{SANS}" font-size="12" fill="{c['names']}">{escape(row["note"])}</text>')
+                out.append(f'<line x1="{mx}" y1="{top}" x2="{mx}" y2="{uy + uh + 3}" stroke="{c.arrow}" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a)"/>')
+                out.append(f'<text x="{mx + 10}" y="{(top + uy + uh) // 2 + 4}" font-family="{SANS}" font-size="12" fill="{c.names}">{escape(row["note"])}</text>')
         if gi + 1 < len(groups) and gi + 1 < 3:          # the first three groups are the flow; the last one stands apart
-            out.append(f'<line x1="{round(cx)}" y1="{gy + gh}" x2="{round(cx)}" y2="{gy + gh + GROUP_GAP - 3}" stroke="{c['arrow']}" stroke-width="1.4" marker-end="url(#a)"/>')
+            out.append(f'<line x1="{round(cx)}" y1="{gy + gh}" x2="{round(cx)}" y2="{gy + gh + GROUP_GAP - 3}" stroke="{c.arrow}" stroke-width="1.4" marker-end="url(#a)"/>')
     out.append("</svg>")
     return "\n".join(out) + "\n"
 
