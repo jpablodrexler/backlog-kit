@@ -29,6 +29,7 @@ import gitread
 
 LEGACY_POINTS = {"S": 1, "M": 3, "L": 5, "XL": 8}     # t-shirt sizes of a backlog not migrated yet
 DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+SDD_RE = re.compile(r"openspec/changes/archive/(\d{4}-\d{2}-\d{2})-")   # the archive folder of a change is named YYYY-MM-DD-<name>
 AVERAGE_OVER = 4                                       # complete weeks the velocity is averaged over
 BULK_MIN = 5                                           # features on one date that make a bulk load worth a warning
 BULK_SHARE = 0.5                                       # ...when that date holds at least this share of the period's features
@@ -64,6 +65,18 @@ def feature_dates(root, rel_path):
     return dates
 
 
+def sdd_date(details):
+    """The date in the archive folder of the SDD change a row links to (`[spec](…/openspec/changes/archive/YYYY-MM-DD-name/…)`),
+    or None. features-archive writes that link; with several, the latest date, as it does."""
+    found = []
+    for m in SDD_RE.finditer(details or ""):
+        try:
+            found.append(date.fromisoformat(m.group(1)))
+        except ValueError:
+            pass
+    return max(found) if found else None
+
+
 def weeks_between(start, end):
     out, w = [], monday(start)
     while w <= end:
@@ -85,11 +98,11 @@ def history_is_cut(root):
         return False
 
 
-def reliability(root, impl_ok, in_range, today, pending_unestimated, pending_points):
+def reliability(root, impl_ok, in_range, uses_git, pending_unestimated, pending_points):
     """Reasons not to trust the weekly figures as they are: each is {code, message}."""
     out = []
     feats = [i for i in in_range if i["kind"] == "feature"]
-    committed = [i for i in feats if not i["uncommitted"]]
+    committed = [i for i in feats if i["source"] == "git"]        # only these dates are inferred from commits
     if len(committed) >= BULK_MIN:
         per_day = {}
         for i in committed:
@@ -97,7 +110,7 @@ def reliability(root, impl_ok, in_range, today, pending_unestimated, pending_poi
         day, n = max(per_day.items(), key=lambda kv: (kv[1], kv[0]))        # the busiest date; the later one on a tie
         if n >= BULK_MIN and n / len(committed) >= BULK_SHARE:
             out.append({"code": "bulk_date", "message":
-                        f"{n} of {len(committed)} features carry the date {day}: their rows were committed together (a backlog "
+                        f"{n} of {len(committed)} features dated from git carry the date {day}: their rows were committed together (a backlog "
                         "loaded in one go, or one batch archive), so the weekly figures around that date say nothing about the pace."})
     unestimated = [i for i in feats if i["points"] is None]
     if len(feats) >= 4 and len(unestimated) / len(feats) >= UNESTIMATED_SHARE:
@@ -108,7 +121,7 @@ def reliability(root, impl_ok, in_range, today, pending_unestimated, pending_poi
         out.append({"code": "pending_unestimated", "message":
                     f"{pending_unestimated} pending feature(s) have no story points and are not in the {pending_points} pending "
                     "points, so any projection is optimistic."})
-    if impl_ok and history_is_cut(root):
+    if impl_ok and uses_git and history_is_cut(root):
         out.append({"code": "shallow_clone", "message":
                     "The history of this clone is cut short (a shallow clone): older rows get the date of the oldest commit "
                     "that was fetched. git fetch --unshallow gives the real dates."})
@@ -126,21 +139,32 @@ def build(root, start, today):
     impl_ok, impl = bk.table_rows(b / "features-implemented.md", "## Feature List")
     plan_ok, plan = bk.table_rows(b / "features-planned.md", "## Feature List")
     bugs_ok, fixed = bk.table_rows(b / "bugs-fixed.md", "## Bug List", id_column="Bug ID")
-    dates = feature_dates(root, f"{backlog}/features-implemented.md") if impl_ok else {}
+    sdd = {}                                            # the date of the archived SDD change, when the row links one
+    for r in impl:
+        num = bk.strip_backticks(r.get("#", ""))
+        if num.isdigit() and sdd_date(r.get("Details")):
+            sdd[int(num)] = sdd_date(r.get("Details"))
+    needs_git = any(bk.strip_backticks(r.get("#", "")).isdigit() and int(bk.strip_backticks(r.get("#", ""))) not in sdd for r in impl)
+    dates = feature_dates(root, f"{backlog}/features-implemented.md") if impl_ok and needs_git else {}
 
     items = []                                          # one dict per delivered feature or bug
     for r in impl:
         num = bk.strip_backticks(r.get("#", ""))
         if not num.isdigit():
             continue
-        d = dates.get(int(num))
+        if int(num) in sdd:                             # explicit: written in the row, whatever the commits look like
+            d, source = sdd[int(num)], "sdd"
+        elif dates.get(int(num)):
+            d, source = dates[int(num)], "git"
+        else:
+            d, source = today, "uncommitted"
         items.append({"kind": "feature", "id": f"#{num}", "name": bk.strip_backticks(r.get("Change name", "")),
-                      "points": points(r.get("Effort")), "date": d or today, "uncommitted": d is None})
+                      "points": points(r.get("Effort")), "date": d, "source": source, "uncommitted": source == "uncommitted"})
     for r in fixed:
         m = DATE_RE.search(r.get("Fixed", ""))
         if m and r.get("Status", "").strip() in ("", "✅ Fixed", "Fixed"):
             items.append({"kind": "bug", "id": r.get("Bug ID", "").strip(), "name": "", "severity": r.get("Severity", "").strip(),
-                          "points": None, "date": date.fromisoformat(m.group(0)), "uncommitted": False})
+                          "points": None, "date": date.fromisoformat(m.group(0)), "source": "fixed column", "uncommitted": False})
 
     in_range = [i for i in items if start <= i["date"] <= today]
     weeks = []
@@ -170,7 +194,9 @@ def build(root, start, today):
         if i["kind"] == "bug":
             severity[i["severity"] or "none"] = severity.get(i["severity"] or "none", 0) + 1
 
-    warnings = reliability(root, impl_ok, in_range, today, pending_unestimated, pending_points)
+    feature_items = [i for i in items if i["kind"] == "feature"]
+    sources = {k: sum(1 for i in feature_items if i["source"] == k) for k in ("sdd", "git", "uncommitted")}
+    warnings = reliability(root, impl_ok, in_range, sources["git"] > 0, pending_unestimated, pending_points)
 
     return {
         "period": {"start": start.isoformat(), "end": today.isoformat()},
@@ -184,6 +210,7 @@ def build(root, start, today):
         "velocity": {"points_per_week": velocity, "over_weeks": len(complete), "weekly_points": weekly_points,
                      "weeks_with_deliveries": active_weeks, "last_delivery": last_delivery.isoformat() if last_delivery else None},
         "bugs_per_week": bugs_per_week,
+        "dates": sources,
         "pending": {"features": len(pending_rows), "points": pending_points, "unestimated": pending_unestimated,
                     "weeks_at_that_pace": weeks_left},
         "warnings": warnings,
@@ -203,6 +230,12 @@ def render(r):
         out.append(f"| {w['week']}{'' if w['complete'] else ' (in progress)'} | {w['features']} | {w['points']} | {w['bugs']} |")
     out += ["", f"**Delivered:** {r['features_delivered']} feature(s), {r['points_delivered']} point(s), {r['bugs_fixed']} bug(s) fixed"
             + (f" ({', '.join(f'{k}: {v}' for k, v in r['bugs_by_severity'].items())})" if r["bugs_by_severity"] else "")]
+    d = r["dates"]
+    if any(d.values()):
+        parts = [f"{d['sdd']} from the archived SDD change" if d["sdd"] else "",
+                 f"{d['git']} from the git history of features-implemented.md" if d["git"] else "",
+                 f"{d['uncommitted']} not committed yet (counted as today)" if d["uncommitted"] else ""]
+        out.append("**Feature dates:** " + ", ".join(x for x in parts if x))
     v = r["velocity"]
     if v["points_per_week"] is not None:
         series = ", ".join(str(x) for x in v["weekly_points"])

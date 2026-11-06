@@ -9,6 +9,11 @@
   },
   "bugs_fixed": 1,
   "bugs_per_week": 0.2,
+  "dates": {
+    "git": 0,
+    "sdd": 0,
+    "uncommitted": 1
+  },
   "delivered": [
     {
       "date": "2026-10-21",
@@ -17,6 +22,7 @@
       "name": "",
       "points": null,
       "severity": "S2",
+      "source": "fixed column",
       "uncommitted": false
     },
     {
@@ -25,6 +31,7 @@
       "kind": "feature",
       "name": "task-due-dates",
       "points": 5,
+      "source": "uncommitted",
       "uncommitted": true
     }
   ],

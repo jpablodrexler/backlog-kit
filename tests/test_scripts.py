@@ -373,6 +373,46 @@ class BacklogReport(unittest.TestCase):
             self.assertIsNone(v["points_per_week"])                 # nothing was archived in the last four complete weeks
             self.assertEqual((v["weeks_with_deliveries"], v["last_delivery"]), (0, "2026-07-21"))
 
+    @staticmethod
+    def spec_rows(days, first=1):
+        """Implemented rows whose Details link an archived SDD change (…/archive/YYYY-MM-DD-name/…), one row per date."""
+        return "".join(f"| {n} | `f{n}` | P1 | No | 3 | UI | [brief](features/{n:03d}-f{n}.md) · "
+                       f"[spec](../../openspec/changes/archive/{day}-f{n}/proposal.md) |\n"
+                       for n, day in enumerate(days, first))
+
+    def test_the_sdd_archive_date_beats_the_commit_date(self):
+        with tempfile.TemporaryDirectory() as d:
+            # six rows committed together in July, but archived as SDD changes on six different days of October
+            days = ["2026-10-05", "2026-10-06", "2026-10-13", "2026-10-14", "2026-10-20", "2026-10-27"]
+            self.committed_backlog(d, self.spec_rows(days))
+            r = self.run_report(d, "--since", "2026-09-28")
+            self.assertEqual(r["dates"], {"sdd": 6, "git": 0, "uncommitted": 0})
+            self.assertEqual(r["features_delivered"], 6)                               # git alone would put all of them in July
+            self.assertEqual([w["features"] for w in r["weeks"]], [0, 2, 2, 1, 1, 0])
+            self.assertEqual({i["source"] for i in r["delivered"] if i["kind"] == "feature"}, {"sdd"})
+            self.assertNotIn("bulk_date", [w["code"] for w in r["warnings"]])          # explicit dates are not a bulk load
+
+    def test_rows_without_a_spec_fall_back_to_git_and_only_those_can_be_a_bulk_load(self):
+        with tempfile.TemporaryDirectory() as d:
+            plain = "".join(f"| {n} | `g{n}` | P1 | No | 3 | UI | [brief](features/{n:03d}-g{n}.md) |\n" for n in range(11, 17))
+            rows = self.spec_rows(["2026-10-05", "2026-10-12", "2026-10-19"]) + plain
+            self.committed_backlog(d, rows)
+            r = self.run_report(d, "--since", "2026-07-20")
+            self.assertEqual(r["dates"], {"sdd": 3, "git": 6, "uncommitted": 0})
+            bulk = [w["message"] for w in r["warnings"] if w["code"] == "bulk_date"]
+            self.assertEqual(len(bulk), 1)
+            self.assertIn("6 of 6 features dated from git", bulk[0])
+
+    def test_an_uncommitted_row_with_a_spec_date_uses_it(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.committed_backlog(d, "")
+            with open(Path(d) / "docs/backlog/features-implemented.md", "a", encoding="utf-8") as fh:
+                fh.write(self.spec_rows(["2026-11-02"], first=7))                      # archived, not committed yet
+            r = self.run_report(d, "--weeks", "2")
+            self.assertEqual(r["dates"], {"sdd": 1, "git": 0, "uncommitted": 0})
+            self.assertEqual(r["delivered"][0]["date"], "2026-11-02")                  # its own date, not today (2026-11-04)
+            self.assertNotIn("uncommitted", [w["code"] for w in r["warnings"]])
+
     def test_the_text_report_says_when_nothing_was_archived_recently(self):
         with tempfile.TemporaryDirectory() as d:
             self.committed_backlog(d, self.BULK_ROWS)
