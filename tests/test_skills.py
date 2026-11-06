@@ -218,8 +218,9 @@ class ReleaseHygieneTest(unittest.TestCase):
 
     def test_readme_diagram_shows_every_skill(self):
         readme = (self.ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn('media="(prefers-color-scheme: dark)" srcset="docs/loop-dark.svg"', readme)
-        self.assertIn('src="docs/loop.svg"', readme)
+        # The #gh-*-mode-only suffixes follow GitHub's own theme; a <picture> follows the browser's setting instead.
+        self.assertIn("](docs/loop.svg#gh-light-mode-only)", readme)
+        self.assertIn("](docs/loop-dark.svg#gh-dark-mode-only)", readme)
         for name in ("loop.svg", "loop-dark.svg"):
             svg = (self.ROOT / "docs" / name).read_text(encoding="utf-8")
             for d in SKILLS:
