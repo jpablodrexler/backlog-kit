@@ -1,0 +1,31 @@
+{
+  "active_features": 4,
+  "available": {
+    "implemented": true,
+    "planned": true
+  },
+  "branches_checked": false,
+  "findings": {
+    "dangling_dependency": [],
+    "duplicates": [],
+    "legacy_size": [],
+    "missing_acceptance": [],
+    "missing_story": [],
+    "not_in_order": [
+      {
+        "name": "share-links",
+        "number": "5"
+      }
+    ],
+    "now_unblocked": [],
+    "oversized": [
+      {
+        "effort": "8",
+        "name": "team-sharing",
+        "number": "4"
+      }
+    ],
+    "stale_in_progress": [],
+    "unestimated": []
+  }
+}

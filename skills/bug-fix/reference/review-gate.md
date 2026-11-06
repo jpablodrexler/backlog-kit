@@ -3,7 +3,7 @@
 
 The review gate is shared by `feature-development` (Phase 2R) and `bug-fix` (Phase 2R). It runs right after the implementation subagent returns its `IMPLEMENT: DONE` / `FIX_IMPLEMENTED: DONE` signal, and **it is run by the orchestrator, not by the implementation subagent**.
 
-Why it is separate: the reviewers (`code-reviewer`, `database-reviewer`, `security-reviewer`) used to run inside the implementation subagent, at the tail of a context already full of implementation work. That is where they got shortened, replaced by a self-review, or skipped on a wrong "not applicable" call, and nothing checked afterwards. So now:
+Why it is separate: a reviewer (`code-reviewer`, `database-reviewer`, `security-reviewer`) that runs inside the implementation subagent works at the tail of a context already full of implementation work, where reviews get shortened, replaced by a self-review, or skipped on a wrong "not applicable" call, with nothing checking afterwards. So:
 
 1. **Each review runs in its own subagent** with a clean context and one job.
 2. **The orchestrator decides which conditional reviews apply**, from its own G0 computation, never from the implementation subagent's word.
