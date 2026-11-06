@@ -703,3 +703,74 @@ class BacklogForecast(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReleaseTool(unittest.TestCase):
+    TOOL = KIT / "tools/release.py"
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("release_tool", cls.TOOL)
+        cls.mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.mod)
+
+    def test_changelog_section(self):
+        text = "# Changelog\n\n## Unreleased\n- next\n\n## 0.9.0\n- a\n- b\n\n## 0.8.2\n- old\n"
+        self.assertEqual(self.mod.changelog_section(text, "0.9.0"), "- a\n- b")
+        self.assertEqual(self.mod.changelog_section(text, "0.8.2"), "- old")
+        self.assertIsNone(self.mod.changelog_section(text, "0.9"))
+        self.assertIsNone(self.mod.changelog_section("## 1.0.0\n\n## 0.9.0\n- x\n", "1.0.0"))
+
+    def test_read_version(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / ".claude-plugin").mkdir()
+            (Path(d) / ".claude-plugin/plugin.json").write_text('{"version": "1.2.3"}', encoding="utf-8")
+            self.assertEqual(self.mod.read_version(d), "1.2.3")
+
+    def _repo(self, d, tag=False):
+        def g(cwd, *a):
+            subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True)
+        origin, work = Path(d) / "origin.git", Path(d) / "work"
+        g(d, "init", "-q", "--bare", "-b", "main", str(origin))
+        g(d, "clone", "-q", str(origin), str(work))
+        g(work, "config", "user.email", "t@example.com")
+        g(work, "config", "user.name", "T")
+        g(work, "checkout", "-q", "-b", "main")
+        (work / ".claude-plugin").mkdir()
+        (work / ".claude-plugin/plugin.json").write_text('{"version": "0.1.0"}', encoding="utf-8")
+        (work / "CHANGELOG.md").write_text("# Changelog\n\n## 0.1.0\n- first\n", encoding="utf-8")
+        g(work, "add", "-A")
+        g(work, "commit", "-q", "-m", "init")
+        g(work, "push", "-q", "origin", "main")
+        if tag:
+            g(work, "tag", "v0.1.0")
+        return work
+
+    def _run(self, work, *extra):
+        return subprocess.run([sys.executable, str(self.TOOL), "--root", str(work), *extra],
+                              capture_output=True, text=True, encoding="utf-8")
+
+    def test_dry_run_changes_nothing(self):
+        with tempfile.TemporaryDirectory() as d:
+            work = self._repo(d)
+            p = self._run(work, "--dry-run")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn("git tag -a v0.1.0", p.stdout)
+            self.assertIn("- first", p.stdout)
+            tags = subprocess.run(["git", "tag", "--list"], cwd=work, capture_output=True, text=True).stdout
+            self.assertEqual(tags.strip(), "")
+
+    def test_stops_when_tag_exists(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = self._run(self._repo(d, tag=True), "--dry-run")
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("already exists", p.stderr)
+
+    def test_stops_on_uncommitted_changes(self):
+        with tempfile.TemporaryDirectory() as d:
+            work = self._repo(d)
+            (work / "CHANGELOG.md").write_text("changed", encoding="utf-8")
+            p = self._run(work, "--dry-run")
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("uncommitted", p.stderr)
