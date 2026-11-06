@@ -588,5 +588,118 @@ class FeaturesTriage(unittest.TestCase):
             self.assertEqual(run()["findings"]["stale_in_progress"], [])
 
 
+class BacklogForecast(unittest.TestCase):
+    """The forecast: what fits in a cycle, the plan with dates and the range to finish, from the weekly pace."""
+
+    IMPLEMENTED = ("# Implemented\n\n## Feature List\n\n| # | Change name | Priority | Schema Change | Effort | Area | Details |\n"
+                   "| --- | --- | --- | --- | --- | --- | --- |\n")
+    HEADER = ("# Planned\n\n## Feature List\n\n| # | Change name | Priority | Schema Change | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |\n"
+              "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n")
+    ROWS = [(11, "a", "P1", "3"), (12, "b", "P1", "5"), (13, "c", "P2", "8"), (14, "d", "P2", "5"), (15, "e", "P3", "")]
+
+    def planned(self, dependencies=""):
+        rows = "".join(f"| {n} | `{name}` | {p} | No | {e} | UI | ⬜ Pending | ⬜ Pending | s | [brief](features/{n:03d}-{name}.md) |\n"
+                       for n, name, p, e in self.ROWS)
+        return self.HEADER + rows + "\n## Dependencies\n\n### Hard implementation dependencies\n\n" + dependencies + "\n### Recommended implementation order\n\n_None yet._\n"
+
+    def steady(self, weeks_mondays):
+        """Two 5-point features archived in each given week: 10 points per week."""
+        rows, n = "", 21
+        for monday in weeks_mondays:
+            for _ in range(2):
+                rows += (f"| {n} | `i{n}` | P1 | No | 5 | UI | [brief](features/{n:03d}-i{n}.md) · "
+                         f"[spec](../../openspec/changes/archive/{monday}-i{n}/proposal.md) |\n")
+                n += 1
+        return self.IMPLEMENTED + rows
+
+    LAST_SIX = ["2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26"]   # complete weeks before 2026-11-04
+
+    def backlog(self, d, implemented, dependencies=""):
+        b = Path(d) / "docs/backlog"
+        b.mkdir(parents=True)
+        (b / "features-planned.md").write_text(self.planned(dependencies), encoding="utf-8")
+        (b / "features-implemented.md").write_text(implemented, encoding="utf-8")
+
+    def run_forecast(self, root, *extra):
+        script = Path(__file__).resolve().parents[1] / "skills/backlog-forecast/scripts/forecast.py"
+        out = subprocess.run([sys.executable, str(script), str(root), "--today", "2026-11-04", "--json", *extra],
+                             capture_output=True, text=True, encoding="utf-8", check=True).stdout
+        return json.loads(out)
+
+    def test_a_steady_pace_gives_exact_cycles_dates_and_the_whole_backlog(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.backlog(d, self.steady(self.LAST_SIX))
+            r = self.run_forecast(d, "--weeks", "6")
+            self.assertEqual(r["window"]["weekly_points"], [10] * 6)
+            self.assertEqual((r["capacity"]["likely_points"], r["capacity"]["prudent_points"]), (10, 10))
+            self.assertEqual([i["number"] for i in r["next_cycle"]["likely"]], [11, 12])        # 3 + 5 fit in 10, the 8 does not
+            self.assertEqual([[i["number"] for i in c["items"]] for c in r["cycles"]], [[11, 12], [13], [14]])
+            self.assertEqual([c["cumulative"] for c in r["cycles"]], [8, 16, 21])
+            self.assertEqual([c["likely_by"]["date"] for c in r["cycles"]], ["2026-11-11", "2026-11-18", "2026-11-25"])
+            comp = r["completion"]["points"]
+            self.assertEqual((comp["remaining"], comp["weeks"], comp["cycles"]["p50"], comp["dates"]["p95"]),
+                             (21, {"p50": 3, "p85": 3, "p95": 3}, 3, "2026-11-25"))
+            self.assertEqual(r["completion"]["features"]["weeks"]["p50"], 3)                     # 5 features at 2 a week
+            self.assertEqual(r["pending"]["not_sized"], [15])
+            codes = [w["code"] for w in r["warnings"]]
+            self.assertIn("few_weeks", codes)                                                    # 6 weeks is fewer than 8
+            self.assertIn("pending_unestimated", codes)
+
+    def test_the_cycle_length_changes_the_capacity(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.backlog(d, self.steady(self.LAST_SIX))
+            r = self.run_forecast(d, "--weeks", "6", "--cycle-weeks", "2")
+            self.assertEqual(r["capacity"]["likely_points"], 20)
+            self.assertEqual([i["number"] for i in r["next_cycle"]["likely"]], [11, 12, 13])     # 3 + 5 + 8 = 16 <= 20; the next 5 makes 21
+            self.assertEqual(sum(i["points"] for i in r["next_cycle"]["likely"]), 16)
+
+    def test_a_pending_prerequisite_goes_first(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.backlog(d, self.steady(self.LAST_SIX), dependencies="**Feature 12 → Feature 14**\n\nneeds it.\n")
+            r = self.run_forecast(d, "--weeks", "6", "--capacity", "100")
+            order = [i["number"] for c in r["cycles"] for i in c["items"]]
+            self.assertEqual(order, [11, 13, 14, 12])                                           # 12 waits for 14, which is pending
+
+    def test_a_set_of_features_and_one_that_is_not_pending(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.backlog(d, self.steady(self.LAST_SIX))
+            s = self.run_forecast(d, "--weeks", "6", "--features", "11,12,99")["set"]
+            self.assertEqual((s["features"], s["not_pending"], s["points"]), ([11, 12], [99], 8))
+            self.assertEqual((s["weeks"]["p50"], s["dates"]["p50"]), (1, "2026-11-11"))
+
+    def test_no_deliveries_means_no_forecast_unless_a_pace_is_given(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.backlog(d, self.IMPLEMENTED + "| 21 | `old` | P1 | No | 5 | UI | [brief](features/021-old.md) · "
+                                               "[spec](../../openspec/changes/archive/2026-01-05-old/proposal.md) |\n")
+            r = self.run_forecast(d, "--weeks", "6")
+            self.assertIsNone(r["capacity"])
+            self.assertEqual(r["warnings"][0]["code"], "no_history")
+            m = self.run_forecast(d, "--weeks", "6", "--capacity", "5")
+            self.assertEqual(m["capacity"]["source"], "manual")
+            self.assertEqual(m["completion"]["points"]["weeks"], {"p50": 5, "p85": 5, "p95": 5})   # 21 points at 5 a week: 5 weeks
+
+    def test_a_pause_is_flagged_and_an_empty_median_does_not_make_an_empty_plan(self):
+        with tempfile.TemporaryDirectory() as d:
+            # eight weeks of history: deliveries only in the first two, then six weeks of nothing
+            self.backlog(d, self.steady(["2026-09-07", "2026-09-14"]))
+            r = self.run_forecast(d, "--weeks", "8")
+            codes = [w["code"] for w in r["warnings"]]
+            self.assertIn("recent_pause", codes)
+            self.assertIn("many_zero_weeks", codes)
+            self.assertIn("zero_median", codes)
+            self.assertEqual(r["next_cycle"]["likely"], [])
+            self.assertTrue(r["cycles"])                                                         # planned with the mean pace
+
+    def test_the_text_report_leads_with_the_warnings_and_the_ranges(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.backlog(d, self.steady(self.LAST_SIX))
+            script = Path(__file__).resolve().parents[1] / "skills/backlog-forecast/scripts/forecast.py"
+            out = subprocess.run([sys.executable, str(script), d, "--today", "2026-11-04", "--weeks", "6"],
+                                 capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            for needle in ("## Backlog Forecast (as of 2026-11-04)", "### Next cycle", "### Cycles in the order features-next recommends",
+                           "### Finishing the known backlog", "Typical (P50)", "Prudent (P85)", "### Read this first", "### What this does not say"):
+                self.assertIn(needle, out)
+
+
 if __name__ == "__main__":
     unittest.main()
