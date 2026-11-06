@@ -10,14 +10,20 @@ This step must run **after** the PR into `<production>` has actually been merged
 2. `git checkout <production>`
 3. `git pull origin <production>`
 4. Confirm the tag name with the user: `v<version>` (strip any `release/`/`hotfix/` prefix and leading `v` from the input, then re-add a single `v`).
-5. Check the tag doesn't already exist: `git tag --list v<version>`.
-6. Ask the user to confirm before pushing the tag (this is a shared, hard-to-reverse action visible to everyone with repo access).
-7. `git tag -a v<version> -m "<Release|Hotfix> <version>"`
+5. Check the tag doesn't already exist: `git tag --list v<version>`. Then read how the project words its tag annotations: `git tag --sort=-v:refname -n1 | head -3`. The new message follows the latest one with the version replaced (for `backlog-kit 0.7.2` it is `backlog-kit 0.8.0`); with no earlier annotated tag, use `<Release|Hotfix> <version>`.
+6. Ask the user to confirm before pushing the tag (this is a shared, hard-to-reverse action visible to everyone with repo access). Name the tag, the commit it will point at (`git rev-parse --short HEAD`) and the exact message.
+7. `git tag -a v<version> -m "<message from step 5>"`
 8. `git push origin v<version>`
 9. Report the pushed tag.
 10. Check whether `CHANGELOG.md` already documents this version — look for a `v<version>` heading (`grep`/read the file). This should normally already be true: 3d drafts and merges the entry as part of the release/hotfix PR, before this tagging step ever runs.
     - **If found**: nothing further to do — report that release notes for this version were already included in the merge. Do not draft a second entry.
     - **If not found** (3d's draft was declined at the time, or `<production>` was tagged without going through 3d at all): fall back to drafting it now per "Drafting release notes" below, called from this post-tag context — the resulting commit has no PR/review step in front of it, so treat it with the heavier care described there for this call site.
+11. **Offer the release on the host.** A tag is not a release: GitHub and GitLab list releases separately, and many projects publish one per version. Check whether this one does: `gh release list --limit 3` (or `glab release list`, or `mcp__github__list_releases` when there is no `gh`). If there are earlier releases, offer to create this one, and never create it without the user's confirmation, since it is public:
+    - **Title:** the tag name, `v<version>`, the same as the earlier releases (read the latest one's name to be sure). Not the tag message.
+    - **Body:** the `CHANGELOG.md` section of this version without its heading. Write it to a file outside the repository (your scratchpad or the system temp directory).
+    - **With `gh`:** `gh release create v<version> --title "v<version>" --notes-file <file> --verify-tag`. **With `glab`:** `glab release create v<version> --name "v<version>" --notes-file <file>`; if a flag is rejected, run `glab release create --help` and use the equivalent.
+    - **Without a CLI** (the GitHub MCP tools cannot create a release): show the title and the body and tell the user to open Releases, "Draft a new release", pick the existing tag and paste them.
+    - If the project has no releases at all, say so and ask whether to start publishing them; do not create the first one on your own.
 
 ### Drafting release notes
 

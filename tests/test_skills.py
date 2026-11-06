@@ -484,6 +484,15 @@ class ConfigurableBranches(unittest.TestCase):
                        "relying on their answer", "Never fall back to raw REST/curl calls"):
             self.assertIn(needle, text)
 
+    def test_gitflow_tag_action_follows_the_project_and_offers_the_release(self):
+        ref = (KIT / "skills/gitflow/reference/tag-and-release-notes.md").read_text(encoding="utf-8")
+        for needle in ("git tag --sort=-v:refname -n1", "follows the latest one with the version replaced", "Name the tag, the commit",
+                       "A tag is not a release", "**Title:** the tag name", "gh release create v<version> --title \"v<version>\"",
+                       "glab release create v<version>", "never create it without the user's confirmation"):
+            self.assertIn(needle, " ".join(ref.split()))
+        skill = (KIT / "skills/gitflow/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Never create a release on the host", skill)
+
     def test_gitflow_and_pipelines_name_branches_through_placeholders(self):
         # A literal develop/main in a command would ignore the configuration.
         literal = re.compile(r"(git (checkout|pull|fetch|merge|rev-parse)[^\n]*\b(origin/)?(develop|main)\b|base: (develop|main)\b)")
