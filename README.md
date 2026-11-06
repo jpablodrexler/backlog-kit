@@ -23,6 +23,19 @@ Then just talk to Claude:
 
 That is all the setup there is. Backlog files are created on first use in `docs/backlog/`.
 
+## In use
+
+The kit was extracted from two of its author's projects and runs on both. One of them is public: [jp-photo-manager](https://github.com/jpablodrexler/jp-photo-manager), a photo-management suite with a WPF desktop app and a Java/Spring Boot + Angular web app. The web app's backlog is run with these skills. They grew out of that project's own workflow skills, which it replaced with the kit's on 2026-10-14 ([decision 0001](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/JPPhotoManagerWeb/docs/decisions/0001-replace-workflow-skills-with-backlog-kit.md)) and has updated to each release since.
+
+As of November 2026, on its `develop` branch, the backlog holds 82 features (49 implemented, 33 planned, 107 story points still to do) and 8 open bugs, counted by `features-status` and `bugs-status`.
+
+It doubles as a worked example, so you can see what the files look like before installing anything:
+
+- [`JPPhotoManagerWeb/docs/backlog/`](https://github.com/jpablodrexler/jp-photo-manager/tree/develop/JPPhotoManagerWeb/docs/backlog): the planned and implemented tables, the open bugs, one brief per item, [`definition-of-done.md`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/JPPhotoManagerWeb/docs/backlog/definition-of-done.md) and [`estimation-anchors.md`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/JPPhotoManagerWeb/docs/backlog/estimation-anchors.md).
+- [A feature brief](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/JPPhotoManagerWeb/docs/backlog/features/005-refresh-token.md): a user story with acceptance criteria, the text `feature-development` builds from.
+- [`.backlog-kit.toml`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/.backlog-kit.toml): the one setting this project needs, where its backlog lives.
+- [`.claude/skills/`](https://github.com/jpablodrexler/jp-photo-manager/tree/develop/.claude/skills): the kit's skills as installed by copy (`tools/install.py`), next to the project's own stack skills.
+
 ## The core (16 skills)
 
 | Skill | What it does |
@@ -78,7 +91,7 @@ Claude Code, git, Python 3.11+ for the helper scripts (standard library only). `
 
 ## Limitations
 
-Pre-1.0 software, exercised on real repositories but not exhaustively. `gitflow` has been used against real git repositories and GitHub. Subagent hand-backs are claims: the orchestrator spot-checks the important ones. `gitflow` assumes the git-flow layout (a `develop` integration branch and `main`) unless `.backlog-kit.toml` names other branches under `[git]` (the same branch twice for trunk-based development; see the [example](backlog-kit.example.toml)) and opens PRs on GitHub and merge requests on GitLab (other hosts get the PR text to open yourself). The story-point suggestion in `feature-plan` is a starting point: its [rubric](docs/estimation.md) was calibrated on two projects, and only the values `1`, `3` and `5` occurred in that data. A skill of the same name in your project shadows the kit's when you install by copying (the plugin namespaces them).
+Pre-1.0 software, exercised on real repositories (see [In use](#in-use)) but not exhaustively. `gitflow` has been used against real git repositories and GitHub. Subagent hand-backs are claims: the orchestrator spot-checks the important ones. `gitflow` assumes the git-flow layout (a `develop` integration branch and `main`) unless `.backlog-kit.toml` names other branches under `[git]` (the same branch twice for trunk-based development; see the [example](backlog-kit.example.toml)) and opens PRs on GitHub and merge requests on GitLab (other hosts get the PR text to open yourself). The story-point suggestion in `feature-plan` is a starting point: its [rubric](docs/estimation.md) was calibrated on two projects, and only the values `1`, `3` and `5` occurred in that data. A skill of the same name in your project shadows the kit's when you install by copying (the plugin namespaces them).
 
 ## For maintainers
 

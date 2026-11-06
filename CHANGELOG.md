@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## Unreleased
+- **The README shows the kit in use:** an "In use" section with the figures of the public project that runs on it (jp-photo-manager) and links to its backlog, a feature brief, its settings and its installed skills, so the file formats can be seen before installing.
+
 ## 0.8.1
 - **`gitflow` tags the way the project does and offers the release:** the tag action reads the annotations of the existing tags and words the new one the same way (`backlog-kit 0.8.0`, not a fixed `Release 0.8.0`), and shows the message with the commit before asking to push. After the push it offers the release on the host: title equal to the tag name, body the changelog section of the version, with `gh release create` or `glab release create`, or the title and body to paste where there is no CLI. A tag alone does not create a release, and the skill used to stop at the tag.
 
