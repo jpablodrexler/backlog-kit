@@ -30,6 +30,10 @@ import gitread
 LEGACY_POINTS = {"S": 1, "M": 3, "L": 5, "XL": 8}     # t-shirt sizes of a backlog not migrated yet
 DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 AVERAGE_OVER = 4                                       # complete weeks the velocity is averaged over
+BULK_MIN = 5                                           # features on one date that make a bulk load worth a warning
+BULK_SHARE = 0.5                                       # ...when that date holds at least this share of the period's features
+UNESTIMATED_SHARE = 0.25                               # delivered features without points that make the points unreliable
+UNESTIMATED_LISTED = 10                                # ids shown in the "without points" line
 
 
 def points(effort):
@@ -68,6 +72,52 @@ def weeks_between(start, end):
     return out
 
 
+def history_is_cut(root):
+    """True when the history reachable from HEAD stops at a shallow boundary, so older rows would get a wrong date.
+    A clone can be shallow because of another branch while the history of HEAD is complete: that is not a problem."""
+    try:
+        if gitread.git(root, "rev-parse", "--is-shallow-repository", check=False).strip() != "true":
+            return False
+        path = Path(gitread.git(root, "rev-parse", "--git-path", "shallow", check=False).strip())
+        boundary = set((path if path.is_absolute() else Path(root) / path).read_text(encoding="utf-8").split())
+        return bool(boundary & set(gitread.git(root, "rev-list", "HEAD", check=False).split()))
+    except (gitread.GitError, OSError):
+        return False
+
+
+def reliability(root, impl_ok, in_range, today, pending_unestimated, pending_points):
+    """Reasons not to trust the weekly figures as they are: each is {code, message}."""
+    out = []
+    feats = [i for i in in_range if i["kind"] == "feature"]
+    committed = [i for i in feats if not i["uncommitted"]]
+    if len(committed) >= BULK_MIN:
+        per_day = {}
+        for i in committed:
+            per_day[i["date"]] = per_day.get(i["date"], 0) + 1
+        day, n = max(per_day.items(), key=lambda kv: (kv[1], kv[0]))        # the busiest date; the later one on a tie
+        if n >= BULK_MIN and n / len(committed) >= BULK_SHARE:
+            out.append({"code": "bulk_date", "message":
+                        f"{n} of {len(committed)} features carry the date {day}: their rows were committed together (a backlog "
+                        "loaded in one go, or one batch archive), so the weekly figures around that date say nothing about the pace."})
+    unestimated = [i for i in feats if i["points"] is None]
+    if len(feats) >= 4 and len(unestimated) / len(feats) >= UNESTIMATED_SHARE:
+        out.append({"code": "unestimated", "message":
+                    f"{len(unestimated)} of {len(feats)} delivered features have no story points: the points delivered and the "
+                    "velocity understate the work."})
+    if pending_unestimated:
+        out.append({"code": "pending_unestimated", "message":
+                    f"{pending_unestimated} pending feature(s) have no story points and are not in the {pending_points} pending "
+                    "points, so any projection is optimistic."})
+    if impl_ok and history_is_cut(root):
+        out.append({"code": "shallow_clone", "message":
+                    "The history of this clone is cut short (a shallow clone): older rows get the date of the oldest commit "
+                    "that was fetched. git fetch --unshallow gives the real dates."})
+    if any(i["uncommitted"] for i in feats):
+        out.append({"code": "uncommitted", "message":
+                    "Features archived but not committed yet count as today."})
+    return out
+
+
 def build(root, start, today):
     cfg = bk.load_config(root)
     backlog = cfg["paths"]["backlog_dir"].strip("/")
@@ -102,18 +152,25 @@ def build(root, start, today):
                       "bugs": sum(i["kind"] == "bug" for i in mine)})
 
     complete = [w for w in weeks if w["complete"]][-AVERAGE_OVER:]
+    weekly_points = [w["points"] for w in complete]
+    active_weeks = sum(1 for w in complete if w["features"])
     velocity = None
-    if complete and any(w["features"] for w in weeks):          # no delivered feature, nothing to measure a pace from
-        velocity = round(sum(w["points"] for w in complete) / len(complete), 1)
+    if complete and active_weeks:                       # a window without a single delivery measures nothing: say so, not "0.0"
+        velocity = round(sum(weekly_points) / len(complete), 1)
+    bugs_per_week = round(sum(w["bugs"] for w in complete) / len(complete), 1) if complete else None
+    last_delivery = max((i["date"] for i in items if i["kind"] == "feature"), default=None)
 
     pending_rows = [r for r in plan if "Implemented" not in r.get("Implementation", "")]
     pending_points = sum(points(r.get("Effort")) or 0 for r in pending_rows)
+    pending_unestimated = sum(1 for r in pending_rows if points(r.get("Effort")) is None)
     weeks_left = round(pending_points / velocity, 1) if velocity and plan_ok else None
 
     severity = {}
     for i in in_range:
         if i["kind"] == "bug":
             severity[i["severity"] or "none"] = severity.get(i["severity"] or "none", 0) + 1
+
+    warnings = reliability(root, impl_ok, in_range, today, pending_unestimated, pending_points)
 
     return {
         "period": {"start": start.isoformat(), "end": today.isoformat()},
@@ -124,8 +181,12 @@ def build(root, start, today):
         "unestimated": [i["id"] for i in in_range if i["kind"] == "feature" and i["points"] is None],
         "bugs_fixed": sum(i["kind"] == "bug" for i in in_range),
         "bugs_by_severity": dict(sorted(severity.items())),
-        "velocity": {"points_per_week": velocity, "over_weeks": len(complete)},
-        "pending": {"features": len(pending_rows), "points": pending_points, "weeks_at_that_pace": weeks_left},
+        "velocity": {"points_per_week": velocity, "over_weeks": len(complete), "weekly_points": weekly_points,
+                     "weeks_with_deliveries": active_weeks, "last_delivery": last_delivery.isoformat() if last_delivery else None},
+        "bugs_per_week": bugs_per_week,
+        "pending": {"features": len(pending_rows), "points": pending_points, "unestimated": pending_unestimated,
+                    "weeks_at_that_pace": weeks_left},
+        "warnings": warnings,
         "delivered": [{**i, "date": i["date"].isoformat()} for i in sorted(in_range, key=lambda i: (i["date"], i["id"]))],
     }
 
@@ -143,10 +204,20 @@ def render(r):
     out += ["", f"**Delivered:** {r['features_delivered']} feature(s), {r['points_delivered']} point(s), {r['bugs_fixed']} bug(s) fixed"
             + (f" ({', '.join(f'{k}: {v}' for k, v in r['bugs_by_severity'].items())})" if r["bugs_by_severity"] else "")]
     v = r["velocity"]
-    if v["points_per_week"] is None:
-        out.append("**Velocity:** none: no complete week, or no feature delivered, in the period")
+    if v["points_per_week"] is not None:
+        series = ", ".join(str(x) for x in v["weekly_points"])
+        out.append(f"**Velocity:** {v['points_per_week']} points/week, the average of the last {v['over_weeks']} complete week(s) "
+                   f"({series} points; deliveries in {v['weeks_with_deliveries']} of {v['over_weeks']})")
+    elif v["over_weeks"] == 0:
+        out.append("**Velocity:** none yet: the period has no complete week")
+    elif v["last_delivery"]:
+        out.append(f"**Velocity:** none: no feature was archived in the last {v['over_weeks']} complete week(s); "
+                   f"the last one was on {v['last_delivery']}")
     else:
-        out.append(f"**Velocity:** {v['points_per_week']} points/week (average of the last {v['over_weeks']} complete week(s))")
+        out.append("**Velocity:** none: no feature has been archived")
+    if r["bugs_fixed"] and r["bugs_per_week"] is not None:
+        out.append(f"**Bug fixes:** {r['bugs_fixed']} in the period, {r['bugs_per_week']} per week over the same weeks. "
+                   "Bugs carry no points, so the velocity does not include this work.")
     pend = r["pending"]
     if av["pending"]:
         line = f"**Pending:** {pend['features']} feature(s), {pend['points']} point(s)"
@@ -156,9 +227,11 @@ def render(r):
             line += " — no projection without a velocity"
         out.append(line)
     if r["unestimated"]:
-        out.append(f"**Without points (not counted):** {', '.join(r['unestimated'])}")
-    if any(i.get("uncommitted") for i in r["delivered"]):
-        out.append("**Uncommitted:** features archived but not committed yet count as today.")
+        shown = r["unestimated"][:UNESTIMATED_LISTED]
+        more = len(r["unestimated"]) - len(shown)
+        out.append(f"**Without points (not counted):** {', '.join(shown)}" + (f" and {more} more" if more > 0 else ""))
+    if r["warnings"]:
+        out += ["", "### Reliability"] + [f"- ⚠ {w['message']}" for w in r["warnings"]]
     if r["delivered"]:
         out += ["", "### Delivered in the period"]
         for i in r["delivered"]:

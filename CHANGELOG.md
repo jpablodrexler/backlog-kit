@@ -3,6 +3,7 @@
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
 ## Unreleased
+- **`backlog-report` says when its numbers are doubtful:** a **Reliability** section (and a `warnings` list in the JSON) names the reasons. Most features share one date (a backlog loaded in one go or one batch archive), a large share of the delivered features has no story points, pending features have no points (the projection is optimistic), the clone is shallow, or features are not committed yet. The velocity now shows the four weekly figures it averages and how many of those weeks had deliveries, and when no feature was archived in them it says so, with the date of the last one, instead of printing `0.0 points/week`. Bug fixes per week are reported over the same weeks, because the velocity leaves them out. The JSON gains `weekly_points`, `weeks_with_deliveries`, `last_delivery`, `bugs_per_week` and `pending.unestimated`, and `points_per_week` is `null` where it used to be `0.0`.
 - **The README shows the kit in use:** an "In use" section with the figures of the public project that runs on it (jp-photo-manager) and links to its backlog, a feature brief, its settings and its installed skills, so the file formats can be seen before installing.
 
 ## 0.8.1
