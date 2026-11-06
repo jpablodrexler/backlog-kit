@@ -327,8 +327,11 @@ class BacklogReport(unittest.TestCase):
             self.assertEqual([w["bugs"] for w in r["weeks"]], [0, 1, 0, 0])
             self.assertEqual((r["features_delivered"], r["points_delivered"], r["bugs_fixed"]), (3, 10, 1))
             self.assertEqual(r["bugs_by_severity"], {"S2": 1})
-            self.assertEqual(r["velocity"], {"points_per_week": 2.7, "over_weeks": 3})   # (3 + 0 + 5) / 3
-            self.assertEqual(r["pending"], {"features": 2, "points": 13, "weeks_at_that_pace": 4.8})
+            self.assertEqual(r["velocity"], {"points_per_week": 2.7, "over_weeks": 3, "weekly_points": [3, 0, 5],     # (3 + 0 + 5) / 3
+                                             "weeks_with_deliveries": 2, "last_delivery": "2026-11-04"})
+            self.assertEqual(r["bugs_per_week"], 0.3)                                                               # one bug in three weeks
+            self.assertEqual(r["pending"], {"features": 2, "points": 13, "unestimated": 0, "weeks_at_that_pace": 4.8})
+            self.assertEqual([w["code"] for w in r["warnings"]], ["uncommitted"])
             self.assertTrue(any(i["id"] == "#5" and i["uncommitted"] for i in r["delivered"]))
             # a period that starts after the first commits leaves them out
             self.assertEqual(self.run_report(root, "--since", "2026-10-26")["features_delivered"], 2)
@@ -339,6 +342,100 @@ class BacklogReport(unittest.TestCase):
             self.assertEqual(r["available"], {"features": False, "pending": False, "bugs": False})
             self.assertIsNone(r["velocity"]["points_per_week"])
             self.assertEqual(r["features_delivered"], 0)
+            self.assertEqual(r["warnings"], [])
+
+    def committed_backlog(self, d, rows, day="2026-07-21"):
+        """A repo whose implemented table was committed in one go on `day`."""
+        import os
+        b = Path(d) / "docs/backlog"
+        b.mkdir(parents=True)
+        (b / "features-planned.md").write_text(self.PLANNED, encoding="utf-8")
+        (b / "bugs-fixed.md").write_text(self.FIXED, encoding="utf-8")
+        (b / "features-implemented.md").write_text(self.IMPLEMENTED + rows, encoding="utf-8")
+        env = {**os.environ, "GIT_AUTHOR_DATE": f"{day}T10:00:00Z", "GIT_COMMITTER_DATE": f"{day}T10:00:00Z"}
+        git = lambda *a: subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a],
+                                        check=True, capture_output=True, env=env)
+        git("init", "-q", "-b", "main"); git("add", "-A"); git("commit", "-qm", "load the backlog")
+
+    BULK_ROWS = "".join(f"| {n} | `f{n}` | P1 | No | {e} | UI | [brief](features/{n:03d}-f{n}.md) |\n"
+                        for n, e in ((1, "—"), (2, "—"), (3, "—"), (4, "—"), (5, "3"), (6, "5")))
+
+    def test_a_bulk_load_and_missing_points_are_flagged_and_there_is_no_fake_zero(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.committed_backlog(d, self.BULK_ROWS)
+            r = self.run_report(d, "--since", "2026-07-20")
+            codes = [w["code"] for w in r["warnings"]]
+            self.assertIn("bulk_date", codes)                       # 6 of 6 features carry the same date
+            self.assertIn("unestimated", codes)                     # 4 of 6 have no points
+            self.assertNotIn("pending_unestimated", codes)          # both pending features have points
+            self.assertEqual(r["points_delivered"], 8)
+            v = r["velocity"]
+            self.assertIsNone(v["points_per_week"])                 # nothing was archived in the last four complete weeks
+            self.assertEqual((v["weeks_with_deliveries"], v["last_delivery"]), (0, "2026-07-21"))
+
+    @staticmethod
+    def spec_rows(days, first=1):
+        """Implemented rows whose Details link an archived SDD change (…/archive/YYYY-MM-DD-name/…), one row per date."""
+        return "".join(f"| {n} | `f{n}` | P1 | No | 3 | UI | [brief](features/{n:03d}-f{n}.md) · "
+                       f"[spec](../../openspec/changes/archive/{day}-f{n}/proposal.md) |\n"
+                       for n, day in enumerate(days, first))
+
+    def test_the_sdd_archive_date_beats_the_commit_date(self):
+        with tempfile.TemporaryDirectory() as d:
+            # six rows committed together in July, but archived as SDD changes on six different days of October
+            days = ["2026-10-05", "2026-10-06", "2026-10-13", "2026-10-14", "2026-10-20", "2026-10-27"]
+            self.committed_backlog(d, self.spec_rows(days))
+            r = self.run_report(d, "--since", "2026-09-28")
+            self.assertEqual(r["dates"], {"sdd": 6, "git": 0, "uncommitted": 0})
+            self.assertEqual(r["features_delivered"], 6)                               # git alone would put all of them in July
+            self.assertEqual([w["features"] for w in r["weeks"]], [0, 2, 2, 1, 1, 0])
+            self.assertEqual({i["source"] for i in r["delivered"] if i["kind"] == "feature"}, {"sdd"})
+            self.assertNotIn("bulk_date", [w["code"] for w in r["warnings"]])          # explicit dates are not a bulk load
+
+    def test_rows_without_a_spec_fall_back_to_git_and_only_those_can_be_a_bulk_load(self):
+        with tempfile.TemporaryDirectory() as d:
+            plain = "".join(f"| {n} | `g{n}` | P1 | No | 3 | UI | [brief](features/{n:03d}-g{n}.md) |\n" for n in range(11, 17))
+            rows = self.spec_rows(["2026-10-05", "2026-10-12", "2026-10-19"]) + plain
+            self.committed_backlog(d, rows)
+            r = self.run_report(d, "--since", "2026-07-20")
+            self.assertEqual(r["dates"], {"sdd": 3, "git": 6, "uncommitted": 0})
+            bulk = [w["message"] for w in r["warnings"] if w["code"] == "bulk_date"]
+            self.assertEqual(len(bulk), 1)
+            self.assertIn("6 of 6 features dated from git", bulk[0])
+
+    def test_an_uncommitted_row_with_a_spec_date_uses_it(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.committed_backlog(d, "")
+            with open(Path(d) / "docs/backlog/features-implemented.md", "a", encoding="utf-8") as fh:
+                fh.write(self.spec_rows(["2026-11-02"], first=7))                      # archived, not committed yet
+            r = self.run_report(d, "--weeks", "2")
+            self.assertEqual(r["dates"], {"sdd": 1, "git": 0, "uncommitted": 0})
+            self.assertEqual(r["delivered"][0]["date"], "2026-11-02")                  # its own date, not today (2026-11-04)
+            self.assertNotIn("uncommitted", [w["code"] for w in r["warnings"]])
+
+    def test_the_text_report_says_when_nothing_was_archived_recently(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.committed_backlog(d, self.BULK_ROWS)
+            script = Path(__file__).resolve().parents[1] / "skills/backlog-report/scripts/backlog_report.py"
+            out = subprocess.run([sys.executable, str(script), d, "--today", "2026-11-04", "--since", "2026-07-20"],
+                                 capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            self.assertIn("no feature was archived in the last 4 complete week(s); the last one was on 2026-07-21", out)
+            self.assertNotIn("0.0 points/week", out)
+            self.assertIn("### Reliability", out)
+            self.assertIn("4 of 6 delivered features have no story points", out)
+
+    def test_a_shallow_clone_is_flagged(self):
+        with tempfile.TemporaryDirectory() as d:
+            src, dst = Path(d) / "src", Path(d) / "dst"
+            src.mkdir()
+            self.committed_backlog(str(src), self.BULK_ROWS)
+            (src / "extra.txt").write_text("x", encoding="utf-8")
+            subprocess.run(["git", "-C", str(src), "add", "-A"], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(src), "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "commit", "-qm", "more"],
+                           check=True, capture_output=True)
+            subprocess.run(["git", "clone", "-q", "--depth", "1", src.as_uri(), str(dst)], check=True, capture_output=True)
+            self.assertIn("shallow_clone", [w["code"] for w in self.run_report(dst, "--since", "2026-07-20")["warnings"]])
+            self.assertNotIn("shallow_clone", [w["code"] for w in self.run_report(src, "--since", "2026-07-20")["warnings"]])
 
 
 class BugsTriage(unittest.TestCase):
