@@ -139,7 +139,7 @@ Starting, finishing, tagging and cleaning up are long, and a run needs only one 
 | start `<topic>` / release / hotfix | 3a | `reference/start.md` |
 | sync `<topic>` | 3b | below |
 | finish `<topic>`; finish release / hotfix; "Writing the PR description" | 3c, 3d | `reference/finish.md` |
-| tag release / hotfix; "Drafting release notes" | 3e | `reference/tag-and-release-notes.md` |
+| tag release / hotfix, then the host release; "Drafting release notes" | 3e | `reference/tag-and-release-notes.md` |
 | commit | 3g | below |
 | cleanup branches | 3f | `reference/cleanup.md` |
 
@@ -187,6 +187,7 @@ Steps:
 - Never open a PR with a placeholder or generic body — always derive the description from the actual commits/diff on the branch, per "Writing the PR description" above.
 - Never tag `<production>` without first confirming (via "Checking PR merge status" above) that the corresponding release/hotfix PR into `<production>` has actually merged.
 - Never tag without explicit user confirmation immediately before the `git push origin <tag>` — pushing a tag is visible to the whole team and awkward to undo.
+- Never create a release on the host (`gh release create`, `glab release create`) without the user's confirmation, and never before its tag is pushed. Its title is the tag name and its body the changelog section of that version.
 - Never create `CHANGELOG.md` silently, on either call site — see "Drafting release notes". From 3d (the normal path, on the release/hotfix branch before its PR), a changelog commit is an ordinary commit under review, so a single commit confirmation is enough. From 3e's fallback (writing directly to `<production>`, only when 3d's draft was skipped or declined), there is no PR/review step protecting it, so commit and push need separate explicit confirmations, with the same care as the tag push.
 - Never state whether a PR has or hasn't merged based on local git state (e.g. `git log`/`git diff` against a local branch, or `git pull` reporting "already up to date"). Local branches can be stale or a PR can be merged manually on GitHub outside of any local fetch. Always check directly per "Checking PR merge status" above before reporting merge status to the user.
 - Never shell out to raw REST/curl calls as a substitute for `gh`, `glab` or the GitHub MCP tools — use whichever was selected under "Hosting access method" above, or the manual path for other hosts.
