@@ -50,7 +50,10 @@ That is all the setup there is. Backlog files are created on first use in `docs/
 
 ## The loop
 
-![The loop in four groups. Backlog: backlog-import, feature-plan, bug-report, features-triage, bugs-triage, features-next, bugs-next. Develop + verify: gitflow, feature-development, bug-fix, code-reviewer, database-reviewer, security-reviewer, spec-compliance-check, docs-sync, features-archive, bugs-archive, and the batch runners features-batch-development and bugs-batch-fix. Ship: commit, PR, review, merge and clean up with gitflow. Around the loop: features-status, bugs-status, backlog-report, decision-record, architecture-reviewer, product-scope-roaster, dependency-upgrade.](docs/loop.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/loop-dark.svg">
+  <img alt="The loop in four groups. Backlog: backlog-import, feature-plan, bug-report, features-triage, bugs-triage, features-next, bugs-next. Develop + verify: gitflow, feature-development, bug-fix, code-reviewer, database-reviewer, security-reviewer, spec-compliance-check, docs-sync, features-archive, bugs-archive, and the batch runners features-batch-development and bugs-batch-fix. Ship: commit, PR, review, merge and clean up with gitflow. Around the loop: features-status, bugs-status, backlog-report, decision-record, architecture-reviewer, product-scope-roaster, dependency-upgrade." src="docs/loop.svg">
+</picture>
 
 After the clean up, the next item starts again in the Backlog. The core skills run the loop; the review gate's reviewers, the proof (`spec-compliance-check`, `docs-sync`), the batch runners and the advisors are [extras](#extras-optional).
 The middle of the loop (`feature-development`, `bug-fix`) commits nothing unless you ask: by default it leaves a verified, archived result uncommitted on a branch for you to review, and when you ask for commits (one at the end, or as the work goes) `gitflow` makes them. You commit it yourself otherwise; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.

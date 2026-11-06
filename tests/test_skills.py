@@ -218,11 +218,13 @@ class ReleaseHygieneTest(unittest.TestCase):
 
     def test_readme_diagram_shows_every_skill(self):
         readme = (self.ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("](docs/loop.svg)", readme)
-        svg = (self.ROOT / "docs/loop.svg").read_text(encoding="utf-8")
-        for d in SKILLS:
-            with self.subTest(skill=d.name):
-                self.assertRegex(svg, rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", f"{d.name} is missing from tools/diagram.py")
+        self.assertIn('media="(prefers-color-scheme: dark)" srcset="docs/loop-dark.svg"', readme)
+        self.assertIn('src="docs/loop.svg"', readme)
+        for name in ("loop.svg", "loop-dark.svg"):
+            svg = (self.ROOT / "docs" / name).read_text(encoding="utf-8")
+            for d in SKILLS:
+                with self.subTest(diagram=name, skill=d.name):
+                    self.assertRegex(svg, rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", f"{d.name} is missing from tools/diagram.py")
 
     def test_diagram_svg_is_current(self):
         proc = subprocess.run([sys.executable, str(self.ROOT / "tools/diagram.py"), "--check"], capture_output=True, text=True, encoding="utf-8")
