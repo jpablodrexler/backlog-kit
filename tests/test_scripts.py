@@ -387,7 +387,7 @@ class BacklogReport(unittest.TestCase):
             days = ["2026-10-05", "2026-10-06", "2026-10-13", "2026-10-14", "2026-10-20", "2026-10-27"]
             self.committed_backlog(d, self.spec_rows(days))
             r = self.run_report(d, "--since", "2026-09-28")
-            self.assertEqual(r["dates"], {"sdd": 6, "git": 0, "uncommitted": 0})
+            self.assertEqual(r["dates"], {"archived": 0, "sdd": 6, "git": 0, "uncommitted": 0})
             self.assertEqual(r["features_delivered"], 6)                               # git alone would put all of them in July
             self.assertEqual([w["features"] for w in r["weeks"]], [0, 2, 2, 1, 1, 0])
             self.assertEqual({i["source"] for i in r["delivered"] if i["kind"] == "feature"}, {"sdd"})
@@ -399,7 +399,7 @@ class BacklogReport(unittest.TestCase):
             rows = self.spec_rows(["2026-10-05", "2026-10-12", "2026-10-19"]) + plain
             self.committed_backlog(d, rows)
             r = self.run_report(d, "--since", "2026-07-20")
-            self.assertEqual(r["dates"], {"sdd": 3, "git": 6, "uncommitted": 0})
+            self.assertEqual(r["dates"], {"archived": 0, "sdd": 3, "git": 6, "uncommitted": 0})
             bulk = [w["message"] for w in r["warnings"] if w["code"] == "bulk_date"]
             self.assertEqual(len(bulk), 1)
             self.assertIn("6 of 6 features dated from git", bulk[0])
@@ -410,9 +410,41 @@ class BacklogReport(unittest.TestCase):
             with open(Path(d) / "docs/backlog/features-implemented.md", "a", encoding="utf-8") as fh:
                 fh.write(self.spec_rows(["2026-11-02"], first=7))                      # archived, not committed yet
             r = self.run_report(d, "--weeks", "2")
-            self.assertEqual(r["dates"], {"sdd": 1, "git": 0, "uncommitted": 0})
+            self.assertEqual(r["dates"], {"archived": 0, "sdd": 1, "git": 0, "uncommitted": 0})
             self.assertEqual(r["delivered"][0]["date"], "2026-11-02")                  # its own date, not today (2026-11-04)
             self.assertNotIn("uncommitted", [w["code"] for w in r["warnings"]])
+
+    def test_the_archived_date_in_the_row_needs_no_spec_and_no_git(self):
+        with tempfile.TemporaryDirectory() as d:
+            rows = "".join(f"| {n} | `g{n}` | P1 | No | 3 | UI | [brief](features/{n:03d}-g{n}.md) · archived {day} |\n"
+                           for n, day in ((11, "2026-10-06"), (12, "2026-10-13"), (13, "2026-10-14")))
+            b = Path(d) / "docs/backlog"
+            b.mkdir(parents=True)
+            (b / "features-implemented.md").write_text(self.IMPLEMENTED + rows, encoding="utf-8")   # no git repo, no OpenSpec
+            (b / "features-planned.md").write_text(self.PLANNED, encoding="utf-8")
+            r = self.run_report(d, "--since", "2026-10-01")
+            self.assertEqual(r["dates"], {"archived": 3, "sdd": 0, "git": 0, "uncommitted": 0})
+            self.assertEqual([(i["id"], i["date"]) for i in r["delivered"]], [("#11", "2026-10-06"), ("#12", "2026-10-13"), ("#13", "2026-10-14")])
+            self.assertEqual([w["points"] for w in r["weeks"] if w["features"]], [3, 6])
+            codes = [w["code"] for w in r["warnings"]]
+            self.assertNotIn("uncommitted", codes)
+            self.assertNotIn("shallow_clone", codes)
+            script = Path(__file__).resolve().parents[1] / "skills/backlog-report/scripts/backlog_report.py"
+            text = subprocess.run([sys.executable, str(script), d, "--today", "2026-11-04", "--since", "2026-10-01"],
+                                  capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            self.assertIn("3 from the archived date written in the row", text)
+
+    def test_the_archived_date_wins_over_the_spec_date_and_a_bad_one_is_ignored(self):
+        with tempfile.TemporaryDirectory() as d:
+            rows = ("| 11 | `a` | P1 | No | 3 | UI | [brief](features/011-a.md) · [spec](../../openspec/changes/archive/2026-10-05-a/proposal.md) · archived 2026-10-08 |\n"
+                    "| 12 | `b` | P1 | No | 3 | UI | [brief](features/012-b.md) · [spec](../../openspec/changes/archive/2026-10-12-b/proposal.md) · archived 2026-13-45 |\n")
+            b = Path(d) / "docs/backlog"
+            b.mkdir(parents=True)
+            (b / "features-implemented.md").write_text(self.IMPLEMENTED + rows, encoding="utf-8")
+            (b / "features-planned.md").write_text(self.PLANNED, encoding="utf-8")
+            r = self.run_report(d, "--since", "2026-10-01")
+            self.assertEqual({i["id"]: (i["date"], i["source"]) for i in r["delivered"]},
+                             {"#11": ("2026-10-08", "archived"), "#12": ("2026-10-12", "sdd")})
 
     def test_the_text_report_says_when_nothing_was_archived_recently(self):
         with tempfile.TemporaryDirectory() as d:
