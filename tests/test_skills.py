@@ -227,6 +227,14 @@ class ReleaseHygieneTest(unittest.TestCase):
                 with self.subTest(diagram=name, skill=d.name):
                     self.assertRegex(svg, rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", f"{d.name} is missing from tools/diagram.py")
 
+    def test_readme_diagram_alt_text_names_every_skill(self):
+        alts = [l for l in (self.ROOT / "README.md").read_text(encoding="utf-8").splitlines() if l.startswith("![The loop")]
+        self.assertEqual(len(alts), 2)
+        for alt in alts:
+            for d in SKILLS:
+                with self.subTest(skill=d.name):
+                    self.assertRegex(alt, rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", f"{d.name} is missing from the alt text of the README diagram")
+
     def test_diagram_svg_is_current(self):
         proc = subprocess.run([sys.executable, str(self.ROOT / "tools/diagram.py"), "--check"], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
