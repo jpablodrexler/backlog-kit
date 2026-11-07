@@ -152,8 +152,8 @@ class SkillLint(unittest.TestCase):
 
     def test_no_script_imports_outside_stdlib_or_lib(self):
         stdlib_ok = {"argparse", "json", "re", "sys", "pathlib", "copy", "tomllib", "subprocess",
-                     "datetime", "os", "random", "math",
-                     "backlog_kit", "backlog_history", "gitread", "work_scope", "branch_state", "detect_gates", "batch_plan", "batch_report"}
+                     "datetime", "os", "random", "math", "types",
+                     "backlog_kit", "backlog_history", "backlog_forecast", "backlog_cycles", "gitread", "work_scope", "branch_state", "detect_gates", "batch_plan", "batch_report"}
         for f in list((KIT / "skills").rglob("*.py")) + list((KIT / "extras").rglob("*.py")):
             with self.subTest(file=str(f.relative_to(KIT))):
                 mods = set(re.findall(r"^(?:import|from)\s+(\w+)", f.read_text(encoding="utf-8"), re.M))
@@ -226,6 +226,14 @@ class ReleaseHygieneTest(unittest.TestCase):
             for d in SKILLS:
                 with self.subTest(diagram=name, skill=d.name):
                     self.assertRegex(svg, rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", f"{d.name} is missing from tools/diagram.py")
+
+    def test_readme_diagram_alt_text_names_every_skill(self):
+        alts = [l for l in (self.ROOT / "README.md").read_text(encoding="utf-8").splitlines() if l.startswith("![The loop")]
+        self.assertEqual(len(alts), 2)
+        for alt in alts:
+            for d in SKILLS:
+                with self.subTest(skill=d.name):
+                    self.assertRegex(alt, rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", f"{d.name} is missing from the alt text of the README diagram")
 
     def test_diagram_svg_is_current(self):
         proc = subprocess.run([sys.executable, str(self.ROOT / "tools/diagram.py"), "--check"], capture_output=True, text=True, encoding="utf-8")

@@ -18,7 +18,8 @@ Then just talk to Claude:
 - "Plan a feature: dark-mode toggle" → `feature-plan` drafts the row and the brief (a user story with acceptance criteria), asks for the story points (suggesting a value from its [estimation rubric](docs/estimation.md)) and asks before writing.
 - "What should I work on next?" → `features-next` / `bugs-next`.
 - "What did we ship this month, and how fast are we going?" → `backlog-report`.
-- "What can I build next, and when could the backlog be done?" → `backlog-forecast`.
+- "What can I build next, and when could the backlog be done?" → `backlog-forecast` (how to read its P50 / P85 ranges: [forecasting](docs/forecasting.md)).
+- "Start the next cycle" / "Close the cycle, were my estimates right?" → `backlog-cycle`.
 - "Develop the next feature" / "Fix BUG-004" → `feature-development` / `bug-fix`.
 - "Finish the feature, open the PR" → `gitflow`. After merging: "clean up the branches".
 
@@ -37,7 +38,7 @@ It doubles as a worked example, so you can see what the files look like before i
 - [`.backlog-kit.toml`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/.backlog-kit.toml): the one setting this project needs, where its backlog lives.
 - [`.claude/skills/`](https://github.com/jpablodrexler/jp-photo-manager/tree/develop/.claude/skills): the kit's skills as installed by copy (`tools/install.py`), next to the project's own stack skills.
 
-## The core (17 skills)
+## The core (18 skills)
 
 | Skill | What it does |
 | --- | --- |
@@ -48,6 +49,7 @@ It doubles as a worked example, so you can see what the files look like before i
 | `backlog-import` | bring open GitHub / GitLab issues into the backlog, reviewed one by one |
 | `backlog-report` | what was delivered per week, velocity, and weeks left at that pace |
 | `backlog-forecast` | what fits in the next cycle, a plan by cycle with dates, and when the known backlog could be finished, as ranges |
+| `backlog-cycle` | plan a cycle from the forecast, close it against what was delivered, a light retro, and the calibration of the estimates |
 | `features-archive`, `bugs-archive` | move finished items to the implemented / fixed tables |
 | `feature-development`, `bug-fix` | do one item end to end (below) |
 | `gitflow` | branches, PR, release, tag, clean up |
@@ -65,8 +67,8 @@ It doubles as a worked example, so you can see what the files look like before i
 
 ## The loop
 
-![The loop in four groups. Backlog: backlog-import, feature-plan, bug-report, features-triage, bugs-triage, features-next, bugs-next. Develop + verify: gitflow, feature-development, bug-fix, code-reviewer, database-reviewer, security-reviewer, spec-compliance-check, docs-sync, features-archive, bugs-archive, and the batch runners features-batch-development and bugs-batch-fix. Ship: commit, PR, review, merge and clean up with gitflow. Around the loop: features-status, bugs-status, backlog-report, decision-record, architecture-reviewer, product-scope-roaster, dependency-upgrade.](docs/loop.svg#gh-light-mode-only)
-![The loop in four groups. Backlog: backlog-import, feature-plan, bug-report, features-triage, bugs-triage, features-next, bugs-next. Develop + verify: gitflow, feature-development, bug-fix, code-reviewer, database-reviewer, security-reviewer, spec-compliance-check, docs-sync, features-archive, bugs-archive, and the batch runners features-batch-development and bugs-batch-fix. Ship: commit, PR, review, merge and clean up with gitflow. Around the loop: features-status, bugs-status, backlog-report, decision-record, architecture-reviewer, product-scope-roaster, dependency-upgrade.](docs/loop-dark.svg#gh-dark-mode-only)
+![The loop in four groups. Backlog: backlog-import, feature-plan, bug-report, features-triage, bugs-triage, features-next, bugs-next. Develop + verify: gitflow, feature-development, bug-fix, code-reviewer, database-reviewer, security-reviewer, spec-compliance-check, docs-sync, features-archive, bugs-archive, and the batch runners features-batch-development and bugs-batch-fix. Ship: commit, PR, review, merge and clean up with gitflow. Around the loop: features-status, bugs-status, backlog-report, backlog-forecast, backlog-cycle, decision-record, architecture-reviewer, product-scope-roaster, dependency-upgrade.](docs/loop.svg#gh-light-mode-only)
+![The loop in four groups. Backlog: backlog-import, feature-plan, bug-report, features-triage, bugs-triage, features-next, bugs-next. Develop + verify: gitflow, feature-development, bug-fix, code-reviewer, database-reviewer, security-reviewer, spec-compliance-check, docs-sync, features-archive, bugs-archive, and the batch runners features-batch-development and bugs-batch-fix. Ship: commit, PR, review, merge and clean up with gitflow. Around the loop: features-status, bugs-status, backlog-report, backlog-forecast, backlog-cycle, decision-record, architecture-reviewer, product-scope-roaster, dependency-upgrade.](docs/loop-dark.svg#gh-dark-mode-only)
 
 After the clean up, the next item starts again in the Backlog. The core skills run the loop; the review gate's reviewers, the proof (`spec-compliance-check`, `docs-sync`), the batch runners and the advisors are [extras](#extras-optional).
 The middle of the loop (`feature-development`, `bug-fix`) commits nothing unless you ask: by default it leaves a verified, archived result uncommitted on a branch for you to review, and when you ask for commits (one at the end, or as the work goes) `gitflow` makes them. You commit it yourself otherwise; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.

@@ -13,6 +13,10 @@ integration_branch = "develop"      # topic branches start here and PR into it
 production_branch = "main"          # releases and hotfixes land here and get the version tag
 host = "auto"                        # github | gitlab | other; auto reads the origin URL (set it for a self-hosted GitHub or GitLab)
 
+[cycles]
+# The length of a cycle in weeks: backlog-forecast and backlog-cycle plan, close and calibrate in cycles of this length.
+weeks = 2
+
 [viewports]
 # Devices the viewport check of feature-development and bug-fix verifies when a change touches the UI
 # (it runs only if the project can render the view). Entries are "Name WIDTHxHEIGHT" in CSS pixels.
