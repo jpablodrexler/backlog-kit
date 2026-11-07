@@ -18,7 +18,7 @@ Then just talk to Claude:
 - "Plan a feature: dark-mode toggle" → `feature-plan` drafts the row and the brief (a user story with acceptance criteria), asks for the story points (suggesting a value from its [estimation rubric](docs/estimation.md)) and asks before writing.
 - "What should I work on next?" → `features-next` / `bugs-next`.
 - "What did we ship this month, and how fast are we going?" → `backlog-report`.
-- "What can I build next, and when could the backlog be done?" → `backlog-forecast`.
+- "What can I build next, and when could the backlog be done?" → `backlog-forecast` (how to read its P50 / P85 ranges: [forecasting](docs/forecasting.md)).
 - "Start the next cycle" / "Close the cycle, were my estimates right?" → `backlog-cycle`.
 - "Develop the next feature" / "Fix BUG-004" → `feature-development` / `bug-fix`.
 - "Finish the feature, open the PR" → `gitflow`. After merging: "clean up the branches".

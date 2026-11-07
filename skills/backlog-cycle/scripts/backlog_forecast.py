@@ -146,7 +146,9 @@ def forecast(root, args, today):
     uses_git = any(i["source"] == "git" for i in h["items"] if i["kind"] == "feature")
     pending_unestimated = sum(1 for c in items if c["points"] is None)
     warnings = bh.reliability(root, h["impl_ok"], in_range, uses_git, pending_unestimated, remaining_points)
-    notes = ["Only the known backlog is forecast: features added later are not in it.",
+    notes = ["P50, P85 and P95 are read off 20,000 simulated runs: P85 is reached or passed in 85 of 100 of them. For a capacity "
+             "a higher percentile gives fewer points; for a date it gives a later one.",
+             "Only the known backlog is forecast: features added later are not in it.",
              "Story points are ordinal, not proportional: a sum of points is a rough size, which is why the same forecast "
              "is also made by number of features.",
              "It assumes the next weeks look like the window. If your plan, its limits or the way you work changed, start "
