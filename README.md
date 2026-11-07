@@ -79,6 +79,16 @@ Install them when you want them: `python3 tools/install.py <repo> --extras` (or 
 
 `code-reviewer`, `security-reviewer`, `database-reviewer`, `architecture-reviewer`, `product-scope-roaster`, `docs-sync`, `dependency-upgrade`, `spec-compliance-check`, `features-batch-development`, `bugs-batch-fix`.
 
+## What changes between projects
+
+The skills are the same in every project. What makes a reviewer check *your* stack is a section in your own docs. The two projects that run on the kit have identical `code-reviewer`, `security-reviewer` and `database-reviewer`; what differs is their `Code review checks`, `Security review checks` and `Database review checks` sections, between 260 and 1,100 lines each. The skill holds the method (workflow, severities, report format); the section holds the checks.
+
+- **No section yet?** The reviewer still works, from its method and what your `CLAUDE.md` and `docs/` already say, and its report says that no project checks were found. A full-codebase sweep is the exception: it needs the `Full-codebase sweep layers` subsection of the section, and is not run without it.
+- **How to start:** install the extras and review something, then add a section when a review misses something your project cares about. There is no need to write one up front.
+- **What a section looks like:** one line saying what it covers, the project's own context and workflow, its wording of the severity levels, numbered checklists (`§1`, `§2`, ...; reports cite those numbers, so keep them stable), the known pitfalls of the project, and the sweep layers. Each reviewer reads its section from a fixed place: see the table in [docs/extras.md](docs/extras.md).
+- **Examples:** the public project [jp-photo-manager](https://github.com/jpablodrexler/jp-photo-manager) has all of them: [`Security review checks`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/JPPhotoManagerWeb/docs/security.md), [`Database review checks`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/JPPhotoManagerWeb/docs/database.md) and [`Code review checks`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/JPPhotoManagerWeb/docs/frontend.md).
+- **Skills for writing code in your stack** (an Angular or a Java developer skill, say) are not part of the kit. Both projects keep their own next to the kit's; the reviewers read their section, not those skills.
+
 ## Where things live
 
 The skills share a few fixed locations, so every project that uses the kit looks the same: the backlog and its briefs in `docs/backlog/`, decisions in `docs/decisions/`, dated reports in `docs/reports/`, and reference docs in `docs/*.md` (`architecture.md`, `features.md`, `frontend.md`, `backend.md`, `database.md`, `security.md`). The full table is [`shared/conventions.md`](shared/conventions.md); [`docs/conventions.md`](docs/conventions.md) explains it, says which documents are mandatory (only `CLAUDE.md`) and which are optional, and shows a filled-in example. A project carries it as a `## Kit conventions` section in its `CLAUDE.md`, with a "Checked against" column that tells `docs-sync` what each doc is compared with; `docs-sync` checks the section and offers to add it.
