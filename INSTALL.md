@@ -14,7 +14,7 @@ Skills appear namespaced, e.g. `backlog-kit:bug-fix`; naming a skill in plain la
 ## Option B: copy the skills into one repo
 
 ```
-python3 tools/install.py /path/to/your/repo             # the 17 core skills
+python3 tools/install.py /path/to/your/repo             # the 18 core skills
 python3 tools/install.py /path/to/your/repo --extras    # also the optional extras
 python3 tools/install.py /path/to/your/repo --only bug-fix,bugs-next
 ```

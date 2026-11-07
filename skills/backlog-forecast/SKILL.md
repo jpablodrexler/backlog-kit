@@ -43,6 +43,8 @@ It prints the history, the pace of one cycle, the **next cycle** (a prudent and 
 The order of the work is the one `features-next` recommends, with a feature placed after the pending prerequisite it is blocked on.
 The history and the dates behind it come from the same code as `backlog-report`, including the date of the archived SDD change.
 
+When the project keeps cycle files (see `backlog-cycle`), the output also says what the closed cycles show: how often the forecast capacity was reached, the share of the commitment that was delivered, and which sizes slip. From 4 closed cycles that delivered less than they committed, the next-cycle sets are scaled by that share (`--no-calibration` shows them unscaled); say so when it applies. To record a cycle, point to `backlog-cycle`.
+
 How the subscription enters: the kit cannot read the limit of the user's plan and does not need to. The weekly pace already holds it, together with the time spent on bugs, the interruptions and how fast Claude worked. The price is that the forecast assumes the next weeks look like the window. If the plan, its limits or the way of working changed, start the window after the change with `--since`.
 
 ## Reading the result

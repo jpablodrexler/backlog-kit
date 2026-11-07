@@ -19,6 +19,7 @@ Then just talk to Claude:
 - "What should I work on next?" → `features-next` / `bugs-next`.
 - "What did we ship this month, and how fast are we going?" → `backlog-report`.
 - "What can I build next, and when could the backlog be done?" → `backlog-forecast`.
+- "Start the next cycle" / "Close the cycle, were my estimates right?" → `backlog-cycle`.
 - "Develop the next feature" / "Fix BUG-004" → `feature-development` / `bug-fix`.
 - "Finish the feature, open the PR" → `gitflow`. After merging: "clean up the branches".
 
@@ -37,7 +38,7 @@ It doubles as a worked example, so you can see what the files look like before i
 - [`.backlog-kit.toml`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/.backlog-kit.toml): the one setting this project needs, where its backlog lives.
 - [`.claude/skills/`](https://github.com/jpablodrexler/jp-photo-manager/tree/develop/.claude/skills): the kit's skills as installed by copy (`tools/install.py`), next to the project's own stack skills.
 
-## The core (17 skills)
+## The core (18 skills)
 
 | Skill | What it does |
 | --- | --- |
@@ -48,6 +49,7 @@ It doubles as a worked example, so you can see what the files look like before i
 | `backlog-import` | bring open GitHub / GitLab issues into the backlog, reviewed one by one |
 | `backlog-report` | what was delivered per week, velocity, and weeks left at that pace |
 | `backlog-forecast` | what fits in the next cycle, a plan by cycle with dates, and when the known backlog could be finished, as ranges |
+| `backlog-cycle` | plan a cycle from the forecast, close it against what was delivered, a light retro, and the calibration of the estimates |
 | `features-archive`, `bugs-archive` | move finished items to the implemented / fixed tables |
 | `feature-development`, `bug-fix` | do one item end to end (below) |
 | `gitflow` | branches, PR, release, tag, clean up |

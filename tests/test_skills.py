@@ -152,8 +152,8 @@ class SkillLint(unittest.TestCase):
 
     def test_no_script_imports_outside_stdlib_or_lib(self):
         stdlib_ok = {"argparse", "json", "re", "sys", "pathlib", "copy", "tomllib", "subprocess",
-                     "datetime", "os", "random", "math",
-                     "backlog_kit", "backlog_history", "gitread", "work_scope", "branch_state", "detect_gates", "batch_plan", "batch_report"}
+                     "datetime", "os", "random", "math", "types",
+                     "backlog_kit", "backlog_history", "backlog_forecast", "backlog_cycles", "gitread", "work_scope", "branch_state", "detect_gates", "batch_plan", "batch_report"}
         for f in list((KIT / "skills").rglob("*.py")) + list((KIT / "extras").rglob("*.py")):
             with self.subTest(file=str(f.relative_to(KIT))):
                 mods = set(re.findall(r"^(?:import|from)\s+(\w+)", f.read_text(encoding="utf-8"), re.M))

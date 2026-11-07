@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import date, timedelta
 from pathlib import Path
 
 KIT = Path(__file__).resolve().parents[1]
@@ -774,3 +775,152 @@ class ReleaseTool(unittest.TestCase):
             p = self._run(work, "--dry-run")
             self.assertNotEqual(p.returncode, 0)
             self.assertIn("uncommitted", p.stderr)
+
+
+class BacklogCycle(unittest.TestCase):
+    """The cycle record: plan from the forecast, close against the archived features, calibrate the next forecast."""
+
+    SCRIPT = KIT / "skills/backlog-cycle/scripts/cycle.py"
+    FORECAST = KIT / "skills/backlog-forecast/scripts/forecast.py"
+    IMPL_HEAD = ("# Implemented\n\n## Feature List\n\n| # | Change name | Priority | Schema Change | Effort | Area | Details |\n"
+                 "| --- | --- | --- | --- | --- | --- | --- |\n")
+    PLAN_HEAD = ("# Planned\n\n## Feature List\n\n| # | Change name | Priority | Schema Change | Effort | Area | SDD Artifacts | Implementation | Summary | Brief |\n"
+                 "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n")
+    ROWS = [(11, "a", "P1", "3"), (12, "b", "P1", "5"), (13, "c", "P2", "8")]
+    MONDAYS = ["2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26"]   # 10 points a week
+
+    def repo(self, d, extra_implemented=""):
+        b = Path(d) / "docs/backlog"
+        b.mkdir(parents=True)
+        rows = "".join(f"| {n} | `{name}` | {p} | No | {e} | UI | ⬜ Pending | ⬜ Pending | s | [brief](features/{n:03d}-{name}.md) |\n"
+                       for n, name, p, e in self.ROWS)
+        (b / "features-planned.md").write_text(self.PLAN_HEAD + rows + "\n## Dependencies\n\n### Recommended implementation order\n\n_None yet._\n", encoding="utf-8")
+        impl, n = "", 21
+        for monday in self.MONDAYS:
+            for _ in range(2):
+                impl += f"| {n} | `i{n}` | P1 | No | 5 | UI | [spec](../../openspec/changes/archive/{monday}-i{n}/proposal.md) |\n"
+                n += 1
+        (b / "features-implemented.md").write_text(self.IMPL_HEAD + impl + extra_implemented, encoding="utf-8")
+        return b
+
+    def cycle(self, root, action, today, *extra, check=True):
+        p = subprocess.run([sys.executable, str(self.SCRIPT), action, str(root), "--today", today, "--weeks", "6", *extra],
+                           capture_output=True, text=True, encoding="utf-8")
+        if check:
+            self.assertEqual(p.returncode, 0, p.stderr)
+        return p
+
+    def forecast(self, root, *extra):
+        out = subprocess.run([sys.executable, str(self.FORECAST), str(root), "--today", "2026-11-04", "--weeks", "6", "--json", *extra],
+                             capture_output=True, text=True, encoding="utf-8", check=True).stdout
+        return json.loads(out)
+
+    def test_plan_previews_then_writes_the_prudent_set(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = self.repo(d)
+            preview = self.cycle(d, "plan", "2026-11-04").stdout
+            self.assertIn("Preview, nothing saved", preview)
+            self.assertFalse((b / "cycles").exists())
+            self.cycle(d, "plan", "2026-11-04", "--write")
+            text = (b / "cycles/2026-11-04.md").read_text(encoding="utf-8")
+            self.assertIn("**Status:** open", text)
+            self.assertIn("**Commitment:** prudent", text)
+            self.assertIn("**Forecast at planning:** prudent 10 points, likely 10 points", text)
+            self.assertIn("| #11 | `a` | 3 |", text)
+            self.assertIn("| #12 | `b` | 5 |", text)
+            self.assertNotIn("`c`", text)                                      # the 8 does not fit in 10 after 3 + 5
+            self.assertIn("**Committed:** 2 feature(s), 8 point(s)", text)
+            again = self.cycle(d, "plan", "2026-11-04", "--write", check=False)
+            self.assertEqual(again.returncode, 1)
+            self.assertIn("still open", again.stderr)
+
+    def test_plan_with_features_chosen_by_hand_and_no_history(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.repo(d, "")
+            for f in (Path(d) / "docs/backlog/features-implemented.md",):
+                f.write_text(self.IMPL_HEAD, encoding="utf-8")                  # nothing delivered: no pace
+            bare = self.cycle(d, "plan", "2026-11-04", check=False)
+            self.assertEqual(bare.returncode, 1)
+            self.assertIn("--features", bare.stderr)
+            chosen = self.cycle(d, "plan", "2026-11-04", "--features", "13,11").stdout
+            self.assertIn("**Commitment:** chosen by hand", chosen)
+            self.assertIn("**Forecast at planning:** none", chosen)
+            missing = self.cycle(d, "plan", "2026-11-04", "--features", "99", check=False)
+            self.assertEqual(missing.returncode, 1)
+
+    def test_close_reads_what_was_delivered_and_carries_the_rest(self):
+        with tempfile.TemporaryDirectory() as d:
+            delivered = ("| 11 | `a` | P1 | No | 3 | UI | [spec](../../openspec/changes/archive/2026-11-05-a/proposal.md) |\n"
+                         "| 99 | `z` | P1 | No | 2 | UI | [spec](../../openspec/changes/archive/2026-11-06-z/proposal.md) |\n")
+            b = self.repo(d, delivered)
+            self.cycle(d, "plan", "2026-11-04", "--write")
+            r = json.loads(self.cycle(d, "close", "2026-11-12", "--json", "--reason", "#12=waiting for a design").stdout)
+            self.assertEqual((r["delivered_from_plan"], r["committed"], r["carried"], r["unplanned"]), (1, 2, [12], ["#99"]))
+            self.assertEqual(r["points"], {"plan": 3, "committed": 8, "total": 5})
+            self.assertEqual(r["without_reason"], [])
+            self.cycle(d, "close", "2026-11-12", "--write", "--reason", "#12=waiting for a design", "--note", "commit less when a design is missing")
+            text = (b / "cycles/2026-11-04.md").read_text(encoding="utf-8")
+            self.assertIn("**Status:** closed", text)
+            self.assertIn("**Delivered from the plan:** 1 of 2 feature(s), 3 of 8 point(s)", text)
+            self.assertIn("**Delivered in total:** 2 feature(s), 5 point(s), 0 bug(s) fixed", text)
+            self.assertIn("prudent 10 points: not met; likely 10 points: not met", text)
+            self.assertIn("| #12 | `b` | 5 | waiting for a design |", text)
+            self.assertIn("- commit less when a design is missing", text)
+            again = self.cycle(d, "close", "2026-11-12", check=False)
+            self.assertEqual(again.returncode, 1)                               # nothing open any more
+            stats = self.cycle(d, "stats", "2026-11-12").stdout
+            self.assertIn("**Closed cycles:** 1", stats)
+            self.assertIn("5 pt: 1 of 1", stats)
+
+    def test_a_feature_archived_after_the_cycle_is_carried_with_its_date(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.repo(d, "| 12 | `b` | P1 | No | 5 | UI | [spec](../../openspec/changes/archive/2026-11-20-b/proposal.md) |\n")
+            self.cycle(d, "plan", "2026-11-04", "--write")
+            r = json.loads(self.cycle(d, "close", "2026-11-22", "--json").stdout)
+            self.assertEqual(r["carried"], [11, 12])
+            text = self.cycle(d, "close", "2026-11-22").stdout
+            self.assertIn("delivered after the cycle (2026-11-20)", text)
+
+    def test_batch_report_gives_the_reason_for_a_carried_feature(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = self.repo(d)
+            reports = Path(d) / "docs/reports/feature-batch"
+            reports.mkdir(parents=True)
+            (reports / "FEATURE_BATCH_REPORT_2026-11-05.md").write_text(
+                "# Feature Batch Development Report\n\n- [ ] b — ⚠ Blocked — needs a migration first\n", encoding="utf-8")
+            self.cycle(d, "plan", "2026-11-04", "--write")
+            text = self.cycle(d, "close", "2026-11-12").stdout
+            self.assertIn("batch report: needs a migration first", text)
+
+    def closed_cycle(self, start, plan_points, committed_points, total_points):
+        return (f"# Cycle {start}\n\n**Start:** {start}\n**End:** {date.fromisoformat(start) + timedelta(days=6)}\n**Status:** closed\n"
+                "**Commitment:** prudent\n**Forecast at planning:** prudent 10 points, likely 10 points\n\n## Plan\n\n"
+                "| # | Change name | Points |\n| --- | --- | --- |\n| #11 | `a` | 3 |\n\n"
+                f"**Committed:** 1 feature(s), {committed_points} point(s)\n\n## Close\n\n**Closed:** {start}\n"
+                f"**Delivered from the plan:** 0 of 1 feature(s), {plan_points} of {committed_points} point(s)\n"
+                f"**Delivered in total:** 0 feature(s), {total_points} point(s), 0 bug(s) fixed\n\n### Carried over\n\n"
+                "| # | Change name | Points | Reason |\n| --- | --- | --- | --- |\n| #11 | `a` | 3 | x |\n")
+
+    def test_closed_cycles_calibrate_the_forecast_only_from_four(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = self.repo(d)
+            (b / "cycles").mkdir()
+            for k, start in enumerate(["2026-09-07", "2026-09-14", "2026-09-21"]):
+                (b / "cycles" / f"{start}.md").write_text(self.closed_cycle(start, 4, 8, 4), encoding="utf-8")
+            r = self.forecast(d)
+            self.assertEqual((r["calibration"]["closed"], r["calibration"]["applied"]), (3, None))
+            self.assertEqual([i["number"] for i in r["next_cycle"]["likely"]], [11, 12])
+            (b / "cycles/2026-09-28.md").write_text(self.closed_cycle("2026-09-28", 4, 8, 4), encoding="utf-8")
+            r = self.forecast(d)
+            cal = r["calibration"]
+            self.assertEqual((cal["closed"], cal["applied"], cal["median_delivered_share"]), (4, 0.5, 0.5))
+            self.assertEqual(cal["forecast_met"]["prudent"], {"met": 0, "of": 4})        # 4 delivered against 10
+            self.assertEqual([i["number"] for i in r["next_cycle"]["likely"]], [11])      # 10 * 0.5 = 5: 3 fits, 3 + 5 does not
+            plain = self.forecast(d, "--no-calibration")
+            self.assertIsNone(plain["calibration"]["applied"])
+            self.assertEqual([i["number"] for i in plain["next_cycle"]["likely"]], [11, 12])
+
+    def test_stats_without_cycles(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.repo(d)
+            self.assertIn("No cycle yet", self.cycle(d, "stats", "2026-11-04").stdout)

@@ -93,6 +93,7 @@ class Paths:
         self.bugs_open = self.backlog / "bugs-open.md"
         self.bugs_fixed = self.backlog / "bugs-fixed.md"
         self.bugs_dir = self.backlog / "bugs"
+        self.cycles_dir = self.backlog / "cycles"
         self.decisions = self.root / cfg["paths"]["decisions_dir"]
         self.explorations = self.root / cfg["paths"]["explorations_dir"]
         self.reports = self.root / cfg["paths"]["reports_dir"]
