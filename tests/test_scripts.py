@@ -623,7 +623,7 @@ class BacklogForecast(unittest.TestCase):
 
     def run_forecast(self, root, *extra):
         script = Path(__file__).resolve().parents[1] / "skills/backlog-forecast/scripts/forecast.py"
-        out = subprocess.run([sys.executable, str(script), str(root), "--today", "2026-11-04", "--json", *extra],
+        out = subprocess.run([sys.executable, str(script), str(root), "--today", "2026-11-04", "--json", "--cycle-weeks", "1", *extra],
                              capture_output=True, text=True, encoding="utf-8", check=True).stdout
         return json.loads(out)
 
@@ -645,6 +645,14 @@ class BacklogForecast(unittest.TestCase):
             codes = [w["code"] for w in r["warnings"]]
             self.assertIn("few_weeks", codes)                                                    # 6 weeks is fewer than 8
             self.assertIn("pending_unestimated", codes)
+
+    def test_the_default_cycle_is_two_weeks(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.backlog(d, self.steady(self.LAST_SIX))
+            script = Path(__file__).resolve().parents[1] / "skills/backlog-forecast/scripts/forecast.py"
+            r = json.loads(subprocess.run([sys.executable, str(script), d, "--today", "2026-11-04", "--weeks", "6", "--json"],
+                                          capture_output=True, text=True, encoding="utf-8", check=True).stdout)
+            self.assertEqual((r["capacity"]["cycle_weeks"], r["capacity"]["likely_points"]), (2, 20))
 
     def test_the_cycle_length_changes_the_capacity(self):
         with tempfile.TemporaryDirectory() as d:
@@ -804,14 +812,14 @@ class BacklogCycle(unittest.TestCase):
         return b
 
     def cycle(self, root, action, today, *extra, check=True):
-        p = subprocess.run([sys.executable, str(self.SCRIPT), action, str(root), "--today", today, "--weeks", "6", *extra],
+        p = subprocess.run([sys.executable, str(self.SCRIPT), action, str(root), "--today", today, "--weeks", "6", "--cycle-weeks", "1", *extra],
                            capture_output=True, text=True, encoding="utf-8")
         if check:
             self.assertEqual(p.returncode, 0, p.stderr)
         return p
 
     def forecast(self, root, *extra):
-        out = subprocess.run([sys.executable, str(self.FORECAST), str(root), "--today", "2026-11-04", "--weeks", "6", "--json", *extra],
+        out = subprocess.run([sys.executable, str(self.FORECAST), str(root), "--today", "2026-11-04", "--weeks", "6", "--json", "--cycle-weeks", "1", *extra],
                              capture_output=True, text=True, encoding="utf-8", check=True).stdout
         return json.loads(out)
 
@@ -919,6 +927,18 @@ class BacklogCycle(unittest.TestCase):
             plain = self.forecast(d, "--no-calibration")
             self.assertIsNone(plain["calibration"]["applied"])
             self.assertEqual([i["number"] for i in plain["next_cycle"]["likely"]], [11, 12])
+
+    def test_cycles_are_two_weeks_unless_the_project_says_otherwise(self):
+        with tempfile.TemporaryDirectory() as d:
+            b = self.repo(d)
+            run = lambda *extra: subprocess.run([sys.executable, str(self.SCRIPT), "plan", d, "--today", "2026-11-04", "--weeks", "6", *extra],
+                                                capture_output=True, text=True, encoding="utf-8", check=True).stdout
+            out = run()
+            self.assertIn("**End:** 2026-11-17", out)                                  # 14 days from the start
+            self.assertIn("| #13 | `c` | 8 |", out)                                      # 20 points a cycle: 3 + 5 + 8 fit
+            (Path(d) / ".backlog-kit.toml").write_text("[cycles]\nweeks = 3\n", encoding="utf-8")
+            self.assertIn("**End:** 2026-11-24", run())
+            self.assertIn("**End:** 2026-11-10", run("--cycle-weeks", "1"))             # the option wins over the file
 
     def test_stats_without_cycles(self):
         with tempfile.TemporaryDirectory() as d:

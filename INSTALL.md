@@ -27,6 +27,7 @@ Nothing needs configuring. A `.backlog-kit.toml` at the repo root changes the de
 
 - `[paths] backlog_dir` — the backlog folder (default `docs/backlog`).
 - `[git]` — the long-lived branches `gitflow`, `feature-development` and `bug-fix` work against. `integration_branch` (default `develop`) is where topic branches start and where their PRs go; `production_branch` (default `main`) receives releases and hotfixes and gets the version tag. Set both to the same branch (for example `main`) for trunk-based development: a release then opens one PR instead of two, and the `develop` branch is never created. `host` (`auto`, `github`, `gitlab` or `other`; default `auto`) says where the PRs are opened: `auto` reads the origin URL, so set it explicitly for a self-hosted GitHub or GitLab. GitHub uses `gh` or the GitHub MCP tools, GitLab uses `glab`; on `other` hosts `gitflow` prints the PR text and the push command for you.
+- `[cycles]` — `weeks` (default `2`) is the length of a cycle for `backlog-forecast` and `backlog-cycle`.
 - `[viewports]` — the devices of the UI viewport check.
 
 ## After installing

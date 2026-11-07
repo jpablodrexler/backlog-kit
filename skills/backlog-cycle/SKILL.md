@@ -21,7 +21,7 @@ Record a cycle: plan it from the forecast, close it against what was delivered, 
 
 `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`. Cycle files go in `<backlog>/cycles/<start date>.md` and are meant to be committed: they are the history the calibration reads. They are not a second progress log: what was delivered is read from the archived features, the same dates `backlog-report` uses, so it covers features done inside a batch run and outside one. A batch report (`<reports>/feature-batch/`) stays what it is, a local log to resume a cut run; the only thing `close` takes from it is the reason a feature was blocked.
 
-**Input**: What the user wants: plan, close, or look at the record ("start the next cycle", "close the cycle", "were my estimates right"). Map it to `plan`, `close` or `stats`. For a plan, also take a cycle length ("two-week cycle" is `--cycle-weeks 2`), a history window (`--since`) or a pace by hand (`--capacity`).
+**Input**: What the user wants: plan, close, or look at the record ("start the next cycle", "close the cycle", "were my estimates right"). Map it to `plan`, `close` or `stats`. For a plan, also take a cycle length ("one-week cycle" is `--cycle-weeks 1`; the default is `[cycles] weeks` of `.backlog-kit.toml`, 2), a history window (`--since`) or a pace by hand (`--capacity`).
 
 ---
 

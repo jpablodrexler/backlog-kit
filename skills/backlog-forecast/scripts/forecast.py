@@ -29,6 +29,7 @@ for _cand in (_here.parent, _here.parents[3] / "lib"):
         sys.path.insert(0, str(_cand))
         break
 import backlog_forecast as bf
+import backlog_kit as bk
 from backlog_forecast import DEFAULT_WEEKS
 
 
@@ -115,7 +116,7 @@ def main():
     ap.add_argument("repo_root")
     ap.add_argument("--weeks", type=int, default=DEFAULT_WEEKS, help=f"complete weeks of history to learn the pace from (default {DEFAULT_WEEKS})")
     ap.add_argument("--since", help="start of the history window, YYYY-MM-DD (replaces --weeks)")
-    ap.add_argument("--cycle-weeks", type=int, default=1, help="length of a cycle in weeks (default 1)")
+    ap.add_argument("--cycle-weeks", type=int, help="length of a cycle in weeks (default: [cycles] weeks of .backlog-kit.toml, 2)")
     ap.add_argument("--cycles", type=int, default=6, help="how many cycles the plan table shows (default 6)")
     ap.add_argument("--capacity", type=float, help="points per week, given by hand instead of learnt from the history")
     ap.add_argument("--features", help="feature numbers to ask about as a set, for example 19,22,25")
@@ -126,6 +127,7 @@ def main():
     args = ap.parse_args()
     if not Path(args.repo_root).is_dir():
         sys.exit(f"{args.repo_root} is not a directory")
+    args.cycle_weeks = args.cycle_weeks or bk.cycle_weeks(bk.load_config(args.repo_root))
     args.weeks, args.cycle_weeks, args.cycles = max(args.weeks, 1), max(args.cycle_weeks, 1), max(args.cycles, 1)
     today = date.fromisoformat(args.today) if args.today else date.today()
     result = bf.forecast(Path(args.repo_root), args, today)

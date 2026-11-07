@@ -21,7 +21,7 @@ Forecast what the backlog can still deliver and by when, from `<backlog>/feature
 
 `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`.
 
-**Input**: Optionally what the user wants to know and how to look at it. Map their words to the script's options: "in two-week cycles" is `--cycle-weeks 2`; "how long would #19 and #22 take" is `--features 19,22`; "the pace since I changed plan" is `--since YYYY-MM-DD`; "assume 15 points a week" is `--capacity 15`. With nothing given, use the defaults: one-week cycles, the last 12 complete weeks as history, a plan of six cycles.
+**Input**: Optionally what the user wants to know and how to look at it. Map their words to the script's options: "in one-week cycles" is `--cycle-weeks 1`; "how long would #19 and #22 take" is `--features 19,22`; "the pace since I changed plan" is `--since YYYY-MM-DD`; "assume 15 points a week" is `--capacity 15`. With nothing given, use the defaults: cycles of the length in `.backlog-kit.toml` (`[cycles] weeks`, 2 by default), the last 12 complete weeks as history, a plan of six cycles.
 
 ---
 

@@ -220,7 +220,7 @@ def main():
     ap.add_argument("--commit", choices=["prudent", "likely"], default="prudent")
     ap.add_argument("--features")
     ap.add_argument("--start")
-    ap.add_argument("--cycle-weeks", type=int, default=1)
+    ap.add_argument("--cycle-weeks", type=int, help="length of the cycle in weeks (default: [cycles] weeks of .backlog-kit.toml, 2)")
     ap.add_argument("--weeks", type=int, default=bf.DEFAULT_WEEKS)
     ap.add_argument("--since")
     ap.add_argument("--capacity", type=float)
@@ -234,6 +234,7 @@ def main():
     root = Path(args.repo_root)
     if not root.is_dir():
         sys.exit(f"{root} is not a directory")
+    args.cycle_weeks = args.cycle_weeks or bk.cycle_weeks(bk.load_config(root))
     args.weeks, args.cycle_weeks = max(args.weeks, 1), max(args.cycle_weeks, 1)
     today = date.fromisoformat(args.today) if args.today else date.today()
 
