@@ -2,7 +2,7 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
-## Unreleased
+## 0.10.1
 - **`features-archive` writes the archive date into the row:** the `Details` cell of an implemented row now ends with `· archived YYYY-MM-DD` (today's date unless the user says the feature was done on another day), for every feature, with or without OpenSpec. `backlog-report` and `backlog-forecast` use it before any other date: it needs neither an archived SDD change nor the git history, so a backlog without OpenSpec, a table loaded in one go or a shallow clone gets real dates. The order is now that date, the archived SDD change, the first commit that added the row, and today. The "Feature dates" line and the JSON `dates` count the new source as `archived`, and the shared-date and shallow-clone warnings still concern only dates taken from git. Rows archived before this change keep the date they had; add `· archived YYYY-MM-DD` to a row by hand to pin its date.
 
 ## 0.10.0
