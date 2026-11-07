@@ -21,6 +21,8 @@ python3 tools/install.py /path/to/your/repo --only bug-fix,bugs-next
 
 Copies into `<repo>/.claude/skills/`; refuses to overwrite an existing skill (`--force` to replace). A project skill with the same name shadows the kit's — use Option A in that case.
 
+The reviewers are the same in every project; what they check in yours comes from review-check sections in your own docs, which you can add later: see [What changes between projects](README.md#what-changes-between-projects).
+
 ## Settings (optional)
 
 Nothing needs configuring. A `.backlog-kit.toml` at the repo root changes the defaults; copy [`backlog-kit.example.toml`](backlog-kit.example.toml) and keep only what you change:
