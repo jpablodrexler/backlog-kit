@@ -64,5 +64,40 @@ class BrainTest(unittest.TestCase):
         self.assertNotEqual(run(self.b, "search", "x", ok=False).returncode, 0)
 
 
+class DefaultDirTest(unittest.TestCase):
+    def setUp(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("brain", SCRIPT)
+        self.m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.m)
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = Path(self.tmp.name) / "home"
+        self.od = Path(self.tmp.name) / "OneDrive - Work"
+        self.home.mkdir()
+        self.od.mkdir()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_windows_uses_onedrive(self):
+        d = self.m.brain_dir(env={"OneDrive": str(self.od)}, platform="win32", home=self.home)
+        self.assertEqual(d, self.od / "brain")
+
+    def test_windows_falls_back_to_home_onedrive_then_home(self):
+        self.assertEqual(self.m.brain_dir(env={}, platform="win32", home=self.home), self.home / "brain")
+        (self.home / "OneDrive").mkdir()
+        self.assertEqual(self.m.brain_dir(env={}, platform="win32", home=self.home), self.home / "OneDrive" / "brain")
+
+    def test_ignores_stale_onedrive_variable(self):
+        env = {"OneDrive": str(self.od / "gone")}
+        self.assertEqual(self.m.brain_dir(env=env, platform="win32", home=self.home), self.home / "brain")
+
+    def test_other_platforms_and_explicit_choices_win(self):
+        env = {"OneDrive": str(self.od)}
+        self.assertEqual(self.m.brain_dir(env=env, platform="linux", home=self.home), self.home / "brain")
+        self.assertEqual(self.m.brain_dir(env={**env, "BRAIN_DIR": "/x/b"}, platform="win32", home=self.home), Path("/x/b"))
+        self.assertEqual(self.m.brain_dir("/y/b", env=env, platform="win32", home=self.home), Path("/y/b"))
+
+
 if __name__ == "__main__":
     unittest.main()

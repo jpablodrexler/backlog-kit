@@ -3,7 +3,7 @@
 A personal memory for Claude: a folder of markdown notes plus a `brain` skill that searches it and writes to it. Independent of the rest of backlog-kit.
 
 ```
-~/brain/                    # your notes (data) — its own private repo, if you want history
+~/brain/                    # your notes (data); on Windows: <OneDrive>\brain — its own private repo, if you want history
   INDEX.md                  # generated map of every note
   projects/<project>/*.md
   topics/  decisions/  people/  journal/  inbox/
@@ -16,11 +16,13 @@ A personal memory for Claude: a folder of markdown notes plus a `brain` skill th
 ## Install
 
 ```
-./install.sh                       # skill -> ~/.claude/skills/brain, folders -> ~/brain
+./install.sh                       # skill -> ~/.claude/skills/brain, folders -> the default brain location
 BRAIN_DIR=~/Documents/brain ./install.sh    # another location (export it in your shell profile too)
 ```
 
-The skill lives in your user folder, so it works from any project. The brain is outside every repo on purpose: it holds personal context. To keep history, `git init` it as a private repo; the skill never commits.
+Default location: `$BRAIN_DIR` if set; on Windows, a `brain` folder inside your OneDrive folder (read from `%OneDrive%`, then `%OneDriveConsumer%`, `%OneDriveCommercial%`, then `~/OneDrive`), so the notes sync across your devices; anywhere else (or on Windows without OneDrive), `~/brain`. `brain.py where` shows what it resolved.
+
+The skill lives in your user folder, so it works from any project. The brain is outside every repo on purpose: it holds personal context. OneDrive keeps a version history, but a private git repo gives you a better one. To keep history, `git init` it as a private repo; the skill never commits.
 
 ## Use
 

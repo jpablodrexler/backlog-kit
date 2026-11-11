@@ -11,7 +11,8 @@ counting, searching and bookkeeping (mechanics). It never runs git.
     python3 brain.py index
     python3 brain.py check
 
-The brain folder is --dir, else $BRAIN_DIR, else ~/brain.
+The brain folder is --dir, else $BRAIN_DIR, else on Windows a "brain" folder inside
+the OneDrive folder (when there is one), else ~/brain.
 """
 import argparse
 import json
@@ -51,8 +52,27 @@ def norm(s):
     return "".join(c for c in s if not unicodedata.combining(c)).lower()
 
 
-def brain_dir(arg=None):
-    return Path(arg or os.environ.get("BRAIN_DIR") or Path.home() / "brain").expanduser()
+def onedrive_dir(env, home):
+    """The synced OneDrive folder on Windows, or None. Personal account first, then work."""
+    for var in ("OneDrive", "OneDriveConsumer", "OneDriveCommercial"):
+        d = env.get(var)
+        if d and Path(d).is_dir():
+            return Path(d)
+    d = home / "OneDrive"
+    return d if d.is_dir() else None
+
+
+def brain_dir(arg=None, env=None, platform=None, home=None):
+    env = os.environ if env is None else env
+    platform = sys.platform if platform is None else platform
+    home = home or Path.home()
+    if arg or env.get("BRAIN_DIR"):
+        return Path(arg or env["BRAIN_DIR"]).expanduser()
+    if platform.startswith(("win", "cygwin", "msys")):
+        od = onedrive_dir(env, home)
+        if od:
+            return od / "brain"
+    return home / "brain"
 
 
 def parse(text):

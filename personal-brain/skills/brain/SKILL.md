@@ -1,8 +1,8 @@
 ---
 name: brain
 description: >-
-  Personal long-term memory: a folder of markdown notes (default ~/brain, or
-  $BRAIN_DIR) that holds the context of what the user works on with Claude, so
+  Personal long-term memory: a folder of markdown notes (default: a "brain" folder in OneDrive on
+  Windows, else ~/brain; or $BRAIN_DIR) that holds the context of what the user works on with Claude, so
   it can be searched later. RECALL: search the brain before answering when the
   user refers to earlier work, a project, a decision, a person or "what we did
   / what I said about X", and when starting work on a project that may have
@@ -18,7 +18,7 @@ The brain is a folder of markdown notes. You read it to avoid asking the user fo
 
 **Never run `git commit`, `git push` or open a PR.** The brain may be a git repository of the user's own; they commit it.
 
-`<brain>` is `$BRAIN_DIR`, else `~/brain`. `<scripts>` is `scripts/` next to this file; run it from this skill's base directory. The script does the searching and bookkeeping; the writing is yours.
+`<brain>` is `$BRAIN_DIR`; else, on Windows, the `brain` folder inside the OneDrive folder (so it syncs); else `~/brain`. `<scripts>` is `scripts/` next to this file; run it from this skill's base directory. The script does the searching and bookkeeping; the writing is yours.
 
 ```
 python3 <scripts>/brain.py where                      # where the brain is, and whether it exists
