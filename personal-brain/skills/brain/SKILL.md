@@ -96,7 +96,7 @@ Steps:
 3. When the session itself is worth recording, append a short entry to `journal/<today>.md`: what was done, what was decided, what is left, with links to the notes you touched.
 4. `index`, then tell the user in one or two lines which files you created or changed.
 
-When the user asks explicitly, save directly. Without an ask, offer in one line at the end of significant work ("¿Lo guardo en el brain?") and wait; do not write unprompted.
+When the user asks explicitly, save directly. Without an ask, offer in one line at the end of significant work ("¿Lo guardo en el brain?") and wait; do not write unprompted. The exception is auto-save: when the user enabled it (`install.sh --auto-save`), a SessionEnd hook runs `scripts/session_end.py`, which starts a headless `claude -p` that applies these same steps to the finished session. Its journal entries start with `<!-- session: <id> -->`; update the entry with the same id rather than adding another. Treat such entries as machine summaries: useful for orientation, to be checked against the code before relying on them.
 
 ## Maintain
 

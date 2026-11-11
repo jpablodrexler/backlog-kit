@@ -101,3 +101,71 @@ class DefaultDirTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AutoSaveTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        t = Path(self.tmp.name)
+        self.brain, self.home = t / "brain", t / "claude"
+        lines = [{"type": "user", "message": {"role": "user", "content": "Vamos a arreglar el login"}},
+                 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Cambié el token"}, {"type": "tool_use", "name": "Edit"}]}},
+                 {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "content": "NOISE"}]}},
+                 {"type": "user", "message": {"role": "user", "content": "<command-name>/x</command-name>"}},
+                 {"type": "user", "message": {"role": "user", "content": "Gracias, guarda la decisión"}}]
+        self.tr = t / "s.jsonl"
+        self.tr.write_text("\n".join(json.dumps(l) for l in lines), encoding="utf-8")
+        self.stub = t / "fake_claude.py"          # records how it was called instead of calling a model
+        self.stub.write_text("import sys,json,os\nopen(os.environ['OUT'],'w').write(json.dumps({'argv':sys.argv[1:],'stdin':sys.stdin.read(),'cwd':os.getcwd()}))\n")
+        self.out = t / "out.json"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def hook(self, extra_env=None, tr=None):
+        import os
+        stub = self.tmp.name + "/claude_stub.sh"
+        Path(stub).write_text(f'#!/bin/sh\nexec "{sys.executable}" "{self.stub}" "$@"\n')
+        Path(stub).chmod(0o755)
+        env = {**os.environ, "BRAIN_DIR": str(self.brain), "BRAIN_AUTOSAVE_CLAUDE": stub, "BRAIN_AUTOSAVE_WAIT": "1",
+               "OUT": str(self.out), **(extra_env or {})}
+        env.pop("BRAIN_AUTOSAVE_RUNNING", None) if not extra_env else None
+        arg = json.dumps({"session_id": "abc", "transcript_path": str(tr or self.tr), "cwd": "/w/acme", "reason": "other"})
+        return subprocess.run([sys.executable, "-I", str(ROOT / "skills/brain/scripts/session_end.py")], input=arg, text=True,
+                              capture_output=True, encoding="utf-8", env=env)
+
+    def test_summarises_spoken_text_only(self):
+        self.assertEqual(self.hook().returncode, 0)
+        got = json.loads(self.out.read_text())
+        self.assertIn("USER: Vamos a arreglar el login", got["stdin"])
+        self.assertIn("CLAUDE: Cambié el token", got["stdin"])
+        for noise in ("NOISE", "command-name", "tool_use"):
+            self.assertNotIn(noise, got["stdin"])
+        self.assertEqual(Path(got["cwd"]).resolve(), self.brain.resolve())
+        self.assertIn("<!-- session: abc -->", got["argv"][1])
+        self.assertIn("acceptEdits", got["argv"])
+
+    def test_skips_short_sessions_and_child_runs(self):
+        short = Path(self.tmp.name) / "short.jsonl"
+        short.write_text(json.dumps({"type": "user", "message": {"content": "hola"}}))
+        self.hook(tr=short)
+        self.assertFalse(self.out.exists())
+        self.hook({"BRAIN_AUTOSAVE_RUNNING": "1"})
+        self.assertFalse(self.out.exists())
+
+    def test_installer_adds_and_removes_only_its_hook(self):
+        import os
+        s = self.home / "settings.json"
+        self.home.mkdir()
+        s.write_text(json.dumps({"theme": "dark", "hooks": {"SessionEnd": [{"hooks": [{"type": "command", "command": "other"}]}]}}))
+        env = {**os.environ, "CLAUDE_HOME": str(self.home)}
+        cmd = [sys.executable, "-I", str(ROOT / "skills/brain/scripts/hook_install.py")]
+        for _ in range(2):                                   # twice: must not duplicate
+            subprocess.run(cmd, check=True, capture_output=True, env=env)
+        d = json.loads(s.read_text())
+        cmds = [h["command"] for g in d["hooks"]["SessionEnd"] for h in g["hooks"]]
+        self.assertEqual(len(cmds), 2)
+        self.assertEqual(d["theme"], "dark")
+        subprocess.run(cmd + ["--remove"], check=True, capture_output=True, env=env)
+        d = json.loads(s.read_text())
+        self.assertEqual([h["command"] for g in d["hooks"]["SessionEnd"] for h in g["hooks"]], ["other"])
