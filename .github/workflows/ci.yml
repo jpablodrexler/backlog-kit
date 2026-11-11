@@ -35,6 +35,8 @@ jobs:
         run: python tools/vendor.py --check
       - name: Unit and integration tests
         run: python -m unittest discover -s tests -v
+      - name: Personal brain tests
+        run: python -m unittest discover -s personal-brain/tests -v
 
   manifests:
     name: plugin manifests are valid JSON

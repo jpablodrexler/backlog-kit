@@ -3,6 +3,7 @@
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
 ## Unreleased
+- **Personal brain (`personal-brain/`):** a separate, user-level `brain` skill, not part of the plugin or of `tools/install.py`. It keeps the context of what you work on with Claude as markdown notes in `$BRAIN_DIR` (on Windows a `brain` folder inside OneDrive, else `~/brain`): recall searches them before answering about earlier work, capture saves on request (and offers at the end of significant work), maintain checks front matter, links and the index. `scripts/brain.py` does `search`, `recent`, `index`, `check`, `init` and `where` with the standard library only. `install.sh --auto-save` adds a `SessionEnd` hook that saves a summary of each session through a detached headless `claude -p` (journal entry per session id, notes updated, narrow tool allowlist, no git). CI runs its tests. Documented in the README, `INSTALL.md`, `CONTRIBUTING.md` and `DESIGN.md`.
 - **The README explains what changes between projects:** a new section says that the skills are the same everywhere and that what a reviewer checks in a project comes from the review-check sections of its own docs, what happens without one (and that a full-codebase sweep needs its layers), how to start, what a section looks like, with the public jp-photo-manager sections as examples, and that stack coding skills are not part of the kit. `INSTALL.md` links to it.
 
 ## 0.10.1

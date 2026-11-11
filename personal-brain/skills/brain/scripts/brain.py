@@ -264,6 +264,8 @@ def main(argv=None):
     sub.add_parser("index").set_defaults(fn=cmd_index)
     sub.add_parser("check").set_defaults(fn=cmd_check)
     a = ap.parse_args(argv)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")       # accents survive a Windows console code page
     a.fn(a)
 
 

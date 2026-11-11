@@ -103,6 +103,7 @@ if __name__ == "__main__":
     unittest.main()
 
 
+@unittest.skipIf(sys.platform == "win32", "the test stands in for claude with a sh script")
 class AutoSaveTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
