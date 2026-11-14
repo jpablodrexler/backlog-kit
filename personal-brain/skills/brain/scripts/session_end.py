@@ -34,10 +34,10 @@ Brain folder (your working directory): {brain}
 Session id: {sid}    Date: {today}    Project folder of the session: {cwd}
 
 The conversation is on stdin. Do this, and nothing else:
-1. Run `python3 {script} search <project and subject terms>` and read the notes it finds.
+1. Run `{py} {script} search <project and subject terms>` and read the notes it finds.
 2. Append an entry to journal/{today}.md (create it with front matter if missing): what was done, what was decided, what is left, with links to the notes you touch. Start the entry with `<!-- session: {sid} -->`; if an entry with that marker already exists, update it instead of adding another.
 3. Update or create project/topic/decision notes ONLY for durable context a future session would need. Prefer updating an existing note; bump `updated`.
-4. Run `python3 {script} index`.
+4. Run `{py} {script} index`.
 Never write credentials, tokens, or private data about third parties. If the session had nothing worth keeping, write only a one-line journal entry. Write in the language the user used. Do not run git."""
 
 
@@ -88,8 +88,9 @@ def main():
     if not exe:
         log.open("a").write(f"{date.today()} {hook.get('session_id')}: claude not found on PATH\n")
         return 0
+    py = "python" if os.name == "nt" else "python3"     # on Windows `python3` is often a Store stub
     prompt = PROMPT.format(brain=brain, sid=hook.get("session_id", "unknown"), today=date.today().isoformat(),
-                           cwd=hook.get("cwd", ""), script=Path(__file__).with_name("brain.py"))
+                           cwd=hook.get("cwd", ""), script=Path(__file__).with_name("brain.py"), py=py)
     cmd = [exe, "-p", prompt, "--permission-mode", "acceptEdits",
            "--allowedTools", "Read,Write,Edit,Bash(python3 *brain.py*),Bash(python *brain.py*)"]
     if os.environ.get("BRAIN_AUTOSAVE_MODEL"):

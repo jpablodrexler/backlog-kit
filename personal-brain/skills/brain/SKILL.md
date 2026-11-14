@@ -18,7 +18,7 @@ The brain is a folder of markdown notes. You read it to avoid asking the user fo
 
 **Never run `git commit`, `git push` or open a PR.** The brain may be a git repository of the user's own; they commit it.
 
-`<brain>` is `$BRAIN_DIR`; else, on Windows, the `brain` folder inside the OneDrive folder (so it syncs); else `~/brain`. `<scripts>` is `scripts/` next to this file; run it from this skill's base directory. The script does the searching and bookkeeping; the writing is yours.
+`<brain>` is `$BRAIN_DIR`; else, on Windows, the `brain` folder inside the OneDrive folder (so it syncs); else `~/brain`. `<scripts>` is `scripts/` next to this file; run it from this skill's base directory. The script does the searching and bookkeeping; the writing is yours. Commands below say `python3`; if that fails (on Windows it is often a Microsoft Store stub that prints "Python was not found"), use `python` or `py -3` instead.
 
 ```
 python3 <scripts>/brain.py where                      # where the brain is, and whether it exists
