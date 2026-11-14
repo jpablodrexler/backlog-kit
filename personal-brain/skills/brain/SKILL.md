@@ -12,6 +12,8 @@ description: >-
   work ends. TRIGGER on any of those, on "brain", "mi cerebro", "second brain",
   "memoria", and on setting up or tidying the brain. Does not store credentials.
 license: MIT
+metadata:
+  author: Juan Pablo Drexler
 ---
 
 The brain is a folder of markdown notes. You read it to avoid asking the user for context they already gave you, and you write to it so the next session starts informed. Notes are written for a future you with no memory of this conversation.
