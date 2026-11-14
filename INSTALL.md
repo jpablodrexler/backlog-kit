@@ -23,6 +23,17 @@ Copies into `<repo>/.claude/skills/`; refuses to overwrite an existing skill (`-
 
 The reviewers are the same in every project; what they check in yours comes from review-check sections in your own docs, which you can add later: see [What changes between projects](README.md#what-changes-between-projects).
 
+## Personal brain (optional, separate)
+
+A user-level skill for your own long-term notes, unrelated to the backlog. It needs only Python 3.11+ and is not part of options A and B.
+
+```
+personal-brain/install.sh                # skill -> ~/.claude/skills/brain, notes folder created
+personal-brain/install.sh --auto-save    # also save a summary of each session (SessionEnd hook)
+```
+
+The notes folder is `$BRAIN_DIR`; on Windows, a `brain` folder inside your OneDrive folder; otherwise `~/brain`. On Windows run the script from Git Bash. Details: [personal-brain/README.md](personal-brain/README.md).
+
 ## Settings (optional)
 
 Nothing needs configuring. A `.backlog-kit.toml` at the repo root changes the defaults; copy [`backlog-kit.example.toml`](backlog-kit.example.toml) and keep only what you change:

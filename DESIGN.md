@@ -11,6 +11,7 @@ A small set of skills that takes a feature or a bug from idea to a verified, arc
 - **Core (`skills/`, 18 skills):** planning (`feature-plan`, `features-next`, `features-status`, `features-archive`, `bug-report`, `bugs-next`, `bugs-status`, `bugs-archive`), `backlog-report`, `backlog-forecast`, `backlog-cycle`, `bugs-triage`, `features-triage`, `backlog-import`, `decision-record`, the two pipelines (`feature-development`, `bug-fix`) and `gitflow`.
 - **Extras (`extras/`, 10 skills):** the reviewers, `docs-sync`, `dependency-upgrade`, `spec-compliance-check` and the two batch runners. Installed on request (`tools/install.py --extras`).
 - **Scripts (`lib/`, `skills/*/scripts`):** ranking, status counts, table checks and ids. Mechanics are code; judgment is Claude. They are read-only and standard library only. `lib/` is the single source and `tools/vendor.py` copies it into each skill so every skill works installed alone.
+- **Personal brain (`personal-brain/`, 1 skill):** outside the kit on purpose. It serves one person's long-term memory, not a project's backlog: it installs per user (`~/.claude/skills`), keeps its data outside every repo (`$BRAIN_DIR`, OneDrive on Windows, else `~/brain`), and has its own installer and tests. Notes are markdown with a `title` and `summary` front matter; `brain.py` searches and indexes them (keyword scoring, accent-insensitive) and Claude does the writing. It keeps the no-commit promise. Auto-save is an opt-in `SessionEnd` hook that starts a detached headless `claude -p` with a narrow tool allowlist and a recursion guard.
 - **State:** markdown. `<backlog>/features-planned.md`, `features-implemented.md`, `bugs-open.md`, `bugs-fixed.md`, one brief per item under `features/` and `bugs/`. No database, no service.
 
 ## Rules the skills keep
@@ -33,5 +34,7 @@ The reviewers, `docs-sync`, `spec-compliance-check` and `dependency-upgrade` nee
 The skills were converted from the workflow skills of two real projects, keeping their text wherever the stack allows; the pipelines' phases, the architecture reviewer and the roaster were rewritten freely afterwards.
 
 ## Tests
+
+`python3 -m unittest discover -s personal-brain/tests` covers the brain: search ranking, default folder per platform, the index and check, the auto-save hook and its installer.
 
 `python3 -m unittest discover -s tests` checks: frontmatter and author on every skill, no stack words in skills/scripts, the no-commit promise, gitflow's confirmations, script behaviour on fixture backlogs, vendored copies in sync (`tools/vendor.py --check`).

@@ -73,6 +73,10 @@ It doubles as a worked example, so you can see what the files look like before i
 After the clean up, the next item starts again in the Backlog. The core skills run the loop; the review gate's reviewers, the proof (`spec-compliance-check`, `docs-sync`), the batch runners and the advisors are [extras](#extras-optional).
 The middle of the loop (`feature-development`, `bug-fix`) commits nothing unless you ask: by default it leaves a verified, archived result uncommitted on a branch for you to review, and when you ask for commits (one at the end, or as the work goes) `gitflow` makes them. You commit it yourself otherwise; the ends of the loop (starting and syncing branches, pushing and opening the PR, tagging, cleaning up) belong to `gitflow`, which you invoke when you are ready. It never commits, pushes or opens a PR unless you ask, and it confirms before the first push of a branch, a tag and any deletion.
 
+## Personal brain (separate, optional)
+
+Not part of the backlog workflow: [`personal-brain/`](personal-brain/README.md) is a `brain` skill for your own long-term memory. It keeps what you work on with Claude as markdown notes in a folder (`$BRAIN_DIR`, a `brain` folder inside OneDrive on Windows, else `~/brain`), searches them when you refer to earlier work ("what did we decide about X?") and saves context when you ask ("save this to my brain"). An opt-in hook can save a summary of every session by itself. It installs for your user, not per project: `personal-brain/install.sh` (add `--auto-save` for the hook). It is not installed by the plugin or by `tools/install.py`.
+
 ## Extras (optional)
 
 Install them when you want them: `python3 tools/install.py <repo> --extras` (or `--all`). The reviewers, `docs-sync`, `spec-compliance-check` and `dependency-upgrade` work out of the box from your `CLAUDE.md` and docs, and get sharper if you add review-check sections to your docs — see [docs/extras.md](docs/extras.md).
@@ -114,6 +118,7 @@ Pre-1.0 software, exercised on real repositories (see [In use](#in-use)) but not
 ```
 python3 tools/vendor.py --check
 python3 -m unittest discover -s tests
+python3 -m unittest discover -s personal-brain/tests
 ```
 
 ## License
