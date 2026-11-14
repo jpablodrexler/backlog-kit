@@ -44,7 +44,7 @@ Spawn a **general-purpose subagent** (`run_in_background: false`) with
 > (already decided; do not re-ask, do not decide yourself; never log or echo
 > credentials; if the source is unusable now, `E2E_BLOCKED — <source> unusable
 > at read time`, never silently fall back).
-> 1. Run `<E2E_COMMAND>` — the narrowest command that covers the changed flow.
+> 1. Run `<E2E_COMMAND>` — the narrowest command that covers the changed flow. (If the orchestrator already ran the suite itself under `reference/long-runs.md` because it can take long, skip this item and use its result.)
 > 2. If the fix touched a specific flow, exercise the specific flow the bug was
 >    about, once, through the real UI against the real backend — confirm the
 >    bug is actually gone here, not just in the unit test — with no console

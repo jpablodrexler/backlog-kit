@@ -2,7 +2,7 @@
 
 _Part of the `feature-development` skill — see `../SKILL.md` for the overview, Phase 0, placeholder substitution, final summary and the cross-phase guardrails. Read this file in full before starting this phase._
 
-## Phase 3 — Tests (Subagent 3, optional)
+## Phase 3 — Tests (run by the orchestrator, optional)
 
 **This phase is optional: skip it when the project has no automated tests.**
 Before spawning anything, find out yourself (orchestrator, not a subagent)
@@ -22,63 +22,24 @@ unconditionally must be run here unconditionally too: do not skip it based on
 change that looks entirely unrelated (a shared component's translation
 string, a relocated file) can still break a test that asserts against it.
 
-Spawn a **general-purpose subagent** via the Agent tool, with
-`run_in_background: false` (Phase 4 cannot start until this subagent
-reports `PASS` or `BLOCKED` — see the foreground guardrail in `../SKILL.md`), with the
-following prompt (substitute the commands you found for `<TEST_COMMAND>` and
-`<SMOKE_COMMAND>`; delete Step 2 if the project has no smoke tier):
+**The orchestrator runs this phase itself, not a subagent.** A test suite can take long enough to hang or to crash on memory, and a subagent that starts it and then reports "waiting on my own background work" has reported nothing. Read `reference/long-runs.md` in full before starting: it covers the progress monitor, chunking with a timeout and a log file, stopping a whole process tree, rerunning a crashed chunk file by file, and memory. In short:
 
-> Run the project's tests — fast, local checks that together cover what CI
-> actually gates this PR on.
-> Change being validated: `<change-name>` (focus failure diagnosis here first).
->
-> **Step 1 — Tests**
-> 1. Run (using the Bash tool): `<TEST_COMMAND>`
-> 2. If all tests pass, continue to Step 2.
-> 3. If any tests fail:
->    a. Read the failure output carefully.
->    b. Identify the root cause (type error, missing stub, assertion
->    mismatch, etc.), checking files related to `<change-name>` first.
->    c. Fix the affected files. Prefer fixing test code over production
->    source code. If you must modify a production source file, note it with
->    `PROD_CODE_FIXED: <filename> — <reason>`.
->    d. Re-run `<TEST_COMMAND>`.
->    e. Repeat until all tests pass or you reach a failure you cannot fix
->    without human input, then continue to Step 2.
->
-> **Step 2 — Smoke tier (only if the project has one)**
-> This is a distinct suite from Step 1 (for example end-to-end specs run
-> against a dev server with the backend stubbed). Run it even if
-> `<change-name>` looks unrelated to any spec in it; that's exactly the case
-> most likely to be missed otherwise.
-> 1. Run (using the Bash tool, allow up to 5 minutes): `<SMOKE_COMMAND>`
-> 2. If all specs pass, report success with the total spec/test count.
-> 3. If any spec fails:
->    a. Read the failure output carefully.
->    b. **Most failures here are a stale assertion in the spec itself** — a
->    hardcoded fixture value or expected UI string that no longer matches
->    what the component actually renders — rather than a genuine production
->    regression. Before changing any production file, check the actual
->    rendered output against the spec's assertion.
->    c. Fix the affected file(s), preferring the spec over production source,
->    mirroring Step 1's rule — if you must modify a production source file,
->    note it with `PROD_CODE_FIXED: <filename> — <reason>`.
->    d. Re-run `<SMOKE_COMMAND>`.
->    e. Repeat until all specs pass or you reach a failure you cannot fix
->    without human input.
->
-> End your response with one of:
->
-> - `TESTS: PASS (<n> tests, <m> smoke tests)` if both steps pass (omit the
->   smoke count if there is no smoke tier).
-> - `TESTS: BLOCKED — <brief reason, noting which tier>` if you encountered
->   a failure in either tier you cannot resolve.
+1. Start the progress monitor, then run `<TEST_COMMAND>` in chunks, one at a time.
+2. **If something fails:** read the failure output and find the root cause (a type error, a missing stub, an assertion mismatch), checking files related to `<change-name>` first. Fix the affected files, preferring test code over production source. If you must modify a production source file, note it as `PROD_CODE_FIXED: <filename> — <reason>`. To save your own context you may spawn a **bounded** subagent to fix one named failing test; it never runs the suite, and you re-run it yourself.
+3. **Smoke tier (only if the project has one):** a distinct suite from step 1 (for example end-to-end specs against a dev server with the backend stubbed). Run `<SMOKE_COMMAND>` the same way, even if `<change-name>` looks unrelated to any spec in it. Most failures here are a stale assertion in the spec itself (a hardcoded fixture value or UI string that no longer matches what the component renders), not a regression: check the rendered output before changing any production file, and apply the same `PROD_CODE_FIXED:` rule.
+4. Record how the run was split, any chunk that timed out or crashed and how it was rerun, and anything not run, for the Final Summary.
 
-If the subagent reports `BLOCKED`, stop the workflow and surface the
+End the phase with exactly one of these lines:
+
+- `TESTS: PASS (<n> tests, <m> smoke tests)`: both tiers pass (omit the smoke count if there is no smoke tier).
+- `TESTS: PARTIAL — <what was not run>, by the user's decision`: only when the user chose to skip part of a suite or a tier (ask with **AskUserQuestion** when the run is taking too long or the machine cannot finish it). What did run passed. The Final Summary names what was not run; it is never reported as a plain pass.
+- `TESTS: BLOCKED — <brief reason, noting which tier>`: a failure you cannot resolve without human input.
+
+If the phase ends `BLOCKED`, stop the workflow and surface the
 failure details to the user before continuing. Do not proceed to Phase 4
-until it reports `PASS` (or the phase was skipped).
+until it ends `PASS` or `PARTIAL` (or the phase was skipped).
 
-If the subagent's response contains one or more `PROD_CODE_FIXED:` lines,
+If any `PROD_CODE_FIXED:` line was recorded,
 surface them to the user with a note that those production source changes
 were not covered by the Phase 2R review gate. Ask the user whether to:
 
@@ -86,8 +47,7 @@ were not covered by the Phase 2R review gate. Ask the user whether to:
   record this (e.g. `UNREVIEWED_PROD_FIXES: <the PROD_CODE_FIXED lines>`) —
   the Final Summary in `../SKILL.md` must surface it.
 - **Re-run the review gate** — run the Phase 2R review gate (`reference/review-gate.md`) again over
-  the production fixes, then re-run Phase 3 (spawn a new
-  Subagent 3) to confirm all tests still pass before continuing to Phase 4.
+  the production fixes, then re-run Phase 3 to confirm all tests still pass before continuing to Phase 4.
   If this path is taken, there is nothing left to caveat in the Final
   Summary.
 

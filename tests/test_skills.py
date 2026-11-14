@@ -441,6 +441,31 @@ class ReviewGate(unittest.TestCase):
         self.assertNotIn("Invoke `code-reviewer`", phase2)
 
 
+class LongRuns(unittest.TestCase):
+    def test_long_runs_are_owned_by_the_orchestrator_and_watched(self):
+        src = (KIT / "shared/long-runs.md").read_text(encoding="utf-8")
+        text = " ".join(src.split())
+        for needle in ("never owned by a subagent", "heartbeat about every 3 minutes", "A line for every terminal state",
+                       "hard timeout", "whole process tree", "one file at a time", "Check free memory before each chunk"):
+            self.assertIn(needle, text)
+        for rel in ("skills/bug-fix", "skills/feature-development"):
+            with self.subTest(skill=rel):
+                self.assertTrue((KIT / rel / "reference/long-runs.md").is_file())
+                skill = (KIT / rel / "SKILL.md").read_text(encoding="utf-8")
+                self.assertIn("reference/long-runs.md", skill)
+                self.assertIn("TESTS: PARTIAL", skill)
+                phase3 = (KIT / rel / "reference/phase-3-tests.md").read_text(encoding="utf-8")
+                self.assertIn("reference/long-runs.md", phase3)
+                self.assertIn("run by the orchestrator", phase3)
+                self.assertNotIn("Subagent 3", phase3)
+
+    def test_the_review_gate_checks_content_and_allows_an_inline_run(self):
+        gate = " ".join((KIT / "shared/review-gate.md").read_text(encoding="utf-8").split())
+        self.assertIn("The stamp alone proves nothing", gate)
+        self.assertIn("Running a review inline", gate)
+        self.assertIn("Never tell a review subagent *not* to write its report", gate)
+
+
 class SkillAuthor(unittest.TestCase):
     def test_every_skill_names_its_author(self):
         for f in sorted(list((KIT / "skills").glob("*/SKILL.md")) + list((KIT / "extras").glob("*/SKILL.md"))):

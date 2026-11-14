@@ -85,9 +85,9 @@ project with a schema, an end-to-end suite and a build runs them all.
 | 1 — Propose                   | Subagent 1 | `git fetch origin --prune` to detect a branch/commits pushed from another device → `gitflow` (start feature to create `feature/<change-name>`, resume + merge in another device's pushed commits, or sync feature to catch up an existing one with `<integration>`) → mark the feature `🔶 In Progress` in `<backlog>/features-planned.md` → `openspec-propose` (if artifacts missing) |
 | 2 — Implement                 | Subagent 2 | implement from the brief (`openspec-apply-change <name>` in an OpenSpec project); reviews are not its job |
 | 2R — Review gate              | orchestrator + one subagent per review | the orchestrator computes `CHANGED_FILES`, decides which conditional reviews apply and verifies every report; separate subagents run `code-reviewer`, then — only when the change touches them — `database-reviewer`, `security-reviewer` and the mobile/desktop viewport check; findings fixed before done (`reference/review-gate.md`) |
-| 3 — Tests *(optional)*        | Subagent 3 | runs the project's tests (and its fast smoke tier, if CI runs one) until they pass; skipped if the project has no automated tests |
+| 3 — Tests *(optional)*        | orchestrator (a subagent only fixes one named failing test) | runs the project's tests (and its fast smoke tier, if CI runs one) in chunks, with progress updates, until they pass; skipped if the project has no automated tests |
 | 4 — E2E verification *(optional, conditional)* | Subagent 4 | runs the project's end-to-end/browser checks when the change touches a user-facing flow — skipped otherwise, or if the project has no such suite; how the test account is provided is decided by the orchestrator itself, before spawning Subagent 4, since that decision needs `AskUserQuestion` |
-| 5 — Build verification *(optional)* | Subagent 5 | runs the project's build locally to catch build failures before CI or the host would; skipped if the project has no build step |
+| 5 — Build verification *(optional)* | orchestrator | runs the project's build locally to catch build failures before CI or the host would; skipped if the project has no build step |
 | 6S — Spec proof               | Subagent 6 | `spec-compliance-check` (or a manual proof), unverified scenarios closed with tests; the orchestrator opens the report and checks `Failing` and `Unverified` are both 0 |
 | 6 — Archive                   | Subagent 7 | syncs the docs, `openspec-sync-specs <name>` then `openspec-archive-change <name>` (OpenSpec projects), `features-archive <name>` |
 | 7 — Commit *(only with `--commit`)* | orchestrator | `gitflow` commit action: one local commit holding the implementation, its tests and the backlog move |
@@ -142,9 +142,9 @@ across every phase, and other skills cite these phases by number
 | 1 — Propose | Subagent 1 | selecting the branch/resume mode, the spec step (OpenSpec projects), the dependency check | `reference/phase-1-propose.md` |
 | 2 — Implement | Subagent 2 | implementing | `reference/phase-2-implement-review.md` |
 | 2R — Review gate | orchestrator + review subagents | the code review and the conditional database/security/viewport steps, with the orchestrator's own checks | `reference/review-gate.md` |
-| 3 — Tests *(optional)* | Subagent 3 | running the project's tests | `reference/phase-3-tests.md` |
+| 3 — Tests *(optional)* | orchestrator | running the project's tests in chunks, with progress updates | `reference/phase-3-tests.md`, `reference/long-runs.md` |
 | 4 — E2E Verification *(optional)* | Subagent 4 (conditional) | deciding whether the end-to-end check applies and running it | `reference/phase-4-e2e-verification.md` |
-| 5 — Build Verification *(optional)* | Subagent 5 | the local build | `reference/phase-5-build-verification.md` |
+| 5 — Build Verification *(optional)* | orchestrator | the local build | `reference/phase-5-build-verification.md` |
 | 6S — Spec proof | Subagent 6 | proving each requirement, with the orchestrator's report check | `reference/phase-6-archive.md` |
 | 6 — Archive | Subagent 7 | docs sync, archiving the change and marking the feature implemented | `reference/phase-6-archive.md` |
 
@@ -177,7 +177,7 @@ After all phases complete, display:
 **Security review:** ✓ All findings resolved (or N/A — no security-sensitive changes)
 **Mobile viewport check:** ✓ <each configured phone viewport: verified, or ⚠ skipped — reason> — <what was checked/caught> (or N/A — no template/CSS changes)
 **Desktop viewport check:** ✓ <the configured desktop viewport: verified, or ⚠ skipped — reason> — <what was checked/caught> (or N/A — no template/CSS changes)
-**Tests:** ✓ All passing (or N/A — the project has no automated tests)
+**Tests:** ✓ All passing (or **⚠ Partial:** <what was not run, by the user's decision> if `TESTS: PARTIAL`, or N/A — the project has no automated tests)
 [if UNREVIEWED_PROD_FIXES was recorded in Phase 3 or Phase 5, insert this line here:]
 **⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while
 chasing test or build failures in Phase 3 or 5; the user chose to proceed without routing
@@ -191,6 +191,7 @@ them back through the Phase 2R review gate.
 **SDD change:** ✓ Archived (OpenSpec projects)
 **Feature:** ✓ Marked as implemented
 **Commit:** ✓ <short hash> (or N/A — not requested)
+**Deviations:** <each gate or phase run another way than the normal one: a review gate run inline by the orchestrator, spec artifacts written by hand instead of through the OpenSpec command line, a test or build run the user cut short; or "none">
 
 | Phase | Status |
 | ----- | ------ |
@@ -218,7 +219,7 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
 - Do not start a phase until the one before it returned its signal:
   - Phase 2: Phase 1 confirmed the branch is ready (in an OpenSpec project, all `applyRequires` artifacts `done`). `PROPOSE_BLOCKED` is surfaced and stops the run. `PROPOSE_NEEDS_DEPENDENCY_DECISION` is not a failure but also blocks Phase 2: resolve it through the decision point under Phase 1; only an explicit "proceed anyway" continues. This catches a missing dependency right after design instead of mid-implementation.
   - Phase 2R: `IMPLEMENT: DONE`. Phase 3: the gate returned `REVIEW_GATE: DONE`. An `IMPLEMENT_BLOCKED`, `REVIEW_BLOCKED`, `DATABASE_BLOCKED` or `SECURITY_BLOCKED` is surfaced, and the run waits for the user.
-  - Phase 4: Phase 3 reported `PASS` (both tiers, the tests and the smoke tier if the project has one) or `TESTS: SKIPPED`. `BLOCKED` is surfaced and waits. `PROD_CODE_FIXED:` lines are surfaced with the choice to proceed (carry `UNREVIEWED_PROD_FIXES` into the Final Summary) or re-run the Phase 2R gate.
+  - Phase 4: Phase 3 ended `PASS` (both tiers, the tests and the smoke tier if the project has one), `TESTS: PARTIAL` (the user chose to skip part; the Final Summary names it) or `TESTS: SKIPPED`. `BLOCKED` is surfaced and waits. `PROD_CODE_FIXED:` lines are surfaced with the choice to proceed (carry `UNREVIEWED_PROD_FIXES` into the Final Summary) or re-run the Phase 2R gate.
   - Phase 5: Phase 4 reported `E2E: PASS`, `E2E: PASS_PARTIAL` (not blocking; carry the caveat into the Final Summary) or `E2E: SKIPPED`. On `E2E_BLOCKED`, surface and wait: the cause may be environment or data, so do not send it back to the review gate without the user confirming.
   - Phase 6S: Phase 5 reported `BUILD: PASS` or `BUILD: SKIPPED`. `BUILD: BLOCKED` is surfaced and waits. `PROD_CODE_FIXED:` lines are handled as in Phase 3 (proceed, or re-run the gate and then Phases 3 and 5).
   - Phase 6: Phase 6S returned `SPEC_PROOF: PASS` **and the orchestrator opened its report** (`Failing` = 0, `Unverified` = 0). The proof runs in its own subagent, never in the archiving one.
@@ -236,6 +237,7 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
 - **Skills run as written, by whoever performs the phase.** A phase that names a skill (`code-reviewer`, `database-reviewer`, `security-reviewer`, `spec-compliance-check`, `docs-sync`, `openspec-sync-specs`, `openspec-archive-change`, `features-archive`) invokes that skill; doing the same checks by hand, or writing its report by hand, is a failed phase even when the content looks right. Reports carry the stamp the reviewer skills write (`<!-- backlog-kit: <skill> -->`), and the orchestrator checks it (review gate G6, Phase 6S check).
 
 **Reviews**
+- **Long runs belong to the orchestrator.** The test suites (Phase 3), the end-to-end suite when it is long (Phase 4) and the build (Phase 5) are started, watched and stopped by the orchestrator under `reference/long-runs.md`: a progress monitor from the start, chunks with a timeout and a log file, the whole process tree ended on a timeout. A subagent may fix one named failing test; it never owns a run, and its "waiting on background work" message is not a result.
 - **The reviews are never run inside the implementation subagent.** Phase 2R runs each in its own subagent. The orchestrator, not Subagent 2, decides which conditional reviews apply (from its own `git status --porcelain`) and verifies each report file and its checkboxes before accepting a signal (`reference/review-gate.md`, G6). A skip is recorded with the orchestrator's reason; a review signal without its report is treated as `BLOCKED`.
 - **Phase 2R uses each reviewer's Review workflow, scoped to the change, never its interactive Fix workflow and never a full-codebase sweep.** The Fix workflow asks the user which finding to work on next and does not fit an unattended subagent;
   a full sweep splits `code-reviewer` into one report per layer. The review subagent fixes findings itself and updates the report's checkboxes directly.

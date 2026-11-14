@@ -9,6 +9,8 @@ Why it is separate: a reviewer (`code-reviewer`, `database-reviewer`, `security-
 2. **The orchestrator decides which conditional reviews apply**, from its own G0 computation, never from the implementation subagent's word.
 3. **The orchestrator verifies the artifacts** (report files and their checkboxes) before it accepts a signal. A signal without a matching report is not accepted.
 
+Never tell a review subagent *not* to write its report. The reviewer skills have the model write the dated report file itself, so a prompt that forbids it only makes the subagent improvise. Give it the scope and the skill, and check the result in G6.
+
 `<work-id>` below is the change name (`feature-development`) or the Bug ID (`bug-fix`); substitute it, and `<reports>`, `<integration>`, in every prompt before spawning. Append the standard **Hand-back** paragraph of the calling skill to every prompt, unchanged.
 
 ## Orchestrator procedure
@@ -40,10 +42,14 @@ a purely additive column or index does not count on its own. If it applies, spaw
 - That report file exists (`ls` it) and sits under `<reports>/code-review/`, `<reports>/database-review/` or `<reports>/security-review/` with a dated `*_FINDINGS_*.md` name.
 - `grep` the report for an unchecked `- [ ]` line carrying 🔴 or 🟡. Any hit means the subagent stopped short: re-spawn that same review subagent once with the unchecked lines quoted; a second miss is `REVIEW_BLOCKED — unresolved findings in <path>`.
 - The report's first line is the stamp `<!-- backlog-kit: <skill> -->` of the reviewer skill that should have written it (`code-reviewer`, `database-reviewer`, `security-reviewer`). `SKILL_USED: <skill>` without that stamp, or with a stamp of another skill, is a failed run: re-spawn once. A report without a stamp is legitimate only for the fallback (skill not installed).
+- **The stamp alone proves nothing**: it is a line of text, and the model writes the whole report, stamp included. Also check the **content**: the report names every file of the scope you passed, and says which sections of the project's review checklist it worked through (or says plainly that the project has none). A report that does neither is a failed run: re-spawn once.
+- **Running a review inline.** If a review subagent fails twice, or hangs, the orchestrator may run the reviewer skill itself, through the Skill tool with the same explicit scope. The report goes through the same checks above, and the run is a **deviation**: mark the gate `inline` in the ledger and name it in the Final Summary.
 - The `SKILL_USED:` line says `<skill>` when the reviewer skill is installed. `SKILL_USED: none — fallback` while the skill **is** installed is a failed run: re-spawn once. When the skill is not installed, the fallback is legitimate; carry it into the Final Summary as `⚠ reviewed without the <skill> skill`.
 - For a skipped review you recorded in G2–G4, nothing to verify, but the reason goes into the ledger.
 
 **G7 — Ledger and signal.** Keep a ledger of one line per gate (`CODE_REVIEW: <path>`, `DATABASE_REVIEW: <path> | skipped — <reason>`, `SECURITY_REVIEW: <path> | skipped — <reason>`, `VIEWPORTS: <verified/skipped per configured viewport> | skipped — <reason>`). The Final Summary is built from it. When every gate that applies has passed G6 and no further `FILES_CHANGED: yes` is pending, the gate is `REVIEW_GATE: DONE`. Only then may the next phase start. Any `*_BLOCKED` from a gate stops the workflow: surface it and wait for the user.
+
+A gate the orchestrator ran inline (G6) is marked `inline` on its ledger line.
 
 ## Subagent prompts
 
