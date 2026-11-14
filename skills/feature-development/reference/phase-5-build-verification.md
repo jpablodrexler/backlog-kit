@@ -2,7 +2,7 @@
 
 _Part of the `feature-development` skill — see `../SKILL.md` for the overview, Phase 0, placeholder substitution, final summary and the cross-phase guardrails. Read this file in full before starting this phase._
 
-## Phase 5 — Build Verification (Subagent 5, optional)
+## Phase 5 — Build Verification (run by the orchestrator, optional)
 
 **This phase is optional: skip it when the project has no build, compile or
 type-check step.** Find out yourself (orchestrator) from the project's
@@ -15,40 +15,13 @@ This skill never deploys anything. What this phase *does* do is run the exact
 build command the project's host or CI runs, locally first, so a build failure
 is caught before it ever reaches an actual deployment.
 
-Spawn a **general-purpose subagent** via the Agent tool, with
-`run_in_background: false` (Phase 6S cannot start until this subagent
-completes — see the foreground guardrail in `../SKILL.md`), with the following
-prompt (substitute the command for `<BUILD_COMMAND>`):
+**The orchestrator runs the build itself, not a subagent** (see `reference/long-runs.md`: a hung build must be seen and stopped by the one who can). Substitute the command for `<BUILD_COMMAND>`:
 
-> **Step 1 — Run the build**
-> Run (using the Bash tool, from the repo root): `<BUILD_COMMAND>`
-> Allow up to 5 minutes before treating it as a failure. If it can take
-> longer, poll for completion with repeated foreground calls in this same
-> turn — never end your response while it still runs in the background.
->
-> **Step 2 — Diagnose a failure**
-> If the build fails:
-> a. Read the build output — it names the specific file and error (a type
->    error, an unused import flagged by a strict compiler option, a
->    reference to something that doesn't exist).
-> b. Fix the affected file(s), prioritizing files related to `<change-name>`.
->    If you must modify a production source file (not a test or a build
->    configuration file), note it with `PROD_CODE_FIXED: <filename> — <reason>`.
-> c. Re-run the build command.
-> d. Repeat until it succeeds or you reach a failure you cannot resolve
->    without human input.
->
-> **Step 3 — Verify the output**
-> If the build produces an output directory or artifact, confirm it exists and
-> isn't empty. An empty or missing output after a reported-successful build is
-> itself a failure — a host that serves it would fail on every page.
->
-> End your response with one of:
->
-> - `BUILD: PASS` if the build succeeded and the output is populated (list
->   any `PROD_CODE_FIXED:` lines before it).
-> - `BUILD: BLOCKED — <brief reason>` if the build failed and you cannot
->   resolve it without human input.
+1. Run `<BUILD_COMMAND>` from the repo root with a hard timeout of 5 minutes (extend once only if the log shows it is still making progress), writing its output to a log file, never piped through a filter that prints only at the end.
+2. **On failure**, read the error (it names the file and cause), fix the affected files, prioritising the ones related to the change, and re-run until it succeeds or you reach a blocker that needs human input. If you must modify a production source file (not a test or a build configuration file), note it `PROD_CODE_FIXED: <file> — <reason>`.
+3. If the build produces an output directory or artifact, confirm it exists and is not empty: empty or missing after a "successful" build is itself a failure.
+
+End with `BUILD: PASS` (after any `PROD_CODE_FIXED:` lines) or `BUILD: BLOCKED — <reason>`.
 
 Do not start Phase 6S until this subagent completes (or the phase was
 skipped). If it reports `BUILD: BLOCKED`, surface the details to the user and

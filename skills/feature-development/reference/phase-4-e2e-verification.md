@@ -110,7 +110,9 @@ following prompt (substitute the suite's command for `<E2E_COMMAND>`):
 > silently falling back to something else.
 >
 > 1. Run `<E2E_COMMAND>` — the narrowest command that covers the changed
->    flow, or the whole suite if the project has no narrower one.
+>    flow, or the whole suite if the project has no narrower one. (If the
+>    orchestrator already ran the suite itself under `reference/long-runs.md`
+>    because it can take long, skip this item and use its result.)
 > 2. If this change touched a specific flow (create/edit/complete/delete,
 >    sign-in, a settings page), also exercise it once through the actual UI
 >    (not just confirming the page loads) to confirm the new/changed behavior

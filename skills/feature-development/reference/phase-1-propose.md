@@ -205,6 +205,7 @@ see the foreground guardrail in `../SKILL.md`), with the following prompt (subst
 >
 > Wait for it to complete. If it fails or reports an error, end your response
 > with `PROPOSE_BLOCKED — <brief reason>` and stop.
+> Say in your hand-back **how the artifacts were produced**: `ARTIFACTS: via openspec-propose` when the skill and the OpenSpec command line created them, or `ARTIFACTS: hand-written — <why>` if you had to write the files yourself. Writing them by hand is allowed only when the command line cannot be used; it is a deviation the orchestrator carries into the Final Summary.
 > After it completes, re-run `openspec status --change "<change-name>" --json`
 > and confirm every artifact ID in `applyRequires` now has `"status": "done"`.
 > If any are still missing, end your response with

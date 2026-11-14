@@ -155,9 +155,9 @@ across every phase, and other skills cite these phases by number
 | 1 — Branch & Reproduce | Subagent 1 | choosing the branch/resume mode and writing the failing regression test | `reference/phase-1-reproduce.md` |
 | 2 — Fix | Subagent 2 | implementing the fix | `reference/phase-2-fix.md` |
 | 2R — Review gate | orchestrator + review subagents | the code review and the conditional database/security/viewport steps, with the orchestrator's own checks; Phase 3 starts only after it ends with `REVIEW_GATE: DONE` | `reference/review-gate.md` (started from `reference/phase-2-fix.md`) |
-| 3 — Tests *(optional)* | Subagent 3 | running the project's tests | `reference/phase-3-tests.md` |
+| 3 — Tests *(optional)* | orchestrator | running the project's tests in chunks, with progress updates | `reference/phase-3-tests.md`, `reference/long-runs.md` |
 | 4 — E2E Verification *(optional)* | Subagent 4 (conditional) | deciding whether the end-to-end check applies and running it | `reference/phase-4-e2e-verification.md` |
-| 5 — Build Verification *(optional)* | Subagent 5 | the local build | `reference/phase-5-build-verification.md` |
+| 5 — Build Verification *(optional)* | orchestrator | the local build | `reference/phase-5-build-verification.md` |
 | 6 — Close | Subagent 6 | docs sync and archiving the bug | `reference/phase-6-close.md` |
 
 Phase 7 (Commit) is short and stays below.
@@ -186,7 +186,7 @@ the bug stays closed in the backlog, uncommitted.
 **Code review:** ✓ All findings resolved
 [if the viewport check ran:]
 **Viewport check:** ✓ <each configured phone viewport and the desktop viewport: verified, or ⚠ skipped — reason> — <what was checked/caught>
-**Tests:** ✓ <summary> (or N/A — <reason> if skipped)
+**Tests:** ✓ <summary> (or **⚠ Partial:** <what was not run, by the user's decision> if `TESTS: PARTIAL`, or N/A — <reason> if skipped)
 **E2E:** ✓ <summary> (or N/A — <reason> if skipped, or ⚠ Partial: <what wasn't covered>)
 **Build:** ✓ <summary> (or N/A — <reason> if skipped)
 [if UNREVIEWED_PROD_FIXES was recorded:]
@@ -194,6 +194,7 @@ the bug stays closed in the backlog, uncommitted.
 **Docs sync:** ✓ <one-line summary, or "Nothing to sync">
 **Bug:** ✓ Closed — moved to bugs-fixed.md
 **Commit:** ✓ <short hash> (or N/A — not requested)
+**Deviations:** <each gate or phase run another way than the normal one: a review gate run inline by the orchestrator, or a test or build run the user cut short; or "none">
 
 | Phase | Status |
 | ----- | ------ |
@@ -230,7 +231,7 @@ If no commit was requested: nothing was committed. The fix (and its regression t
   through the AskUserQuestion decision point, never worked around by
   skipping straight to a speculative fix.
 - Do not start a phase until the prior phase's subagent returns its
-  expected signal (`TESTS`/`E2E`/`BUILD`: `PASS` or `SKIPPED` for the optional phases). On any `*_BLOCKED`, surface details and wait for user
+  expected signal (`TESTS`/`E2E`/`BUILD`: `PASS` or `SKIPPED` for the optional phases, and `TESTS: PARTIAL` when the user chose to skip part of a suite). On any `*_BLOCKED`, surface details and wait for user
   guidance — never retry automatically.
 - **Missing signal fallback**: a subagent that returns without its
   expected signal is treated as `BLOCKED`; surface its raw response and
@@ -239,6 +240,7 @@ If no commit was requested: nothing was committed. The fix (and its regression t
   for what the subagent actually did (for example `git status`, the backlog
   row, the test file) and tell the user; whether to accept that evidence in
   place of the signal or to re-run the phase is the user's decision.
+- **Long runs belong to the orchestrator.** The test suites (Phase 3), the end-to-end suite when it is long (Phase 4) and the build (Phase 5) are started, watched and stopped by the orchestrator under `reference/long-runs.md`: a progress monitor from the start, chunks with a timeout and a log file, the whole process tree ended on a timeout. A subagent may fix one named failing test; it never owns a run, and its "waiting on background work" message is not a result.
 - **The reviews are never run inside the fix subagent.** Phase 2R runs each in its own subagent; the orchestrator decides which conditional reviews apply (from its own `git status --porcelain`) and verifies each report file and its checkboxes before accepting a signal (`reference/review-gate.md`, G6).
 - **`code-reviewer` (and the DB/security reviewers when they run) always uses its
   Review workflow, scoped to `CHANGED_FILES`, never the interactive Fix
