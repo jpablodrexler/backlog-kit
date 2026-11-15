@@ -22,7 +22,7 @@ Before the run starts, start a monitor that tells the user how it is going, with
 
 ## 3. Run in chunks
 
-- Split the suite into chunks (by folder, or by an explicit list of files) and run **one chunk at a time**.
+- **The default chunk size is 1 spec file.** Split the suite into one chunk per spec (test) file and run **one chunk at a time**, each in a fresh process. It is a default, not a fixed size: the machine's resources change over time (or the machine is replaced), so when the user sets a different size (several files, a folder), use that one instead.
 - Give every chunk a **hard timeout** (about 8 minutes) and write its output to a **log file**. Never pipe the output through a filter that prints only at the end.
 - Put a **deadline on every wait loop** (waiting for a port, a file, a process). A loop with no deadline is a hang.
 - Write down the list of files of each chunk, so a chunk that times out can be rerun exactly.
@@ -35,7 +35,7 @@ Before the run starts, start a monitor that tells the user how it is going, with
 
 ## 5. A chunk that crashes or times out
 
-Rerun that chunk **one file at a time**, each in a fresh process. A crash from memory building up inside one long process usually does not repeat on a single file. Report which files passed and which failed; never report the chunk as passed or failed as a whole.
+With the default chunk size a chunk is already a single spec file, so rerun that file once in a fresh process. If a larger chunk size is in use, rerun that chunk one file at a time, each in a fresh process. A crash from memory building up usually does not repeat on a single file. Report which files passed and which failed, and name any file that crashed or timed out twice; never report a multi-file chunk as passed or failed as a whole.
 
 ## 6. Memory
 
