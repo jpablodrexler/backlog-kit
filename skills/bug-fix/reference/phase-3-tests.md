@@ -4,6 +4,10 @@ _Part of the `bug-fix` skill — see `../SKILL.md` for the overview, Phase 0, pl
 
 ## Phase 3 — Tests (run by the orchestrator, optional)
 
+**With `--defer-tests`** (a batch where the user asked for the tests at the end): run nothing. Record `TESTS: DEFERRED — to the last bug of the batch, by the user's decision` and go to Phase 4. This defers only running the whole suite: the bug's regression test was already written and run in Phases 1 and 2. The last bug of the batch is called without the flag, so it runs this phase in full, below.
+
+**On a shared batch branch the suite also covers the earlier bugs.** When a failure is in a spec, or in code, that an earlier bug's commits touched (`git log --oneline <integration>..HEAD -- <path>`), say which bug it comes from, fix it as this phase's fix (test code before production code), and name that bug in the fix and in its commit message. It is the price of having deferred the tests.
+
 Skip this phase when the project has no automated tests: find out yourself
 (orchestrator) from its `CLAUDE.md`, `README` and build manifest which command
 runs them — and a faster end-to-end smoke tier, if CI runs one. If you cannot

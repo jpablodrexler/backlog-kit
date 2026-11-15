@@ -34,6 +34,7 @@ default behavior (create/resume `feature/<change-name>` from `<integration>`) is
 unchanged. `--commit` is an explicit opt-in that the user (or an orchestrator
 acting on their request) passes to get one commit for this feature after it
 is archived (Phase 7); without it nothing is committed.
+`--defer-tests` is for the batch skills, and only when the user asked for the tests to run once at the end of the batch ("test the whole batch at the end", "skip the tests except for the last one"): Phases 3 and 4 do not run for this feature (the whole-suite and end-to-end runs only: the feature's own tests are still written in Phase 2) and are left to the last feature of the batch, which runs them in full over the whole shared branch (see "Deferring the tests to the end of a batch"). Never pass it by default, and never on the last feature.
 
 `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`; `<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default).
 
@@ -47,6 +48,11 @@ Every phase runs by default; nothing in the request needs to ask for it, and onl
 
 **Committing as you go.** `--commit` means one commit, at Phase 7. When the user asks instead to commit as the work goes, that request is the opt-in for a commit after each phase that changed files (Phase 1, Phase 2, the fixes of each review gate, Phases 3 to 6S, Phase 6), each one made by `gitflow`'s commit action with the message `Feature <change-name>: <phase> — <one-line summary>`;
 Phase 7 then commits only what is left, or records `COMMIT: nothing left`. The user's request stands in for the per-commit confirmation of the file list and message, but `gitflow` still makes every commit: no phase or subagent runs `git commit` itself.
+
+**Deferring the tests to the end of a batch (`--defer-tests`).** An alternative to running the whole test suite and the end-to-end check once per feature, for a batch the user wants to finish faster: the batch skill runs every feature but the last with `--defer-tests`, and the last one without it. With the flag, Phase 3 records `TESTS:
+DEFERRED — to the last feature of the batch, by the user's decision` and Phase 4 records `E2E: DEFERRED — to the last feature of the batch, by the user's decision`; nothing is run for either. It defers the **execution** of the whole suites, never the **creation** of tests: the feature still writes its own new tests in Phase 2 and runs the ones it touched, as Phase 2 always does (the whole suite is Phase 3's job).
+**Everything else runs as written**: the review gate, the build, the docs sync, the archive and every commit. The last feature's Phases 3 and 4 run in full over the whole shared branch, so they cover the deferred features too.
+What the user accepts: a break caused by an earlier feature is found only at the end (Phase 3 says how it is handled). The Final Summary names the deferral and never shows it as a pass.
 
 **Phase ledger.** Right after Phase 0, create a task list with one entry per phase and gate that applies (1, 2, 2R: G1 to G5, 3, 4, 5, 6S, 6, 7) and keep it current: an entry is completed when its signal was verified, or when it was skipped under its own stated condition with the reason written on the entry.
 The Final Summary is built from this list and is not shown while an entry is open. The order is fixed: archiving (Phase 6, including `openspec-sync-specs` and `openspec-archive-change`) comes after the review gate, the tests and the spec proof, never before;
@@ -177,13 +183,13 @@ After all phases complete, display:
 **Security review:** ✓ All findings resolved (or N/A — no security-sensitive changes)
 **Mobile viewport check:** ✓ <each configured phone viewport: verified, or ⚠ skipped — reason> — <what was checked/caught> (or N/A — no template/CSS changes)
 **Desktop viewport check:** ✓ <the configured desktop viewport: verified, or ⚠ skipped — reason> — <what was checked/caught> (or N/A — no template/CSS changes)
-**Tests:** ✓ All passing (or **⚠ Partial:** <what was not run, by the user's decision> if `TESTS: PARTIAL`, or N/A — the project has no automated tests)
+**Tests:** ✓ All passing (or **⚠ Partial:** <what was not run, by the user's decision> if `TESTS: PARTIAL`, or **⇢ Deferred:** to the last feature of the batch (`--defer-tests`, by the user's decision) if `TESTS: DEFERRED`, or N/A — the project has no automated tests)
 [if UNREVIEWED_PROD_FIXES was recorded in Phase 3 or Phase 5, insert this line here:]
 **⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while
 chasing test or build failures in Phase 3 or 5; the user chose to proceed without routing
 them back through the Phase 2R review gate.
 **E2E verification:** ✓ <one-line summary from Phase 4's `E2E: PASS`> (or
-"N/A — <reason>" if `E2E: SKIPPED`, or **⚠ Partial:** <what wasn't covered> if `E2E: PASS_PARTIAL`)
+"N/A — <reason>" if `E2E: SKIPPED`, or **⚠ Partial:** <what wasn't covered> if `E2E: PASS_PARTIAL`, or **⇢ Deferred:** to the last feature of the batch (`--defer-tests`, by the user's decision) if `E2E: DEFERRED`)
 **Build:** ✓ the build succeeded locally (or N/A — the project has no build step)
 **Definition of Done:** ✓ <each item of `<backlog>/definition-of-done.md` and of the brief's own `## Definition of Done` section, met with the phase or report that shows it, or ⚠ not met — why> (or N/A — the project defines none)
 **Spec compliance:** ✓ All scenarios verified (any Unverified scenario `spec-compliance-check` found was closed with new test coverage during Phase 6S, before archiving — never left as a caveat)
@@ -199,8 +205,8 @@ them back through the Phase 2R review gate.
 | 2 Implement | ✓ / ✗ |
 | 2R Code review (report path) | ✓ / ✗ |
 | 2R DB review / security review / viewport check (report paths) | ✓ / N/A — <the orchestrator's reason> |
-| 3 Tests | ✓ / N/A — <reason> |
-| 4 E2E | ✓ / N/A — <reason> |
+| 3 Tests | ✓ / N/A — <reason> / Deferred — to the last feature of the batch |
+| 4 E2E | ✓ / N/A — <reason> / Deferred — to the last feature of the batch |
 | 5 Build | ✓ / N/A — <reason> |
 | 6S Spec proof (report path) | ✓ / ✗ |
 | 6 Docs sync, archive | ✓ / ✗ |
@@ -219,8 +225,8 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
 - Do not start a phase until the one before it returned its signal:
   - Phase 2: Phase 1 confirmed the branch is ready (in an OpenSpec project, all `applyRequires` artifacts `done`). `PROPOSE_BLOCKED` is surfaced and stops the run. `PROPOSE_NEEDS_DEPENDENCY_DECISION` is not a failure but also blocks Phase 2: resolve it through the decision point under Phase 1; only an explicit "proceed anyway" continues. This catches a missing dependency right after design instead of mid-implementation.
   - Phase 2R: `IMPLEMENT: DONE`. Phase 3: the gate returned `REVIEW_GATE: DONE`. An `IMPLEMENT_BLOCKED`, `REVIEW_BLOCKED`, `DATABASE_BLOCKED` or `SECURITY_BLOCKED` is surfaced, and the run waits for the user.
-  - Phase 4: Phase 3 ended `PASS` (both tiers, the tests and the smoke tier if the project has one), `TESTS: PARTIAL` (the user chose to skip part; the Final Summary names it) or `TESTS: SKIPPED`. `BLOCKED` is surfaced and waits. `PROD_CODE_FIXED:` lines are surfaced with the choice to proceed (carry `UNREVIEWED_PROD_FIXES` into the Final Summary) or re-run the Phase 2R gate.
-  - Phase 5: Phase 4 reported `E2E: PASS`, `E2E: PASS_PARTIAL` (not blocking; carry the caveat into the Final Summary) or `E2E: SKIPPED`. On `E2E_BLOCKED`, surface and wait: the cause may be environment or data, so do not send it back to the review gate without the user confirming.
+  - Phase 4: Phase 3 ended `PASS` (both tiers, the tests and the smoke tier if the project has one), `TESTS: PARTIAL` (the user chose to skip part; the Final Summary names it), `TESTS: SKIPPED` or `TESTS: DEFERRED` (`--defer-tests`; the Final Summary names it). `BLOCKED` is surfaced and waits. `PROD_CODE_FIXED:` lines are surfaced with the choice to proceed (carry `UNREVIEWED_PROD_FIXES` into the Final Summary) or re-run the Phase 2R gate.
+  - Phase 5: Phase 4 reported `E2E: PASS`, `E2E: PASS_PARTIAL` (not blocking; carry the caveat into the Final Summary), `E2E: SKIPPED` or `E2E: DEFERRED` (`--defer-tests`; the Final Summary names it). On `E2E_BLOCKED`, surface and wait: the cause may be environment or data, so do not send it back to the review gate without the user confirming.
   - Phase 6S: Phase 5 reported `BUILD: PASS` or `BUILD: SKIPPED`. `BUILD: BLOCKED` is surfaced and waits. `PROD_CODE_FIXED:` lines are handled as in Phase 3 (proceed, or re-run the gate and then Phases 3 and 5).
   - Phase 6: Phase 6S returned `SPEC_PROOF: PASS` **and the orchestrator opened its report** (`Failing` = 0, `Unverified` = 0). The proof runs in its own subagent, never in the archiving one.
   - Final Summary: Phase 6 returned `ARCHIVE: DONE`. If Phase 6S or 6 returns `ARCHIVE_BLOCKED` (a Failing scenario, a test added for an Unverified scenario that itself failed, or an Unverified scenario left after 3 add-test-and-re-check rounds), the change stays unarchived: surface the scenarios and wait; never retry Phase 6 on your own.
@@ -246,7 +252,8 @@ If `--commit` was not passed, say plainly that nothing was committed and that th
 
 **What the phases may touch**
 - **Phase 5 never deploys anything:** the build is a local check only. The skill never invokes a deployment tool, never pushes to trigger a deploy and never touches the host's settings.
-- **Phase 3's smoke tier always runs.** A smoke tier that CI runs on every PR runs on every invocation of Phase 3, whatever `<change-name>` touched: unlike Phase 4's end-to-end check, which depends on a user-facing flow, CI does not predict which changes could break it.
+- **Phase 3's smoke tier always runs.** A smoke tier that CI runs on every PR runs on every invocation of Phase 3, whatever `<change-name>` touched: unlike Phase 4's end-to-end check, which depends on a user-facing flow, CI does not predict which changes could break it. Only `--defer-tests` (the user's explicit request, through a batch skill) defers it, to the last feature of the batch.
+- **`--defer-tests` defers, it never waives.** Only Phases 3 and 4 may be deferred (the whole-suite run and the end-to-end verification: never the writing of the feature's tests in Phase 2), only because the user asked for the tests at the end of the batch (through a batch skill), never on the last feature of the batch, and never on this skill's own judgment. A deferred feature is not tested: its summary says `Deferred`, never `✓`, and the review gate, the build, the spec compliance check, the docs sync, the archive and the commits still run for it.
 - **Phase 4 only starts the application locally and reads/writes no repository files.** Its one write to a shared database is applying this change's own pending migrations, and only after a dry run shows nothing else pending (Phase 4 Step 2); it never asks the user to do that. It starts a stopped container runtime (Docker) itself. A schema fix needed to make Phase 4 pass goes back to the Phase 2R database review (re-run the gate after fixing it).
 - **Docker is started by the workflow, never reported as a blocker.** A phase whose tooling needs a local container runtime (a local database test suite in Phase 3 or 6, Phase 4's environment) starts it and waits, and blocks only if it never comes up.
 - **Step 1.6 marks the backlog row `🔶 In Progress` as soon as the branch is ready, in normal and batch mode,** before Step 2's artifact check, so a change that still needs `openspec-propose` is marked too. This is what lets `features-next` recommend resuming an interrupted feature. It only flips `⬜ Pending` → `🔶 In Progress`, never touches a row already `🔶 In Progress` or `✅ Implemented`, and never blocks when the row is missing (an ad hoc change). `features-archive` moves the row in Phase 6.

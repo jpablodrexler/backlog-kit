@@ -4,6 +4,10 @@ _Part of the `feature-development` skill — see `../SKILL.md` for the overview,
 
 ## Phase 3 — Tests (run by the orchestrator, optional)
 
+**With `--defer-tests`** (a batch where the user asked for the tests at the end): run nothing. Record `TESTS: DEFERRED — to the last feature of the batch, by the user's decision` and go to Phase 4. This defers only running the whole suite: the feature's own tests were already written in Phase 2 (and the ones it touched run there). The last feature of the batch is called without the flag, so it runs this phase in full, below.
+
+**On a shared batch branch the suite also covers the earlier features.** When a failure is in a spec, or in code, that an earlier feature's commits touched (`git log --oneline <integration>..HEAD -- <path>`), say which feature it comes from, fix it as this phase's fix (test code before production code), and name that feature in the fix and in its commit message. It is the price of having deferred the tests.
+
 **This phase is optional: skip it when the project has no automated tests.**
 Before spawning anything, find out yourself (orchestrator, not a subagent)
 what the project has: read its `CLAUDE.md`, `README` and build manifest

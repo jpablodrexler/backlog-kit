@@ -40,7 +40,7 @@ backlog", "everything that's pending", "all planned features") when the
 user wants every currently-pending row processed without naming each one —
 see Step 1 for how (b) resolves into a concrete list. Optionally, a branch
 name to use or resume; if omitted, one is proposed and confirmed (see
-Step 2).
+Step 2). Optionally **tests at the end**, an alternative workflow the user asks for ("test the whole batch at the end", "skip the tests except for the last feature"): the loop passes `--defer-tests` to every `feature-development` call except the last feature still to be processed, and that last call runs the test and end-to-end phases in full over the whole shared branch. Only the whole-suite and end-to-end runs move: every feature still writes its own tests in Phase 2. Without that request the default stands: the tests run for every feature.
 
 ---
 
@@ -198,7 +198,7 @@ For each identifier in the requested list that is not already `✅ Completed`
   text accompanies this status — there's nothing to summarize yet; it exists
   purely so a crash or session cutoff mid-feature leaves a trace of what was
   being worked on, not just silence. Then invoke the `feature-development`
-  skill via the **Skill** tool, passing `<change-name> --skip-branch-setup` (plus `--commit` if the run was started with it).
+  skill via the **Skill** tool, passing `<change-name> --skip-branch-setup` (plus `--commit` if the run was started with it, and `--defer-tests` when the run uses tests at the end and at least one more feature is still to be processed after this one; a feature completed with its tests deferred is written `✅ Completed (tests deferred) — <summary>`).
   This is a direct Skill invocation, not a backgrounded Agent call — it
   executes inline in this same turn, so any `AskUserQuestion`
   `feature-development` itself raises (its Phase 0 feature confirmation, a
@@ -244,6 +244,9 @@ never more.
 Whether the loop finished the whole list or stopped early by user choice,
 append a footer to the report: counts (requested / completed / blocked or
 skipped / not reached) and an end timestamp.
+
+Tests at the end (only when the user asked for it). If the run used the alternative workflow of testing the whole batch at the end, say so plainly in chat and in the report: which features had their tests deferred, and whether the last feature's run covered them.
+If the run ended before a last feature ran the test and end-to-end phases (it was blocked, skipped, left open or the user stopped the run), the deferred tests have **not** run: list the features concerned and ask (**AskUserQuestion**) whether to run them now. If yes, run `feature-development`'s test phase and end-to-end phase yourself, as the orchestrator, over the whole shared branch (read its own test-phase, end-to-end-phase and long-runs reference files), and record the result in the report. Never end the run as finished while deferred tests have not run.
 
 Tell the user plainly, in the chat response as well as the report, what was
 committed. Without `--commit`: **nothing was committed at any point.** The branch now holds every completed (and any
@@ -345,3 +348,7 @@ that immediacy is the entire point of this report existing.
   user at genuine decision points — an autonomous-operation bias toward
   "proceed without asking" would silently defeat that premise, not just
   bend it.
+
+- **Tests at the end is the user's choice, and it defers, never waives.**
+  `--defer-tests` is passed to `feature-development` only when the user asked for the tests to run once at the end of the batch, only for features that are not the last one still to be processed, and it moves only that skill's whole-suite test phase and end-to-end phase, never the writing of tests (a feature's new tests are still created in Phase 2): the review gate, the build, the spec compliance check, the docs sync, the archive and every commit still run for each feature.
+  Without that request the default stands and the tests run for every feature. The run is never reported as finished while deferred tests have not run (Step 6).
