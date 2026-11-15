@@ -2,7 +2,7 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
-## Unreleased
+## 0.12.0
 - **A monitor must not get in the run's way (`shared/long-runs.md`):** a monitor must not follow a file the run writes with a reader that keeps it open (`tail -f`), because on Windows that blocked the run's own writes: the progress file stayed empty and the monitor said nothing while the run was fine. It polls with short reads of the file or of the run's own output, adds a stall line after about twice the heartbeat period without output, and the first event must be seen to arrive before a long run is left unattended. Vendored into `feature-development` and `bug-fix`.
 - **`brain` can migrate Claude Code's own memory into the brain (`personal-brain/`):** a new read-only `brain.py memory [--project PATH]` lists a project's auto-memory files, and `SKILL.md` has a "Migrate Claude Code memory into the brain" section: inventory, move the content into one brain note per project, trim the memory to one short pointer file (the memory index is loaded into every session, the brain only when a search runs), check the auto-save hook, and repeat the steps on another PC.
 - **`brain` copes with several PCs sharing one brain (`personal-brain/`):** `brain.py journal` prints the journal file of this machine (`journal/<date>-<machine>.md`, also used by the auto-save hook), so two PCs never write the same file, and `brain.py check` flags files that look like a sync-conflict copy of a note that is still there (OneDrive, Dropbox and Syncthing naming). New "Several PCs, one brain" section in `SKILL.md`; older `YYYY-MM-DD.md` journals stay valid.
