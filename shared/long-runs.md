@@ -17,6 +17,8 @@ Before the run starts, start a monitor that tells the user how it is going, with
 - **A heartbeat about every 3 minutes**: the unit running now, when its log last changed, free memory, and units done out of total. A heartbeat that does not advance is how a stall shows.
 - **A line for every terminal state**: success, failure, timeout, crash, process exit. If the monitor only reports success, silence looks the same as "still running".
 - A monitor has a lifetime. When it expires and the run goes on, start it again from the current position so old results are not repeated.
+- **The monitor must not get in the run's way.** Do not follow a file the run writes with a reader that keeps it open (`tail -f` and the like): on some systems (Windows) that blocks the run's own writes to the file, which then stays empty and the monitor says nothing while the run is fine. Poll with short reads (open, read the new lines, close) of the file or of the run's own output, and add a stall line when nothing new has arrived for about twice the heartbeat period.
+- **Check the monitor before leaving.** Confirm that the first event arrives (the start line is enough) before leaving a long run unattended. A monitor that was never seen to report is the same as no monitor, and the silence it produces is easy to read as progress.
 
 ## 3. Run in chunks
 

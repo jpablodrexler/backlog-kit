@@ -27,7 +27,7 @@ The skill lives in your user folder, so it works from any project. The brain is 
 ## Use
 
 - Recall: "¿qué decidimos sobre la autenticación de acme?" — Claude searches the brain and reads the notes before answering.
-- Capture: "guarda esto en el brain" — Claude updates the existing note or creates one, appends to the journal, rebuilds the index and tells you what changed. Without being asked it only offers.
+- Capture: "guarda esto en el brain" — Claude updates the existing note or creates one, appends to this machine's journal file (`journal/<date>-<machine>.md`), rebuilds the index and tells you what changed. Without being asked it only offers.
 - Tidy: "revisa el brain" — runs `check` and fixes the mechanical problems.
 
 ## Auto-save of each session
