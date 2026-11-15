@@ -2,6 +2,9 @@
 
 Versions follow the plugin version in `.claude-plugin/plugin.json`. Design notes behind each change are in [DESIGN.md](DESIGN.md).
 
+## 0.12.1
+- **The default chunk size of a test run is 1 spec file (`shared/long-runs.md`):** a suite is split into one chunk per spec (test) file, run one at a time, each in a fresh process. It is a default, not a fixed size: machines differ and change over time, so a size the user sets (several files, a folder) is used instead. A chunk that crashes or times out is rerun once in a fresh process; a larger chunk is rerun one file at a time, and a file that fails twice is named. Vendored into `feature-development` and `bug-fix`.
+
 ## 0.12.0
 - **A monitor must not get in the run's way (`shared/long-runs.md`):** a monitor must not follow a file the run writes with a reader that keeps it open (`tail -f`), because on Windows that blocked the run's own writes: the progress file stayed empty and the monitor said nothing while the run was fine. It polls with short reads of the file or of the run's own output, adds a stall line after about twice the heartbeat period without output, and the first event must be seen to arrive before a long run is left unattended. Vendored into `feature-development` and `bug-fix`.
 - **`brain` can migrate Claude Code's own memory into the brain (`personal-brain/`):** a new read-only `brain.py memory [--project PATH]` lists a project's auto-memory files, and `SKILL.md` has a "Migrate Claude Code memory into the brain" section: inventory, move the content into one brain note per project, trim the memory to one short pointer file (the memory index is loaded into every session, the brain only when a search runs), check the auto-save hook, and repeat the steps on another PC.
