@@ -1,4 +1,4 @@
-# backlog-kit
+<h1 align="center"><img src="docs/social-preview.png" alt="backlog-kit: Claude Code skills. Your backlog is plain markdown. Claude works it to done through quality gates." width="100%"></h1>
 
 [![CI](https://github.com/jpablodrexler/backlog-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/jpablodrexler/backlog-kit/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/jpablodrexler/backlog-kit)](https://github.com/jpablodrexler/backlog-kit/releases)
 
