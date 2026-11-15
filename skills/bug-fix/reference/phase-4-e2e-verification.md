@@ -4,6 +4,8 @@ _Part of the `bug-fix` skill — see `../SKILL.md` for the overview, Phase 0, pl
 
 ## Phase 4 — E2E Verification (Subagent 4, optional, conditional)
 
+**With `--defer-tests`** (a batch where the user asked for the tests at the end): do nothing here, and do not ask the test-account question below, since nothing runs. Record `E2E: DEFERRED — to the last bug of the batch, by the user's decision` and go to Phase 5. The last bug of the batch is called without the flag and runs this phase as written.
+
 Skip this phase — recording `E2E: SKIPPED — <reason>` — when the project has no
 end-to-end or browser suite (its `CLAUDE.md`, `README` and build manifest say),
 or when the fix touches no user-facing flow.
