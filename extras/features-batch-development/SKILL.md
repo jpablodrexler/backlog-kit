@@ -40,7 +40,8 @@ backlog", "everything that's pending", "all planned features") when the
 user wants every currently-pending row processed without naming each one —
 see Step 1 for how (b) resolves into a concrete list. Optionally, a branch
 name to use or resume; if omitted, one is proposed and confirmed (see
-Step 2). Optionally **tests at the end**, an alternative workflow the user asks for ("test the whole batch at the end", "skip the tests except for the last feature"): the loop passes `--defer-tests` to every `feature-development` call except the last feature still to be processed, and that last call runs the test and end-to-end phases in full over the whole shared branch. Only the whole-suite and end-to-end runs move: every feature still writes its own tests in Phase 2. Without that request the default stands: the tests run for every feature.
+Step 2). Optionally **tests at the end**, an alternative workflow the user asks for ("test the whole batch at the end", "skip the tests except for the last feature"): the loop passes `--defer-tests` to every `feature-development` call except the last feature still to be processed, and that last call runs the test and end-to-end phases in full over the whole shared branch.
+Only the whole-suite and end-to-end runs move: every feature still writes its own tests in Phase 2. Without that request the default stands: the tests run for every feature. The commit cadence and this choice are asked once, before the loop, when the request does not state them (Step 2b).
 
 ---
 
@@ -174,12 +175,20 @@ the newly requested list from Step 1.
 Either way, confirm `git branch --show-current` matches the intended branch
 before proceeding to Step 3.
 
+### 2b. Ask for the run options the request left open
+
+Two choices shape the whole run, and each takes a few words to state, so no long prompt is needed: ask for them here, once, before the loop starts, instead of assuming.
+
+- **Commits.** The request may already say it ("commit as you go", "one commit per feature", "no commits"): take that answer and do not ask. Otherwise ask: **No commits** (nothing is committed; the user reviews the working tree), **One commit per feature** (`--commit`, made by `gitflow` through `feature-development`), or **Commit as the work goes** (a `gitflow` commit after each phase that changed files; each `feature-development` call is told "commit as the work goes").
+- **Tests.** The request may already say it ("test the whole batch at the end", "run the tests for every feature"): take that answer and do not ask. Otherwise ask: **Tests for every feature** (the default) or **Tests once, at the end of the batch** (`--defer-tests` on every feature but the last; the review gate, the build and the commits still run for each feature).
+
+Ask whatever is open in one `AskUserQuestion` call (two questions), and make no call when the request settled both. An explicit request is the confirmation: never ask the user to confirm what they already said. Record the two answers in the report header (Step 3). The run is built for long unattended stretches, so this is the last question before the loop, apart from the decision points `feature-development` itself raises.
+
 ### 3. Initialize or resume the report file
 
 **Fresh run**: write the report file now (path and format below), listing
 every identifier from the requested list with `⬜ Not started`, plus a
-header recording the branch name, the full requested list, and a start
-timestamp — so the file exists and shows the whole plan even if the run is
+header recording the branch name, the full requested list, the run options chosen in Step 2b (commits, tests), and a start timestamp — so the file exists and shows the whole plan even if the run is
 interrupted before the very first feature finishes.
 
 **Resume**: reopen the existing report file found in Step 2. Do not
@@ -198,7 +207,7 @@ For each identifier in the requested list that is not already `✅ Completed`
   text accompanies this status — there's nothing to summarize yet; it exists
   purely so a crash or session cutoff mid-feature leaves a trace of what was
   being worked on, not just silence. Then invoke the `feature-development`
-  skill via the **Skill** tool, passing `<change-name> --skip-branch-setup` (plus `--commit` if the run was started with it, and `--defer-tests` when the run uses tests at the end and at least one more feature is still to be processed after this one; a feature completed with its tests deferred is written `✅ Completed (tests deferred) — <summary>`).
+  skill via the **Skill** tool, passing `<change-name> --skip-branch-setup` (plus `--commit` for one commit per feature, or the words `commit as the work goes` for a commit after each phase, as chosen in Step 2b, and `--defer-tests` when the run uses tests at the end and at least one more feature is still to be processed after this one; a feature completed with its tests deferred is written `✅ Completed (tests deferred) — <summary>`).
   This is a direct Skill invocation, not a backgrounded Agent call — it
   executes inline in this same turn, so any `AskUserQuestion`
   `feature-development` itself raises (its Phase 0 feature confirmation, a
@@ -350,5 +359,5 @@ that immediacy is the entire point of this report existing.
   bend it.
 
 - **Tests at the end is the user's choice, and it defers, never waives.**
-  `--defer-tests` is passed to `feature-development` only when the user asked for the tests to run once at the end of the batch, only for features that are not the last one still to be processed, and it moves only that skill's whole-suite test phase and end-to-end phase, never the writing of tests (a feature's new tests are still created in Phase 2): the review gate, the build, the spec compliance check, the docs sync, the archive and every commit still run for each feature.
+  `--defer-tests` is passed to `feature-development` only when the user chose the tests at the end, in the request or by answering Step 2b, only for features that are not the last one still to be processed, and it moves only that skill's whole-suite test phase and end-to-end phase, never the writing of tests (a feature's new tests are still created in Phase 2): the review gate, the build, the spec compliance check, the docs sync, the archive and every commit still run for each feature.
   Without that request the default stands and the tests run for every feature. The run is never reported as finished while deferred tests have not run (Step 6).
