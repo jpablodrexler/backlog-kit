@@ -37,6 +37,7 @@ run multiple fixes on it without committing between them; omit it for
 normal single-bug use. `--commit` is an explicit opt-in that the user (or an
 orchestrator acting on their request) passes to get one commit for this bug
 after it closes (Phase 7); without it nothing is committed.
+`--defer-tests` is for the batch skills, and only when the user asked for the tests to run once at the end of the batch ("test the whole batch at the end", "skip the tests except for the last one"): Phases 3 and 4 do not run for this bug (the whole-suite and end-to-end runs only: the regression test is still written and run in Phases 1 and 2) and are left to the last bug of the batch, which runs them in full over the whole shared branch (see "Deferring the tests to the end of a batch"). Never pass it by default, and never on the last bug.
 
 `<backlog>` is `docs/backlog` unless `.backlog-kit.toml` sets `[paths] backlog_dir`; `<reports>` is the `reports` folder next to the backlog's parent (`docs/reports` by default).
 
@@ -49,6 +50,10 @@ after it closes (Phase 7); without it nothing is committed.
 **Committing as you go.** `--commit` means one commit, at Phase 7. When the user asks instead to commit as the work goes, that request is the opt-in for a commit after each phase that changed files (Phase 1, Phase 2, the fixes of each review gate, Phases 3 to 5, Phase 6), each one made by `gitflow`'s commit action with the message `Fix <bug-id>: <phase> — <one-line summary>`;
 Phase 7 then commits only what is left, or records `COMMIT: nothing left`. The user's request stands in for the per-commit confirmation of the file list and message, but `gitflow` still makes every commit: no phase or subagent runs `git commit` itself.
 The review gate's scope follows the commit mode (see `reference/review-gate.md`, G0).
+
+**Deferring the tests to the end of a batch (`--defer-tests`).** An alternative to running the whole test suite and the end-to-end check once per bug, for a batch the user wants to finish faster: the batch skill runs every bug but the last with `--defer-tests`, and the last one without it. With the flag, Phase 3 records `TESTS: DEFERRED — to the last bug of the batch, by the user's decision` and Phase 4 records `E2E:
+DEFERRED — to the last bug of the batch, by the user's decision`; nothing is run for either. It defers the **execution** of the whole suites, never the **creation** of tests: the bug's regression test is still written first and run red, then green, in Phases 1 and 2, exactly as always. **Everything else runs as written**: the review gate, the build, the docs sync, the archive and every commit. The last bug's Phases 3 and 4 run in full over the whole shared branch, so they cover the deferred bugs too.
+What the user accepts: a break caused by an earlier bug is found only at the end (Phase 3 says how it is handled). The Final Summary names the deferral and never shows it as a pass.
 
 **Phase ledger.** Right after Phase 0, create a task list with one entry per phase and gate that applies (1, 2, 2R: G1 to G5, 3, 4, 5, 6, 7) and keep it current: an entry is completed when its signal was verified, or when it was skipped under its own stated condition with the reason written on the entry. The Final Summary is built from this list and is not shown while an entry is open.
 
@@ -186,8 +191,8 @@ the bug stays closed in the backlog, uncommitted.
 **Code review:** ✓ All findings resolved
 [if the viewport check ran:]
 **Viewport check:** ✓ <each configured phone viewport and the desktop viewport: verified, or ⚠ skipped — reason> — <what was checked/caught>
-**Tests:** ✓ <summary> (or **⚠ Partial:** <what was not run, by the user's decision> if `TESTS: PARTIAL`, or N/A — <reason> if skipped)
-**E2E:** ✓ <summary> (or N/A — <reason> if skipped, or ⚠ Partial: <what wasn't covered>)
+**Tests:** ✓ <summary> (or **⚠ Partial:** <what was not run, by the user's decision> if `TESTS: PARTIAL`, or **⇢ Deferred:** to the last bug of the batch (`--defer-tests`, by the user's decision) if `TESTS: DEFERRED`, or N/A — <reason> if skipped)
+**E2E:** ✓ <summary> (or N/A — <reason> if skipped, or ⚠ Partial: <what wasn't covered>, or **⇢ Deferred:** to the last bug of the batch (`--defer-tests`, by the user's decision) if `E2E: DEFERRED`)
 **Build:** ✓ <summary> (or N/A — <reason> if skipped)
 [if UNREVIEWED_PROD_FIXES was recorded:]
 **⚠ Unreviewed production fixes:** <the PROD_CODE_FIXED lines> — fixed while chasing test or build failures; the user chose to proceed without routing them back through the Phase 2R review gate.
@@ -202,8 +207,8 @@ the bug stays closed in the backlog, uncommitted.
 | 2 Fix | ✓ / ✗ |
 | 2R Code review (report path) | ✓ / ✗ |
 | 2R DB review / security review / viewport check (report paths) | ✓ / N/A — <the orchestrator's reason> |
-| 3 Tests | ✓ / N/A — <reason> |
-| 4 E2E | ✓ / N/A — <reason> |
+| 3 Tests | ✓ / N/A — <reason> / Deferred — to the last bug of the batch |
+| 4 E2E | ✓ / N/A — <reason> / Deferred — to the last bug of the batch |
 | 5 Build | ✓ / N/A — <reason> |
 | 6 Docs sync + archive | ✓ / ✗ |
 | 7 Commit | ✓ / N/A — not requested |
@@ -231,7 +236,7 @@ If no commit was requested: nothing was committed. The fix (and its regression t
   through the AskUserQuestion decision point, never worked around by
   skipping straight to a speculative fix.
 - Do not start a phase until the prior phase's subagent returns its
-  expected signal (`TESTS`/`E2E`/`BUILD`: `PASS` or `SKIPPED` for the optional phases, and `TESTS: PARTIAL` when the user chose to skip part of a suite). On any `*_BLOCKED`, surface details and wait for user
+  expected signal (`TESTS`/`E2E`/`BUILD`: `PASS` or `SKIPPED` for the optional phases, `TESTS: PARTIAL` when the user chose to skip part of a suite, and `TESTS: DEFERRED` / `E2E: DEFERRED` when `--defer-tests` was passed). On any `*_BLOCKED`, surface details and wait for user
   guidance — never retry automatically.
 - **Missing signal fallback**: a subagent that returns without its
   expected signal is treated as `BLOCKED`; surface its raw response and
@@ -259,6 +264,7 @@ If no commit was requested: nothing was committed. The fix (and its regression t
 - **`--skip-branch-setup` (batch mode) only affects Phase 1 Step 1.** No
   other phase changes — Phases 2–6 already operate on "whatever branch is
   checked out". This flag is only ever passed by `bugs-batch-fix`.
+- **`--defer-tests` defers, it never waives.** Only Phases 3 and 4 may be deferred (the whole-suite run and the end-to-end verification: never the regression test of Phases 1 and 2), only because the user asked for the tests at the end of the batch (through a batch skill), never on the last bug of the batch, and never on this skill's own judgment. A deferred bug is not tested: its summary says `Deferred`, never `✓`, and the review gate, the build, the docs sync, the archive and the commits still run for it.
 - **Auto Mode never overrides a required confirmation** — Phase 0's bug
   selection, the cannot-reproduce decision point, the
   `PROD_CODE_FIXED` choice, the E2E credential-source question, and any post-`*_BLOCKED` guidance prompt all still stop and wait for a real

@@ -4,6 +4,8 @@ _Part of the `feature-development` skill — see `../SKILL.md` for the overview,
 
 ## Phase 4 — E2E Verification (Subagent 4, conditional)
 
+**With `--defer-tests`** (a batch where the user asked for the tests at the end): do nothing here, and do not ask the test-account question, since nothing runs. Record `E2E: DEFERRED — to the last feature of the batch, by the user's decision` and go to Phase 5. The last feature of the batch is called without the flag and runs this phase as written.
+
 **This phase is optional: skip it when the project has no end-to-end or
 browser suite, or when the change touches no user-facing flow.** Find out the
 first yourself (orchestrator): the project's `CLAUDE.md`, `README` and build

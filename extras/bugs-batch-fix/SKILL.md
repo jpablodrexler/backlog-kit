@@ -37,7 +37,8 @@ prefix over.
 between bugs). Either (a) an ordered list of Bug IDs (e.g. "BUG-004, BUG-007,
 BUG-009"), or (b) a request for **the whole open backlog** ("fix every
 open bug", "the whole bug backlog"). Optionally a branch name to use or
-resume; if omitted, one is proposed and confirmed.
+resume; if omitted, one is proposed and confirmed. Optionally **tests at the end**, an alternative workflow the user asks for ("test the whole batch at the end", "skip the tests except for the last bug"): the loop passes `--defer-tests` to every `bug-fix` call except the last bug still to be processed, and that last call runs the test and end-to-end phases in full over the whole shared branch.
+Only the whole-suite and end-to-end runs move: every bug still writes and runs its own regression test in Phases 1 and 2. Without that request the default stands: the tests run for every bug. The commit cadence and this choice are asked once, before the loop, when the request does not state them (Step 2b).
 
 ---
 
@@ -121,11 +122,20 @@ recorded "Requested bugs" list overlaps substantially with the new one.
 Confirm `git branch --show-current` matches the intended branch before
 Step 3.
 
+### 2b. Ask for the run options the request left open
+
+Two choices shape the whole run, and each takes a few words to state, so no long prompt is needed: ask for them here, once, before the loop starts, instead of assuming.
+
+- **Commits.** The request may already say it ("commit as you go", "one commit per bug", "no commits"): take that answer and do not ask. Otherwise ask: **No commits** (nothing is committed; the user reviews the working tree), **One commit per bug** (`--commit`, made by `gitflow` through `bug-fix`), or **Commit as the work goes** (a `gitflow` commit after each phase that changed files; each `bug-fix` call is told "commit as the work goes").
+- **Tests.** The request may already say it ("test the whole batch at the end", "run the tests for every bug"): take that answer and do not ask. Otherwise ask: **Tests for every bug** (the default) or **Tests once, at the end of the batch** (`--defer-tests` on every bug but the last; the review gate, the build and the commits still run for each bug).
+
+Ask whatever is open in one `AskUserQuestion` call (two questions), and make no call when the request settled both. An explicit request is the confirmation: never ask the user to confirm what they already said. Record the two answers in the report header (Step 3). The run is built for long unattended stretches, so this is the last question before the loop, apart from the decision points `bug-fix` itself raises.
+
 ### 3. Initialize or resume the report
 
 **Fresh run**: write the report now (path/format below), listing every
 requested Bug ID as `⬜ Not started`, plus a header with the branch name,
-the full requested list, and a start timestamp.
+the full requested list, the run options chosen in Step 2b (commits, tests), and a start timestamp.
 
 **Resume**: reopen the existing report. Never overwrite it or its
 already-`✅ Closed` entries — only append/update from where it left off.
@@ -138,7 +148,7 @@ For each Bug ID in the requested list not already `✅ Closed`, in order:
   before** invoking `bug-fix` (this write happens first). No summary text
   yet — it exists purely so a crash leaves a trace of what was underway.
   Then invoke `bug-fix` via the **Skill** tool, passing `<BUG-ID>
-  --skip-branch-setup` (plus `--commit` if the run was started with it). A direct Skill invocation, executing inline this
+  --skip-branch-setup` (plus `--commit` for one commit per bug, or the words `commit as the work goes` for a commit after each phase, as chosen in Step 2b, and `--defer-tests` when the run uses tests at the end and at least one more bug is still to be processed after this one; a bug closed with its tests deferred is written `✅ Closed (tests deferred) — <summary>`). A direct Skill invocation, executing inline this
   turn — never a backgrounded Agent call — so any `AskUserQuestion`
   `bug-fix` raises (Phase 0 confirmation, the cannot-reproduce decision,
   a `PROD_CODE_FIXED` choice, blocker guidance) reaches the user. Wait for
@@ -174,6 +184,9 @@ sentences, never more.
 Whether the loop finished or stopped early, append a footer: counts
 (requested / closed / cannot-reproduce / blocked or skipped / not reached)
 and an end timestamp.
+
+Tests at the end (only when the user asked for it). If the run used the alternative workflow of testing the whole batch at the end, say so plainly in chat and in the report: which bugs had their tests deferred, and whether the last bug's run covered them.
+If the run ended before a last bug ran the test and end-to-end phases (it was blocked, skipped, left open or the user stopped the run), the deferred tests have **not** run: list the bugs concerned and ask (**AskUserQuestion**) whether to run them now. If yes, run `bug-fix`'s test phase and end-to-end phase yourself, as the orchestrator, over the whole shared branch (read its own test-phase, end-to-end-phase and long-runs reference files), and record the result in the report. Never end the run as finished while deferred tests have not run.
 
 Tell the user plainly, in chat and in the report, what was committed.
 Without `--commit`: **nothing was committed at any point.** The branch holds every closed bug's fix and regression
@@ -259,3 +272,7 @@ immediacy is the entire point of this report.
   `bug-fix`'s own per-bug selection and cannot-reproduce and blocker
   prompts. The premise is a long unattended run that still checks in at
   genuine decision points.
+
+- **Tests at the end is the user's choice, and it defers, never waives.**
+  `--defer-tests` is passed to `bug-fix` only when the user chose the tests at the end, in the request or by answering Step 2b, only for bugs that are not the last one still to be processed, and it moves only that skill's whole-suite test phase and end-to-end phase, never the writing of tests (a bug's red-then-green regression test stays): the review gate, the build, the docs sync, the archive and every commit still run for each bug.
+  Without that request the default stands and the tests run for every bug. The run is never reported as finished while deferred tests have not run (Step 6).
