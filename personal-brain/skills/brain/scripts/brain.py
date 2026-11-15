@@ -10,6 +10,15 @@ counting, searching and bookkeeping (mechanics). It never runs git.
     python3 brain.py recent [--limit N]
     python3 brain.py index
     python3 brain.py check
+    python3 brain.py memory [--project PATH] [--claude-home DIR]
+    python3 brain.py journal [--date YYYY-MM-DD] [--host NAME]
+
+`journal` prints today's journal file for THIS machine (journal/<date>-<machine>.md), so two PCs
+sharing one synced brain never write the same file; `check` also flags files that look like a sync
+conflict (a "conflicted copy" next to the note it copies).
+
+`memory` is read-only: it lists the Claude Code auto-memory files of a project, to migrate
+them into the brain (see "Migrate Claude Code memory" in SKILL.md).
 
 The brain folder is --dir, else $BRAIN_DIR, else on Windows a "brain" folder inside
 the OneDrive folder (when there is one), else ~/brain.
@@ -18,8 +27,10 @@ import argparse
 import json
 import os
 import re
+import socket
 import sys
 import unicodedata
+from datetime import date
 from pathlib import Path
 
 AREAS = ("projects", "topics", "decisions", "people", "journal", "inbox")
@@ -38,7 +49,7 @@ One note per subject, in markdown, with a short front matter.
 | `topics/` | Things learned about a subject, reusable across projects |
 | `decisions/` | A choice, the alternatives rejected and why |
 | `people/` | Who someone is, what they own, how to work with them |
-| `journal/` | `YYYY-MM-DD.md`, one dated entry per work session |
+| `journal/` | `YYYY-MM-DD-<machine>.md`, one dated entry per work session on that machine |
 | `inbox/` | Raw captures not filed yet |
 
 `INDEX.md` is generated (`brain.py index`); do not edit it by hand.
@@ -132,6 +143,42 @@ def snippets(note, terms, n=2):
             if len(out) == n:
                 break
     return out
+
+
+def host_slug(host=None):
+    """A file-name safe, lowercase name of this machine ('DESKTOP-AB12' -> 'desktop-ab12')."""
+    slug = re.sub(r"[^a-z0-9]+", "-", norm(host or socket.gethostname())).strip("-")
+    return slug or "pc"
+
+
+def journal_file(day=None, host=None):
+    """Brain-relative path of the journal file for a day on this machine. One file per day AND
+    machine, so two PCs syncing the same brain never write the same file."""
+    return f"journal/{day or date.today().isoformat()}-{host_slug(host)}.md"
+
+
+# A sync client's copy of a file it could not merge: "x-DESKTOP-AB12.md" (OneDrive writes the
+# computer name), "x (1).md", "x (Ann's conflicted copy 2026-11-15).md" (Dropbox),
+# "x.sync-conflict-20261115-101010-ABCDEFG.md" (Syncthing).
+CONFLICT = re.compile(r"^(?P<base>.+?)(?:\s*\([^)]*[Cc]onflict[^)]*\)|\.sync-conflict-.+| \(\d+\)|-[A-Z0-9][A-Z0-9-]{2,})$")
+
+
+def find_conflicts(root):
+    """-> [(copy, original)] brain-relative paths of files that look like a sync conflict copy of a
+    note that is still there. A guess: the original must exist next to it."""
+    found = []
+    for p in sorted(root.rglob("*.md")):
+        rel = p.relative_to(root)
+        if any(part.startswith(".") for part in rel.parts):
+            continue
+        m = CONFLICT.match(p.stem)
+        if m and (p.parent / (m.group("base") + ".md")).is_file():
+            found.append((rel.as_posix(), (rel.parent / (m.group("base") + ".md")).as_posix()))
+    return found
+
+
+def cmd_journal(a):
+    print(journal_file(a.date, a.host))
 
 
 def cmd_where(a):
@@ -238,11 +285,39 @@ def cmd_check(a):
     for t, ps in titles.items():
         if len(ps) > 1:
             problems.append("same title in " + ", ".join(ps))
+    for copy, original in find_conflicts(root):
+        problems.append(f"{copy}: looks like a sync conflict copy of {original}: compare both, merge by hand, then delete the copy"
+                        + (" (INDEX.md is generated: delete the copy and run `brain.py index`)" if original == INDEX else ""))
     idx = root / INDEX
     if not idx.is_file() or any(f"]({p})" not in idx.read_text(encoding="utf-8") for p in paths):
         problems.append(f"{INDEX} is stale: run `brain.py index`")
     print("\n".join(problems) if problems else f"ok: {len(notes)} notes")
     sys.exit(1 if problems else 0)
+
+
+def memory_dir(project, claude_home):
+    """Where Claude Code keeps the auto-memory of a project: every character of the project's
+    absolute path that is not a letter or digit becomes `-` (C:\\Dev\\app -> C--Dev-app)."""
+    return Path(claude_home) / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(project)) / "memory"
+
+
+def cmd_memory(a):
+    """List a project's Claude Code memory files (read-only; never edits or deletes them)."""
+    project = Path(a.project).resolve() if a.project else Path.cwd()
+    home = a.claude_home or os.environ.get("CLAUDE_HOME") or Path.home() / ".claude"
+    d = memory_dir(project, home)
+    print(f"project: {project}\nmemory dir: {d}")
+    if not d.is_dir():
+        print("no memory folder for this project")
+        return
+    files = sorted(p for p in d.glob("*.md") if p.name != "MEMORY.md")
+    print(f"MEMORY.md: {'present' if (d / 'MEMORY.md').is_file() else 'missing'}; {len(files)} memory file(s)")
+    for p in files:
+        text = p.read_text(encoding="utf-8", errors="replace")
+        meta, body = parse(text)
+        nested = re.search(r"^[ \t]+type:[ \t]*(\S+)", text, re.M)       # `type:` sits under `metadata:`
+        kind = meta.get("type") or (nested.group(1) if nested else "")
+        print(f"- {p.name} [{kind}] {meta.get('name', '')}: {meta.get('description', '')} ({len(body.split())} words)")
 
 
 def main(argv=None):
@@ -263,6 +338,14 @@ def main(argv=None):
     r.set_defaults(fn=cmd_recent)
     sub.add_parser("index").set_defaults(fn=cmd_index)
     sub.add_parser("check").set_defaults(fn=cmd_check)
+    j = sub.add_parser("journal")
+    j.add_argument("--date", help="YYYY-MM-DD (default: today)")
+    j.add_argument("--host", help="machine name (default: this machine's hostname)")
+    j.set_defaults(fn=cmd_journal)
+    m = sub.add_parser("memory")
+    m.add_argument("--project", help="project folder whose memory to list (default: the current folder)")
+    m.add_argument("--claude-home", help="Claude Code folder (default $CLAUDE_HOME or ~/.claude)")
+    m.set_defaults(fn=cmd_memory)
     a = ap.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")       # accents survive a Windows console code page

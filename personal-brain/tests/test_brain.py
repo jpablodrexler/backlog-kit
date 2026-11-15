@@ -99,6 +99,96 @@ class DefaultDirTest(unittest.TestCase):
         self.assertEqual(self.m.brain_dir("/y/b", env=env, platform="win32", home=self.home), Path("/y/b"))
 
 
+class MemoryCommandTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.b = Path(self.tmp.name) / "brain"
+        run(self.b, "init")
+
+    def test_memory_lists_a_projects_claude_memory_without_touching_it(self):
+        home = Path(self.tmp.name) / "claude"
+        project = (Path(self.tmp.name) / "My App").resolve()
+        enc = "".join(c if c.isalnum() else "-" for c in str(project))
+        mem = home / "projects" / enc / "memory"
+        mem.mkdir(parents=True)
+        (mem / "MEMORY.md").write_text("- [Rule](feedback_rule.md) - hook\n", encoding="utf-8")
+        (mem / "feedback_rule.md").write_text(
+            "---\nname: rule-one\ndescription: Always run the skills as written\nmetadata:\n  type: feedback\n---\n\nBody of the rule.\n",
+            encoding="utf-8")
+        out = run(self.b, "memory", "--project", str(project), "--claude-home", str(home)).stdout
+        self.assertIn("feedback_rule.md", out)
+        self.assertIn("rule-one", out)
+        self.assertIn("Always run the skills as written", out)
+        self.assertIn("1 memory file", out)
+        self.assertNotIn("Body of the rule", out)                      # lists, does not dump contents
+        self.assertTrue((mem / "feedback_rule.md").is_file())          # read-only
+
+    def test_memory_says_so_when_the_project_has_no_memory_folder(self):
+        home = Path(self.tmp.name) / "claude"
+        out = run(self.b, "memory", "--project", str(Path(self.tmp.name) / "none"), "--claude-home", str(home)).stdout
+        self.assertIn("no memory folder", out)
+
+
+class SeveralPcsTest(unittest.TestCase):
+    """Two PCs sharing one synced brain: per-machine journal files and sync-conflict detection."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.b = Path(self.tmp.name) / "brain"
+        run(self.b, "init")
+
+    def test_journal_file_is_per_day_and_machine(self):
+        out = run(self.b, "journal", "--date", "2026-11-15", "--host", "DESKTOP-TBBREK0").stdout.strip()
+        self.assertEqual(out, "journal/2026-11-15-desktop-tbbrek0.md")
+        other = run(self.b, "journal", "--date", "2026-11-15", "--host", "Gaming PC!").stdout.strip()
+        self.assertEqual(other, "journal/2026-11-15-gaming-pc.md")
+        self.assertNotEqual(out, other)                              # two machines never share a file
+
+    def test_journal_defaults_to_today_on_this_machine(self):
+        out = run(self.b, "journal").stdout.strip()
+        self.assertRegex(out, r"^journal/\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$")
+
+    def test_check_flags_sync_conflict_copies_only(self):
+        note(self.b, "projects/a/x.md", "X note", "The original", "text")
+        note(self.b, "projects/a/x-DESKTOP-ABC1.md", "X note copy", "OneDrive copy", "text")
+        note(self.b, "projects/a/y.md", "Y note", "The original y", "text")
+        note(self.b, "projects/a/y (1).md", "Y note copy", "numbered copy", "text")
+        note(self.b, "projects/a/z.md", "Z note", "The original z", "text")
+        note(self.b, "projects/a/z (Ann's conflicted copy 2026-11-15).md", "Z note copy", "Dropbox copy", "text")
+        # legitimate names that must not be flagged
+        note(self.b, "journal/2026-11-15.md", "Journal old", "old style journal", "text")
+        note(self.b, "journal/2026-11-15-my-pc.md", "Journal my pc", "per-machine journal", "text")
+        note(self.b, "projects/a/api.md", "Api", "api note", "text")
+        note(self.b, "projects/a/api-v2.md", "Api v2", "a different note", "text")
+        run(self.b, "index")
+        p = run(self.b, "check", ok=False)
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("projects/a/x-DESKTOP-ABC1.md: looks like a sync conflict copy of projects/a/x.md", p.stdout)
+        self.assertIn("projects/a/y (1).md: looks like a sync conflict copy of projects/a/y.md", p.stdout)
+        self.assertIn("conflicted copy 2026-11-15).md: looks like a sync conflict copy of projects/a/z.md", p.stdout)
+        for fine in ("journal/2026-11-15-my-pc.md", "api-v2.md"):
+            self.assertNotIn(fine + ": looks like", p.stdout)
+
+    def test_a_note_whose_original_is_gone_is_not_a_conflict(self):
+        note(self.b, "projects/a/solo-DESKTOP-ABC1.md", "Solo", "no original beside it", "text")
+        run(self.b, "index")
+        self.assertIn("ok:", run(self.b, "check").stdout)
+
+    def test_conflicted_index_copy_says_to_rebuild(self):
+        run(self.b, "index")
+        (self.b / "INDEX-DESKTOP-ABC1.md").write_text("# copy\n", encoding="utf-8")
+        p = run(self.b, "check", ok=False)
+        self.assertIn("INDEX-DESKTOP-ABC1.md: looks like a sync conflict copy of INDEX.md", p.stdout)
+        self.assertIn("delete the copy and run `brain.py index`", p.stdout)
+
+    def test_auto_save_prompt_uses_the_machine_journal(self):
+        src = (ROOT / "skills/brain/scripts/session_end.py").read_text(encoding="utf-8")
+        self.assertIn("{journal}", src)
+        self.assertNotIn("journal/{today}.md", src)
+
+
 if __name__ == "__main__":
     unittest.main()
 
