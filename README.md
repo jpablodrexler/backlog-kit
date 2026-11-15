@@ -4,7 +4,15 @@
 
 **Your backlog is plain markdown in the repo, and Claude works it to done through quality gates. Nothing is committed without you.**
 
-A small set of [Claude Code](https://claude.com/claude-code) skills that take a feature (or a bug) from idea to a verified, archived result: features and bugs live as markdown tables plus one brief per item under `docs/backlog/`, and the work follows git-flow branches. No server, no database, no config required.
+- **Plan it:** features and bugs are rows in a markdown table plus one brief each (a user story with acceptance criteria), under `docs/backlog/`.
+- **Build it:** one request takes an item from branch to implementation, review, tests, spec check and archive, with each phase in its own subagent.
+- **Keep control:** the result stays uncommitted on a branch for you to review. There is no server, database or config to set up.
+
+<!-- Demo GIF: record it (see the storyboard in the PR/notes), save as docs/demo.gif, then uncomment:
+![A terminal session: planning a feature, developing it through the review gate, and ending with uncommitted changes on a feature branch.](docs/demo.gif)
+-->
+
+[Quick start](#quick-start) · [How it compares](#why-this-and-not-something-else) · [The loop](#the-loop) · [In use](#in-use)
 
 ## Quick start
 
@@ -12,6 +20,8 @@ A small set of [Claude Code](https://claude.com/claude-code) skills that take a 
 /plugin marketplace add jpablodrexler/backlog-kit
 /plugin install backlog-kit@backlog-kit
 ```
+
+A small set of [Claude Code](https://claude.com/claude-code) skills that take a feature (or a bug) from idea to a verified, archived result: features and bugs live as markdown tables plus one brief per item under `docs/backlog/`, and the work follows git-flow branches.
 
 Then just talk to Claude:
 
@@ -37,6 +47,13 @@ It doubles as a worked example, so you can see what the files look like before i
 - [A feature brief](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/JPPhotoManagerWeb/docs/backlog/features/005-refresh-token.md): a user story with acceptance criteria, the text `feature-development` builds from.
 - [`.backlog-kit.toml`](https://github.com/jpablodrexler/jp-photo-manager/blob/develop/.backlog-kit.toml): the one setting this project needs, where its backlog lives.
 - [`.claude/skills/`](https://github.com/jpablodrexler/jp-photo-manager/tree/develop/.claude/skills): the kit's skills as installed by copy (`tools/install.py`), next to the project's own stack skills.
+
+## Why this and not something else
+
+- **Instead of GitHub Issues, Linear or Jira:** the backlog lives in the repo, so Claude reads and updates it with the code, and it shows up in diffs and PRs. There is no sync, API token or second tool. If your team already works in an issue tracker, `backlog-import` pulls open issues in, reviewed one by one.
+- **Instead of a long `CLAUDE.md` or an ad-hoc prompt:** the workflow is split into small skills with fixed phases and gates. A review always runs, each report is checked before the next step, and every requirement is proven against the spec before the item is archived. A single prompt can skip those steps. These skills can't.
+- **Alongside OpenSpec:** the kit does not replace it. If the repo has an `openspec/` folder, the spec comes from there. Otherwise the feature brief is the spec.
+- **Not a project-management suite:** there are no boards, assignees or notifications. It fits one person, or a small team that is already working in git.
 
 ## The core (18 skills)
 
